@@ -1,0 +1,222 @@
+import { Character, Genre, Quote, CreatorProfile, WebsiteSettings, MusicTrack, CommissionSettings } from '../types';
+
+export const INITIAL_GENRES: Genre[] = [];
+
+function createEmptyCharacter(id: string, name: string, code: string, order: number): Character {
+  return {
+    id,
+    name,
+    code,
+    originalNovelTitle: '',
+    originalChineseName: '',
+    isPublished: true,
+    tagline: '',
+    genreIds: [],
+    avatarUrl: '',
+    coverUrl: '',
+    posterUrl: '',
+    posterObjectPosition: '50% 25%',
+    synopsis: '',
+    synopsisImageUrl: '',
+    profileData: {
+      alias: '',
+      role: '',
+      age: '',
+      birthday: '',
+      height: '',
+      affiliation: '',
+      weapon: '',
+      status: '',
+      quote: '',
+      notes: '',
+      aliasLabel: 'Biệt danh / Danh xưng',
+      ageLabel: 'Tuổi / Ngày sinh',
+      heightLabel: 'Chiều cao / Ngoại hình',
+      affiliationLabel: 'Xuất thân / Bối cảnh',
+      weaponLabel: 'Đặc điểm / Sở thích',
+      statusLabel: 'Tính cách / Khí chất',
+      roleLabel: 'Thân phận & Thể loại'
+    },
+    npcs: [],
+    roleplayLink: '',
+    isRoleplayLocked: false,
+    roleplayUnlockQuestion: '',
+    roleplayUnlockAnswer: '',
+    gallery: [],
+    views: 0,
+    likes: 0,
+    featured: true,
+    order,
+    createdAt: '2026-10-30T10:00:00.000Z',
+    updatedAt: '2026-10-30T10:00:00.000Z'
+  };
+}
+
+export const INITIAL_CHARACTERS: Character[] = [
+  {
+    id: 'nguy-tu-viet',
+    name: 'Ngụy Tứ Việt',
+    code: 'BA-01',
+    originalNovelTitle: 'Nam Thành Vị Vãn',
+    originalChineseName: '越',
+    isPublished: true,
+    tagline: 'Trùm trường Nam Thành · Võ sĩ quyền Anh',
+    genreIds: [],
+    avatarUrl: '',
+    coverUrl: '',
+    posterUrl: '',
+    posterObjectPosition: '50% 25%',
+    synopsis: '', // Không can thiệp văn án
+    synopsisImageUrl: '',
+    profileData: {
+      alias: 'Trùm trường Nam Thành · Học sinh cá biệt',
+      role: 'Học sinh khối 12 · Võ sĩ quyền Anh',
+      age: '18',
+      gender: 'Nam',
+      birthday: 'Năm cuối cấp, không cùng lớp với bạn',
+      height: '188 cm',
+      weight: '73 kg',
+      school: 'Trung học Nam Thành',
+      grade: 'Năm cuối cấp, không cùng lớp với bạn',
+      affiliation: 'Trung học Nam Thành (Khách quen phòng giáo viên)',
+      weapon: 'Quyền Anh, chạy bộ buổi sáng · Không phân biệt trái phải',
+      status: 'Ngông nghênh, bất cần, nghịch ngợm, cứng đầu, mặt dày và đặc biệt giỏi chọc tức người khác',
+      reputation: 'Trùm trường Nam Thành, học sinh cá biệt có tiếng, khách quen của phòng giáo viên và được biết đến với thành tích chưa từng thua trong những cuộc đối đầu tay đôi.',
+      quote: '“Ván này, anh chưa nhận thua.”',
+      notes: 'Ngông nghênh, bất cần, nghịch ngợm, cứng đầu, mặt dày và đặc biệt giỏi chọc tức người khác.',
+      appearance: 'Ngụy Tứ Việt cao ráo, vai rộng vừa phải, eo thon và đôi chân dài. Thân hình săn chắc nhờ luyện quyền Anh đều đặn, cơ bụng sáu múi rõ nhưng không quá đồ sộ. Hắn có khuôn mặt thon dài vừa phải, đường hàm gọn, đôi mắt nâu đen với mí trên hơi thấp và hàng lông mày tương đối thẳng. Tóc đen dày, cắt tỉa nhiều lớp, phần mái thường rủ lộn xộn xuống trán.\n\nĐẹp trai theo kiểu thiếu niên sáng sủa, có chút ngông nghênh và lười nhác. Ngụy Tứ Việt biết rõ mình có ngoại hình nổi bật, thậm chí còn rất tự tin về chuyện đó.\n\nThường mặc đồng phục thể thao của trường một cách tùy tiện. Bình thường trông lúc nào cũng uể oải, nhưng khi bước lên sàn tập, động tác lại nhanh và dứt khoát đến bất ngờ.',
+      personality: 'Ngông nghênh, bất cần, nghịch ngợm, cứng đầu, mặt dày và đặc biệt giỏi chọc tức người khác.\n\nNgụy Tứ Việt không có hứng thú làm học sinh gương mẫu. Hắn thích ngủ trong lớp, trốn tiết, bày trò cùng bạn bè và chống chế với giáo viên bằng những lý lẽ nghe qua tưởng hợp lý, nghĩ kỹ lại chỉ muốn đập bàn.\n\nTính tình khá tùy ý, không thích bị quản thúc hay thuyết giáo. Người khác càng nghiêm túc, đôi khi hắn càng có khả năng trả lời bằng một câu tỉnh bơ khiến đối phương nghẹn họng.\n\nTuy nhiên, hắn không phải kiểu trùm trường chuyên bắt nạt học sinh yếu thế, càng không phải một kẻ suốt ngày tìm người đánh nhau để chứng minh bản lĩnh. Hắn thích vui, thích tự do và thường xuyên gây ra những chuyện dở khóc dở cười.\n\nĐối với quyền Anh, Ngụy Tứ Việt lại có sự kiên trì hiếm thấy. Hắn có thể lười làm bài tập Toán, nhưng không dễ dàng bỏ một buổi luyện tập đã lên lịch.',
+      hobbies: 'Quyền Anh, chạy bộ buổi sáng, trêu chọc bạn bè, những trò nghịch bất ngờ và các bữa ăn tự nấu đơn giản.',
+      dislikes: 'Đậu phụ, đồ ngọt, món ăn cay, những bài thuyết giáo dài dòng và việc bị người khác quản thúc.',
+      allergies: 'Phấn hoa. Tiếp xúc với phấn hoa có thể khiến hắn hắt hơi liên tục, đỏ cả mũi lẫn mặt.',
+      habits: [
+        'Không thích mang cặp sách đến trường vì thấy nặng vai và phiền phức.',
+        'Thích ngủ trong lớp, nhưng vẫn duy trì thói quen dậy sớm chạy bộ và tập quyền Anh.',
+        'Biết nấu ăn, thường tự mua nguyên liệu rồi chuẩn bị những bữa ăn đơn giản.',
+        'Khi vui, có thể nháy mắt, tặc lưỡi hoặc buông những câu trêu chọc rất tỉnh.',
+        'Khi buồn, hắn thường ít nói hơn và có xu hướng tìm một nơi riêng để ngồi yên.'
+      ],
+      specialNote: 'Ngụy Tứ Việt không phân biệt trái và phải một cách đáng tin cậy. Chỉ đường cho hắn rẽ trái, chưa chắc hắn đã đi đúng hướng. Bảo hắn quay sang phải, rất có thể người cần quay lại giải thích là bạn. Điều kỳ lạ là khả năng phản xạ và di chuyển trên sàn quyền Anh của hắn vẫn rất tốt.',
+      family: 'Không còn bố mẹ. Người thầy dạy quyền Anh từng hỗ trợ hắn trong việc nhập học và những thủ tục cần thiết. Ngụy Tứ Việt không có thói quen đem hoàn cảnh cá nhân ra làm lý do cho những trò nghịch của mình.',
+      relationshipStatus: 'Người yêu cũ',
+      relationshipWithUser: 'Tình trạng: Người yêu cũ.\n\nBạn từng công khai theo đuổi Ngụy Tứ Việt vì một vụ cá cược. Hắn đồng ý hẹn hò, hai người chính thức yêu nhau được hai tháng trước khi bạn chủ động nói lời chia tay.\n\nNăm tuần sau, những ảnh chụp màn hình liên quan đến vụ cá cược bị tiết lộ. Ngụy Tứ Việt cuối cùng cũng biết mình từng là đối tượng của một lời thách thức.\n\nNhưng thay vì tránh mặt hoặc tìm cách trả đũa, hắn lại bắt đầu xuất hiện trong cuộc sống của bạn với tần suất đáng ngờ.\n\nHỏi bạn bè cách theo đuổi người yêu cũ, lên mạng tìm kinh nghiệm, thậm chí còn đăng confession ẩn danh để xin lời khuyên. Vấn đề là cả trường đọc xong đều có thể đoán ra người đăng bài là ai.\n\nHắn có thể công khai theo đuổi, nháy mắt khi gặp bạn, kiếm cớ bắt chuyện hoặc nghĩ ra những trò hết sức khó đỡ để thu hút sự chú ý.\n\nNhưng rốt cuộc Ngụy Tứ Việt đang muốn điều gì? Không cam lòng, tò mò, muốn đảo ngược tình thế hay thật sự muốn bắt đầu lại?',
+      aliasLabel: 'Danh tiếng / Biệt danh',
+      ageLabel: 'Tuổi / Giới tính',
+      heightLabel: 'Chiều cao / Cân nặng',
+      affiliationLabel: 'Trường học / Khối lớp',
+      weaponLabel: 'Nghề nghiệp / Sở trường',
+      statusLabel: 'Tính cách đặc trưng',
+      roleLabel: 'Danh tiếng / Vị thế'
+    },
+    npcs: [
+      {
+        id: 'npc-tan-thuoc',
+        name: 'Tần Thước',
+        role: 'Bạn thân',
+        description: 'Bạn thân thường xuyên bị Ngụy Tứ Việt chọc đến phát cáu. Hai người có thể cãi nhau vì những chuyện hết sức vô nghĩa.',
+        avatarUrl: ''
+      },
+      {
+        id: 'npc-chu-tan',
+        name: 'Chu Tấn',
+        role: 'Bạn thân',
+        description: 'Người bạn bình tĩnh hơn trong nhóm, đôi khi đứng ngoài xem hai đứa còn lại gây chuyện, nhưng cũng không phải lúc nào cũng chịu dọn hậu quả giúp họ.',
+        avatarUrl: ''
+      },
+      {
+        id: 'npc-thay-quyen-anh',
+        name: 'Thầy dạy quyền Anh',
+        role: 'Người thầy / Giám hộ',
+        description: 'Người thầy dạy quyền Anh từng hỗ trợ Ngụy Tứ Việt trong việc nhập học và các thủ tục cần thiết khi không còn bố mẹ.',
+        avatarUrl: ''
+      }
+    ],
+    roleplayLink: '',
+    isRoleplayLocked: false,
+    roleplayUnlockQuestion: '',
+    roleplayUnlockAnswer: '',
+    gallery: [],
+    views: 0,
+    likes: 0,
+    featured: true,
+    order: 1,
+    createdAt: '2026-10-30T10:00:00.000Z',
+    updatedAt: new Date().toISOString()
+  },
+  createEmptyCharacter('gian-di-ninh', 'Giản Dĩ Ninh', 'BA-02', 2),
+  createEmptyCharacter('chu-lac-thien', 'Chu Lạc Thiên', 'BA-03', 3),
+  createEmptyCharacter('luc-tu-hien', 'Lục Từ Hiên', 'BA-04', 4),
+  createEmptyCharacter('phan-quy-man', 'Phan Quý Mẫn', 'BA-05', 5)
+];
+
+export const INITIAL_QUOTES: Quote[] = [];
+
+export const INITIAL_CREATOR_PROFILE: CreatorProfile = {
+  penName: 'TAOIUOI',
+  bio: 'Nhà sáng tạo độc lập, tác giả của tiểu thuyết và vũ trụ nhân vật BLACK APPLE. Tập trung vào việc xây dựng những câu chuyện có chiều sâu tâm lý, mỹ học noir đương đại, và những nhân vật phức tạp giàu cảm xúc.',
+  quote: 'Nghệ thuật không chỉ để chiêm ngưỡng, nó là nơi trú ẩn cho những linh hồn đồng điệu giữa thế giới hỗn loạn.',
+  avatarUrl: '',
+  coverUrl: '',
+  introImageUrl: '',
+  donateQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://me.momo.vn/blackapple',
+  facebookUrl: 'https://facebook.com',
+  discordUrl: 'https://discord.gg',
+  instagramUrl: 'https://instagram.com',
+  email: 'anhitoo8@gmail.com',
+  supportText: 'Sự ủng hộ tinh thần và tài chính từ bạn giúp dự án BLACK APPLE tiếp tục ra mắt những chương truyện, hình minh họa chất lượng cao và phát triển thế giới nhân vật phong phú hơn.'
+};
+
+export const INITIAL_SETTINGS: WebsiteSettings = {
+  siteTitle: 'BLACK APPLE',
+  logoUrl: '',
+  faviconUrl: '',
+  bannerNotice: 'Chào mừng bạn đến với vũ trụ nhân vật BLACK APPLE.',
+  footerText: '© 2026 BLACK APPLE. Mọi quyền tác phẩm và hồ sơ nhân vật được bảo lưu bởi TAOIUOI.'
+};
+
+export const INITIAL_TRACKS: MusicTrack[] = [
+  {
+    id: 'track-yt-pZEMAZyeFiE',
+    title: '𝐏𝐥𝐚𝐲𝐥𝐢𝐬𝐭 Instantly Hooked, Insanely Good Vibe 🎧 | Chill Hip-Hop R&B · chill · mood',
+    artist: 'afteraw',
+    audioUrl: 'https://youtu.be/pZEMAZyeFiE?si=PU7sgQwHg-gk5bz2',
+    duration: '58:42',
+    isDefault: true,
+    order: -1
+  },
+  {
+    id: 'track-yt-drill-mien',
+    title: 'Drill Miên — 阿YueYue (Gaz Mix)',
+    artist: 'Gaz Official',
+    audioUrl: 'https://youtu.be/IyrjPo_6oVE?si=mWJUmudMJfHEglaj',
+    duration: '03:24',
+    isDefault: false,
+    order: 1
+  },
+  {
+    id: 'track-1',
+    title: 'Nocturne in E-flat Major (Dark Editorial)',
+    artist: 'BLACK APPLE Sound Archive',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    duration: '06:12',
+    isDefault: false,
+    order: 2
+  },
+  {
+    id: 'track-2',
+    title: 'La Luna Grisácea (Midnight Resonance)',
+    artist: 'Malos Cantores',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+    duration: '07:05',
+    isDefault: false,
+    order: 3
+  }
+];
+
+export const INITIAL_COMMISSION_SETTINGS: CommissionSettings = {
+  isOpen: true,
+  statusBadgeText: 'ĐANG MỞ ĐĂNG KÝ SLOT',
+  announcementTitle: 'Đăng ký Slot Commission Roleplay AI',
+  announcementContent: 'Điền thông tin liên hệ, trình bày sơ lược về idea của bạn và thời gian mong muốn hoàn thành. Sau khi nhận được form, Táo sẽ chủ động liên hệ qua Discord hoặc Facebook để trao đổi chi tiết và báo giá phù hợp.'
+};
+

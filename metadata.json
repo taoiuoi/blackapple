@@ -1,0 +1,6 @@
+{
+  "name": "Hồ sơ lưu trữ – by Táo.",
+  "description": "Nền tảng hồ sơ lưu trữ và cổng kết nối không gian của BLACK APPLE - by Táo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,128 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == 'anhitoo8@gmail.com' && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Character structural validation - supports direct URLs and compressed base64 images
+    function isValidCharacter(data) {
+      return (!('name' in data) || (data.name is string && data.name.size() > 0 && data.name.size() <= 200)) &&
+             (!('code' in data) || (data.code is string && data.code.size() > 0 && data.code.size() <= 100)) &&
+             (!('tagline' in data) || (data.tagline is string && data.tagline.size() <= 500)) &&
+             (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 500000)) &&
+             (!('coverUrl' in data) || (data.coverUrl is string && data.coverUrl.size() <= 500000)) &&
+             (!('posterUrl' in data) || (data.posterUrl is string && data.posterUrl.size() <= 500000)) &&
+             (!('synopsisImageUrl' in data) || (data.synopsisImageUrl is string && data.synopsisImageUrl.size() <= 500000)) &&
+             (!('posterObjectPosition' in data) || (data.posterObjectPosition is string && data.posterObjectPosition.size() <= 100)) &&
+             (!('synopsis' in data) || (data.synopsis is string && data.synopsis.size() <= 50000));
+    }
+
+    function isValidCommissionCreate(data) {
+      return data.clientName is string && data.clientName.size() > 0 && data.clientName.size() <= 200 &&
+             data.contactMethod is string && data.contactMethod.size() > 0 && data.contactMethod.size() <= 500 &&
+             data.roughBrief is string && data.roughBrief.size() > 0 && data.roughBrief.size() <= 5000 &&
+             data.desiredTimeline is string && data.desiredTimeline.size() > 0 && data.desiredTimeline.size() <= 500 &&
+             data.status == 'pending';
+    }
+
+    // Character Collection
+    match /characters/{characterId} {
+      allow read: if true;
+      allow create, update: if isValidId(characterId) && isAdmin() && isValidCharacter(incoming());
+      allow delete: if isValidId(characterId) && isAdmin();
+    }
+
+    // Genre Catalog
+    match /genres/{genreId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(genreId) && isAdmin();
+    }
+
+    // Quotes
+    match /quotes/{quoteId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(quoteId) && isAdmin();
+    }
+
+    // Creator Profile
+    match /creatorProfile/{profileId} {
+      allow read: if true;
+      allow write: if isValidId(profileId) && isAdmin();
+    }
+
+    // Website Settings
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isValidId(settingId) && isAdmin();
+    }
+
+    // Music Tracks & Chunked MP3 Audio Storage
+    match /musicTracks/{trackId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(trackId) && isAdmin();
+
+      match /chunks/{chunkId} {
+        allow read: if true;
+        allow create, update, delete: if isValidId(chunkId) && isAdmin();
+      }
+    }
+
+    // Confessions (Readers can submit unapproved messages)
+    match /confessions/{confessionId} {
+      allow read: if true;
+      allow create: if incoming().sender is string && incoming().sender.size() <= 100 &&
+                       incoming().content is string && incoming().content.size() <= 2000 &&
+                       incoming().approved == false;
+      allow update, delete: if isValidId(confessionId) && isAdmin();
+    }
+
+    // Comments (Readers can leave comments for characters)
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if incoming().authorName is string && incoming().authorName.size() <= 100 &&
+                       incoming().content is string && incoming().content.size() <= 1000 &&
+                       incoming().characterId is string;
+      allow update, delete: if isValidId(commentId) && isAdmin();
+    }
+
+    // Commissions (Clients can submit briefs; Admin can read, update, and delete)
+    match /commissions/{commissionId} {
+      allow read: if isAdmin();
+      allow create: if isValidId(commissionId) && isValidCommissionCreate(incoming());
+      allow update, delete: if isValidId(commissionId) && isAdmin();
+    }
+
+    // Admins metadata collection
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

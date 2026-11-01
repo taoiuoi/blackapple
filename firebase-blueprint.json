@@ -1,0 +1,192 @@
+{
+  "entities": {
+    "Character": {
+      "title": "Character",
+      "description": "Hồ sơ nhân vật trong vũ trụ BLACK APPLE",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "code": { "type": "string", "maxLength": 50 },
+        "tagline": { "type": "string", "maxLength": 200 },
+        "genreIds": { "type": "array" },
+        "avatarUrl": { "type": "string", "maxLength": 1000 },
+        "coverUrl": { "type": "string", "maxLength": 1000 },
+        "posterUrl": { "type": "string", "maxLength": 1000 },
+        "synopsis": { "type": "string", "maxLength": 5000 },
+        "synopsisImageUrl": { "type": "string", "maxLength": 1000 },
+        "profileData": { "type": "object" },
+        "gallery": { "type": "array" },
+        "views": { "type": "number" },
+        "likes": { "type": "number" },
+        "featured": { "type": "boolean" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "code", "tagline", "avatarUrl", "posterUrl"]
+    },
+    "Genre": {
+      "title": "Genre",
+      "description": "Thể loại tác phẩm và hồ sơ",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 500 },
+        "order": { "type": "number" }
+      },
+      "required": ["id", "name"]
+    },
+    "Quote": {
+      "title": "Quote",
+      "description": "Trích dẫn nghệ thuật",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "content": { "type": "string", "maxLength": 1000 },
+        "author": { "type": "string", "maxLength": 100 },
+        "characterName": { "type": "string", "maxLength": 100 },
+        "source": { "type": "string", "maxLength": 100 },
+        "order": { "type": "number" }
+      },
+      "required": ["content", "author"]
+    },
+    "Confession": {
+      "title": "Confession",
+      "description": "Góp ý và tâm sự từ độc giả",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sender": { "type": "string", "maxLength": 100 },
+        "content": { "type": "string", "maxLength": 2000 },
+        "characterTarget": { "type": "string", "maxLength": 100 },
+        "approved": { "type": "boolean" },
+        "reply": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["sender", "content"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "Bình luận trên hồ sơ nhân vật",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "characterId": { "type": "string", "maxLength": 100 },
+        "authorName": { "type": "string", "maxLength": 100 },
+        "content": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" },
+        "adminReply": { "type": "string", "maxLength": 1000 },
+        "likes": { "type": "number" }
+      },
+      "required": ["characterId", "authorName", "content"]
+    },
+    "CreatorProfile": {
+      "title": "CreatorProfile",
+      "description": "Thông tin tác giả / Creator Profile",
+      "type": "object",
+      "properties": {
+        "penName": { "type": "string", "maxLength": 100 },
+        "bio": { "type": "string", "maxLength": 2000 },
+        "quote": { "type": "string", "maxLength": 500 },
+        "avatarUrl": { "type": "string", "maxLength": 1000 },
+        "coverUrl": { "type": "string", "maxLength": 1000 },
+        "introImageUrl": { "type": "string", "maxLength": 1000 },
+        "donateQrUrl": { "type": "string", "maxLength": 1000 },
+        "facebookUrl": { "type": "string", "maxLength": 1000 },
+        "discordUrl": { "type": "string", "maxLength": 1000 },
+        "instagramUrl": { "type": "string", "maxLength": 1000 },
+        "email": { "type": "string", "maxLength": 200 },
+        "supportText": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["penName", "bio"]
+    },
+    "WebsiteSettings": {
+      "title": "WebsiteSettings",
+      "description": "Cấu hình chung của website BLACK APPLE",
+      "type": "object",
+      "properties": {
+        "siteTitle": { "type": "string", "maxLength": 100 },
+        "logoUrl": { "type": "string", "maxLength": 1000 },
+        "faviconUrl": { "type": "string", "maxLength": 1000 },
+        "bannerNotice": { "type": "string", "maxLength": 500 },
+        "customBgUrl": { "type": "string", "maxLength": 1000 },
+        "footerText": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["siteTitle"]
+    },
+    "MusicTrack": {
+      "title": "MusicTrack",
+      "description": "Bản nhạc nền không khí vũ trụ",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 200 },
+        "artist": { "type": "string", "maxLength": 200 },
+        "audioUrl": { "type": "string", "maxLength": 1000 },
+        "duration": { "type": "string", "maxLength": 20 },
+        "isDefault": { "type": "boolean" },
+        "order": { "type": "number" }
+      },
+      "required": ["title", "artist", "audioUrl"]
+    },
+    "CommissionRequest": {
+      "title": "CommissionRequest",
+      "description": "Đơn đăng ký slot Commission Roleplay AI",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientName": { "type": "string", "maxLength": 200 },
+        "contactPlatform": { "type": "string", "enum": ["Discord", "Facebook"] },
+        "contactMethod": { "type": "string", "maxLength": 500 },
+        "roughBrief": { "type": "string", "maxLength": 5000 },
+        "desiredTimeline": { "type": "string", "maxLength": 500 },
+        "isUrgent": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["pending", "discussing", "writing", "completed", "cancelled"] },
+        "adminNotes": { "type": "string", "maxLength": 5000 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["clientName", "contactMethod", "roughBrief", "desiredTimeline", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/characters/{characterId}": {
+      "schema": { "$ref": "#/entities/Character" },
+      "description": "Danh sách nhân vật và hồ sơ chi tiết"
+    },
+    "/genres/{genreId}": {
+      "schema": { "$ref": "#/entities/Genre" },
+      "description": "Danh mục thể loại tác phẩm"
+    },
+    "/quotes/{quoteId}": {
+      "schema": { "$ref": "#/entities/Quote" },
+      "description": "Trích dẫn nghệ thuật"
+    },
+    "/confessions/{confessionId}": {
+      "schema": { "$ref": "#/entities/Confession" },
+      "description": "Góp ý và tâm sự độc giả"
+    },
+    "/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/Comment" },
+      "description": "Bình luận công khai của độc giả"
+    },
+    "/creatorProfile/{profileId}": {
+      "schema": { "$ref": "#/entities/CreatorProfile" },
+      "description": "Hồ sơ tác giả / Creator Profile"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/WebsiteSettings" },
+      "description": "Cấu hình website"
+    },
+    "/musicTracks/{trackId}": {
+      "schema": { "$ref": "#/entities/MusicTrack" },
+      "description": "Danh sách nhạc nền"
+    },
+    "/commissions/{commissionId}": {
+      "schema": { "$ref": "#/entities/CommissionRequest" },
+      "description": "Danh sách brief đặt Commission Roleplay AI"
+    }
+  }
+}
