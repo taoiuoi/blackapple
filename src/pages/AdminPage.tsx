@@ -223,7 +223,25 @@ export function AdminPage({
         (c) => c.id === charParam || c.code.toLowerCase() === charParam.toLowerCase()
       );
       if (found) {
-        setEditingChar({ ...found });
+        const bp = found.profileData || ({} as any);
+        setEditingChar({
+          ...found,
+          profileData: {
+            ...bp,
+            role: bp.role || '',
+            status: bp.status || '',
+            appearance: bp.appearance || '',
+            personality: bp.personality || '',
+            hobbies: bp.hobbies || '',
+            dislikes: bp.dislikes || '',
+            allergies: bp.allergies || '',
+            habits: Array.isArray(bp.habits) ? bp.habits : [],
+            specialNote: bp.specialNote || '',
+            family: bp.family || '',
+            relationshipStatus: bp.relationshipStatus || '',
+            relationshipWithUser: bp.relationshipWithUser || ''
+          }
+        });
         setActiveTab('characters');
       }
     }
@@ -283,6 +301,7 @@ export function AdminPage({
     try {
       await saveCharacter(editingChar);
       try {
+        localStorage.setItem(`ba_char_data_${editingChar.id}`, JSON.stringify(editingChar));
         if (editingChar.avatarUrl) localStorage.setItem(`ba_char_${editingChar.id}_avatarUrl`, editingChar.avatarUrl);
         if (editingChar.coverUrl) localStorage.setItem(`ba_char_${editingChar.id}_coverUrl`, editingChar.coverUrl);
         if (editingChar.posterUrl) localStorage.setItem(`ba_char_${editingChar.id}_posterUrl`, editingChar.posterUrl);
@@ -1549,7 +1568,27 @@ export function AdminPage({
 
                         <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => setEditingChar({ ...char })}
+                            onClick={() => {
+                              const bp = char.profileData || ({} as any);
+                              setEditingChar({
+                                ...char,
+                                profileData: {
+                                  ...bp,
+                                  role: bp.role || '',
+                                  status: bp.status || '',
+                                  appearance: bp.appearance || '',
+                                  personality: bp.personality || '',
+                                  hobbies: bp.hobbies || '',
+                                  dislikes: bp.dislikes || '',
+                                  allergies: bp.allergies || '',
+                                  habits: Array.isArray(bp.habits) ? bp.habits : [],
+                                  specialNote: bp.specialNote || '',
+                                  family: bp.family || '',
+                                  relationshipStatus: bp.relationshipStatus || '',
+                                  relationshipWithUser: bp.relationshipWithUser || ''
+                                }
+                              });
+                            }}
                             className="px-2.5 py-1 rounded bg-white/[0.05] hover:bg-white/[0.12] text-neutral-200 text-[11px] flex items-center gap-1"
                           >
                             <Edit2 className="w-3 h-3" />

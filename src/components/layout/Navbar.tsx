@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, MoreHorizontal, Volume2, VolumeX, Sparkles, Compass, Disc, Image as ImageIcon, Shield, X } from 'lucide-react';
+import { Search, MoreHorizontal, Volume2, VolumeX, Sparkles, Clapperboard, Disc, Image as ImageIcon, Shield, X } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { WebsiteSettings } from '../../types';
@@ -231,7 +231,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-neutral-300 hover:text-white hover:bg-white/[0.05] transition-colors"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-neutral-400" />
+                  <Clapperboard className="w-3.5 h-3.5 text-neutral-400" />
                   <span>Xem lại Intro mở đầu</span>
                 </button>
               )}

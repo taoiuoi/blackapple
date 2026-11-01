@@ -63,7 +63,9 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const rawCharacter = characters.find((c) => c.id === id);
+  const rawCharacter = characters.find(
+    (c) => c.id === id || c.code.toLowerCase() === id?.toLowerCase()
+  );
 
   // Normalize character fields safely without injecting fake defaults
   const character: Character | undefined = rawCharacter
@@ -169,6 +171,21 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     roleplayUnlockAnswer: ''
   });
 
+  // Section 02-06 Detailed Dossier Inline Editor
+  const [isEditingDossier, setIsEditingDossier] = useState(false);
+  const [dossierForm, setDossierForm] = useState({
+    appearance: '',
+    personality: '',
+    hobbies: '',
+    dislikes: '',
+    allergies: '',
+    habitsText: '',
+    specialNote: '',
+    family: '',
+    relationshipStatus: '',
+    relationshipWithUser: ''
+  });
+
   useEffect(() => {
     if (!character) return;
     setCharMetaForm({
@@ -196,6 +213,18 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       weaponLabel: character.profileData.weaponLabel || 'Đặc điểm / Sở thích',
       statusLabel: character.profileData.statusLabel || 'Tính cách / Khí chất',
       roleLabel: character.profileData.roleLabel || 'Thân phận & Thể loại'
+    });
+    setDossierForm({
+      appearance: character.profileData.appearance || '',
+      personality: character.profileData.personality || '',
+      hobbies: character.profileData.hobbies || '',
+      dislikes: character.profileData.dislikes || '',
+      allergies: character.profileData.allergies || '',
+      habitsText: (character.profileData.habits || []).join('\n'),
+      specialNote: character.profileData.specialNote || '',
+      family: character.profileData.family || '',
+      relationshipStatus: character.profileData.relationshipStatus || '',
+      relationshipWithUser: character.profileData.relationshipWithUser || ''
     });
     setEditedSynopsis(character.synopsis || '');
     setEditedTagline(character.tagline || '');
@@ -251,8 +280,13 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     character.profileData.appearance ||
     character.profileData.personality ||
     character.profileData.hobbies ||
+    character.profileData.dislikes ||
+    character.profileData.allergies ||
+    (Array.isArray(character.profileData.habits) && character.profileData.habits.length > 0) ||
+    character.profileData.specialNote ||
+    character.profileData.family ||
     character.profileData.relationshipWithUser ||
-    character.profileData.family
+    character.profileData.relationshipStatus
   );
 
   const toggleCharacterGenre = (genreId: string) => {
@@ -290,7 +324,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     setInlineNewGenreName('');
   };
 
-  // Save Canon Basic Info & Genres
+  // Save Canon Basic Info & Genres (Preserves detailed dossier fields!)
   const handleSaveCanonInfo = async (e: React.FormEvent) => {
     e.preventDefault();
     const updated: Character = {
@@ -300,11 +334,43 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       originalChineseName: charMetaForm.originalChineseName.trim(),
       originalNovelTitle: charMetaForm.originalNovelTitle.trim(),
       genreIds: charMetaForm.genreIds,
-      profileData: { ...canonForm }
+      profileData: {
+        ...character.profileData,
+        ...canonForm
+      }
     };
     await saveCharacter(updated);
     onCharacterUpdated(updated);
     setIsEditingCanon(false);
+  };
+
+  // Save Detailed Dossier (Section 02-06)
+  const handleSaveDossierInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const habitsList = dossierForm.habitsText
+      .split('\n')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    const updated: Character = {
+      ...character,
+      profileData: {
+        ...character.profileData,
+        appearance: dossierForm.appearance.trim(),
+        personality: dossierForm.personality.trim(),
+        hobbies: dossierForm.hobbies.trim(),
+        dislikes: dossierForm.dislikes.trim(),
+        allergies: dossierForm.allergies.trim(),
+        habits: habitsList,
+        specialNote: dossierForm.specialNote.trim(),
+        family: dossierForm.family.trim(),
+        relationshipStatus: dossierForm.relationshipStatus.trim(),
+        relationshipWithUser: dossierForm.relationshipWithUser.trim()
+      }
+    };
+    await saveCharacter(updated);
+    onCharacterUpdated(updated);
+    setIsEditingDossier(false);
   };
 
   // Add Important NPC
@@ -1030,7 +1096,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       {/* =====================================================================
           EXPANDED DOSSIER: NGOẠI HÌNH, TÍNH CÁCH, SỞ THÍCH & MỐI QUAN HỆ
       ===================================================================== */}
-      {hasDetailedDossier && (
+      {(hasDetailedDossier || isAdmin) && (
         <section
           id="dossier-details-section"
           className="w-full bg-[#FAF9F6] text-[#18181A] py-16 sm:py-24 px-4 sm:px-8 border-b border-black/[0.08]"
@@ -1047,10 +1113,212 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                   Hồ Sơ Nhân Vật · {character.name}
                 </h2>
               </div>
-              <div className="text-xs font-serif italic text-neutral-500">
-                {character.originalNovelTitle || 'BLACK APPLE ARCHIVE'}
+              <div className="flex items-center gap-3">
+                <div className="text-xs font-serif italic text-neutral-500 hidden sm:block">
+                  {character.originalNovelTitle || 'BLACK APPLE ARCHIVE'}
+                </div>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingDossier(!isEditingDossier)}
+                    className="px-3.5 py-1.5 rounded-full bg-[#18181A] hover:bg-neutral-800 text-white text-[10px] font-medium tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>{isEditingDossier ? 'Đóng chỉnh sửa' : 'Sửa chuyên khảo hồ sơ (Mục 02 - 06)'}</span>
+                  </button>
+                )}
               </div>
             </div>
+
+            {/* Admin Inline Dossier Editor */}
+            {isEditingDossier && isAdmin && (
+              <form
+                onSubmit={handleSaveDossierInfo}
+                className="p-6 rounded-2xl bg-white border border-black/15 text-[#18181A] space-y-5 shadow-lg"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-black/10">
+                  <h3 className="font-editorial italic text-lg sm:text-xl text-[#18181A]">
+                    Chỉnh sửa chuyên khảo hồ sơ chi tiết (Mục 02 - 06)
+                  </h3>
+                  <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest">
+                    LƯU VÀO FIRESTORE
+                  </span>
+                </div>
+
+                {/* 02. Ngoại hình */}
+                <div>
+                  <label className="block text-xs font-semibold text-[#18181A] mb-1">
+                    ˙✦ 02. Ngoại hình (Vóc dáng, đường nét gương mặt, trang phục...):
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={dossierForm.appearance}
+                    onChange={(e) => setDossierForm({ ...dossierForm, appearance: e.target.value })}
+                    placeholder="VD: Cao ráo 188cm, vai rộng, thân hình săn chắc nhờ tập boxing, mắt nâu đen, tóc đen tỉa nhiều lớp..."
+                    className="w-full p-3 rounded-lg bg-[#FAF9F6] border border-black/15 text-xs text-[#18181A] leading-relaxed font-sans"
+                    style={{ fontSize: '15px' }}
+                  />
+                </div>
+
+                {/* 03. Tính cách */}
+                <div>
+                  <label className="block text-xs font-semibold text-[#18181A] mb-1">
+                    ˙✦ 03. Tính cách đặc trưng:
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={dossierForm.personality}
+                    onChange={(e) => setDossierForm({ ...dossierForm, personality: e.target.value })}
+                    placeholder="VD: Ngông nghênh, bất cần, nghịch ngợm, không thích làm học sinh gương mẫu nhưng không bắt nạt kẻ yếu..."
+                    className="w-full p-3 rounded-lg bg-[#FAF9F6] border border-black/15 text-xs text-[#18181A] leading-relaxed font-sans"
+                    style={{ fontSize: '15px' }}
+                  />
+                </div>
+
+                {/* 04. Sở thích & Thói quen */}
+                <div className="p-4 rounded-xl bg-[#F5F4EE] border border-black/10 space-y-3">
+                  <span className="text-xs font-semibold text-[#18181A] block">
+                    ˙✦ 04. Sở thích & Thói quen:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-medium text-emerald-800 mb-1">✓ Thích:</label>
+                      <input
+                        type="text"
+                        value={dossierForm.hobbies}
+                        onChange={(e) => setDossierForm({ ...dossierForm, hobbies: e.target.value })}
+                        placeholder="VD: Quyền Anh, chạy bộ sáng..."
+                        className="w-full px-3 py-1.5 rounded-lg bg-white border border-black/15 text-xs text-[#18181A]"
+                        style={{ fontSize: '15px' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-rose-800 mb-1">✕ Không thích:</label>
+                      <input
+                        type="text"
+                        value={dossierForm.dislikes}
+                        onChange={(e) => setDossierForm({ ...dossierForm, dislikes: e.target.value })}
+                        placeholder="VD: Đậu phụ, đồ ngọt, thuyết giáo..."
+                        className="w-full px-3 py-1.5 rounded-lg bg-white border border-black/15 text-xs text-[#18181A]"
+                        style={{ fontSize: '15px' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-amber-800 mb-1">⚠ Dị ứng:</label>
+                      <input
+                        type="text"
+                        value={dossierForm.allergies}
+                        onChange={(e) => setDossierForm({ ...dossierForm, allergies: e.target.value })}
+                        placeholder="VD: Phấn hoa..."
+                        className="w-full px-3 py-1.5 rounded-lg bg-white border border-black/15 text-xs text-[#18181A]"
+                        style={{ fontSize: '15px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-neutral-600 mb-1">
+                      Một vài thói quen đặc trưng (Mỗi thói quen một dòng):
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={dossierForm.habitsText}
+                      onChange={(e) => setDossierForm({ ...dossierForm, habitsText: e.target.value })}
+                      placeholder="Không thích mang cặp sách&#10;Thích ngủ trong lớp nhưng dậy sớm chạy bộ&#10;Biết nấu ăn..."
+                      className="w-full p-2.5 rounded-lg bg-white border border-black/15 text-xs text-[#18181A] leading-relaxed font-sans"
+                      style={{ fontSize: '15px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-neutral-600 mb-1">
+                      Điểm đặc biệt (Khác biệt / Yếu tố riêng độc đáo):
+                    </label>
+                    <input
+                      type="text"
+                      value={dossierForm.specialNote}
+                      onChange={(e) => setDossierForm({ ...dossierForm, specialNote: e.target.value })}
+                      placeholder="VD: Không phân biệt trái và phải một cách đáng tin cậy..."
+                      className="w-full px-3 py-1.5 rounded-lg bg-white border border-black/15 text-xs text-[#18181A]"
+                      style={{ fontSize: '15px' }}
+                    />
+                  </div>
+                </div>
+
+                {/* 05. Gia đình */}
+                <div>
+                  <label className="block text-xs font-semibold text-[#18181A] mb-1">
+                    ˙✦ 05. Gia đình & Hoàn cảnh cá nhân:
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={dossierForm.family}
+                    onChange={(e) => setDossierForm({ ...dossierForm, family: e.target.value })}
+                    placeholder="VD: Không còn bố mẹ, người thầy dạy quyền Anh hỗ trợ nhập học..."
+                    className="w-full p-3 rounded-lg bg-[#FAF9F6] border border-black/15 text-xs text-[#18181A] leading-relaxed font-sans"
+                    style={{ fontSize: '15px' }}
+                  />
+                </div>
+
+                {/* 06. Mối quan hệ với bạn */}
+                <div className="p-4 rounded-xl bg-rose-50/50 border border-rose-200 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-xs font-semibold text-rose-900">
+                      ˙✦ 06. Mối quan hệ với bạn (Độc giả / Bạn):
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-neutral-600">Trạng thái:</span>
+                      <input
+                        type="text"
+                        value={dossierForm.relationshipStatus}
+                        onChange={(e) => setDossierForm({ ...dossierForm, relationshipStatus: e.target.value })}
+                        placeholder="VD: Người yêu cũ / Bạn thân / Đối thủ..."
+                        className="bg-white border border-rose-300 rounded px-2.5 py-1 text-xs text-rose-900"
+                        style={{ fontSize: '14px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <textarea
+                    rows={4}
+                    value={dossierForm.relationshipWithUser}
+                    onChange={(e) => setDossierForm({ ...dossierForm, relationshipWithUser: e.target.value })}
+                    placeholder="Mô tả bối cảnh và diễn biến tình cảm..."
+                    className="w-full p-3 rounded-lg bg-white border border-rose-200 text-xs text-[#18181A] leading-relaxed font-sans"
+                    style={{ fontSize: '15px' }}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingDossier(false)}
+                    className="px-4 py-2 rounded-lg border border-black/15 text-xs text-neutral-600 hover:text-black cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 rounded-lg bg-[#18181A] hover:bg-neutral-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Lưu chuyên khảo hồ sơ vào Firestore</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* If empty and not editing, guide admin */}
+            {!hasDetailedDossier && isAdmin && !isEditingDossier && (
+              <div className="p-8 text-center bg-white border border-dashed border-black/20 rounded-xl space-y-2">
+                <p className="font-editorial italic text-base text-[#18181A]">
+                  Chưa có thông tin chuyên khảo chi tiết (Mục 02 - 06) cho {character.name}
+                </p>
+                <p className="text-xs text-neutral-500 font-serif">
+                  Nhấn nút &ldquo;Sửa chuyên khảo hồ sơ (Mục 02 - 06)&rdquo; phía trên để nhập ngoại hình, tính cách, sở thích, thói quen và mối quan hệ.
+                </p>
+              </div>
+            )}
 
             {/* 02. NGOẠI HÌNH */}
             {character.profileData.appearance && (

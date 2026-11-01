@@ -113,14 +113,24 @@ export default function App() {
           const localPoster = sanitizeImageUrl(localStorage.getItem(`ba_char_${c.id}_posterUrl`) || '');
           const localSynopsisImg = sanitizeImageUrl(localStorage.getItem(`ba_char_${c.id}_synopsisImageUrl`) || '');
           const localPos = localStorage.getItem(`ba_char_${c.id}_pos`);
+          let localCharData: any = null;
+          try {
+            const rawBackup = localStorage.getItem(`ba_char_data_${c.id}`);
+            if (rawBackup) localCharData = JSON.parse(rawBackup);
+          } catch (_) {}
 
           return {
             ...c,
+            ...(localCharData || {}),
             avatarUrl: localAvatar || c.avatarUrl,
             coverUrl: localCover || c.coverUrl,
             posterUrl: localPoster || c.posterUrl,
             synopsisImageUrl: localSynopsisImg || c.synopsisImageUrl,
-            posterObjectPosition: localPos || c.posterObjectPosition
+            posterObjectPosition: localPos || c.posterObjectPosition,
+            profileData: {
+              ...c.profileData,
+              ...(localCharData?.profileData || {})
+            }
           };
         } catch (_) {
           return c;

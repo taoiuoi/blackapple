@@ -121,16 +121,16 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
     status: isLegacySampleDoc ? (initProfile.status ?? '') : cleanSampleText(rawProfile.status) || initProfile.status || '',
     quote: isLegacySampleDoc ? '' : cleanSampleText(rawProfile.quote) || initProfile.quote || '',
     notes: isLegacySampleDoc ? (initProfile.notes ?? '') : cleanSampleText(rawProfile.notes) || initProfile.notes || '',
-    appearance: rawProfile.appearance || initProfile.appearance || '',
-    personality: rawProfile.personality || initProfile.personality || '',
-    hobbies: rawProfile.hobbies || initProfile.hobbies || '',
-    dislikes: rawProfile.dislikes || initProfile.dislikes || '',
-    allergies: rawProfile.allergies || initProfile.allergies || '',
-    habits: Array.isArray(rawProfile.habits) && rawProfile.habits.length > 0 ? rawProfile.habits : (initProfile.habits || []),
-    specialNote: rawProfile.specialNote || initProfile.specialNote || '',
-    family: rawProfile.family || initProfile.family || '',
-    relationshipStatus: rawProfile.relationshipStatus || initProfile.relationshipStatus || '',
-    relationshipWithUser: rawProfile.relationshipWithUser || initProfile.relationshipWithUser || '',
+    appearance: rawProfile.appearance !== undefined ? rawProfile.appearance : (initProfile.appearance || ''),
+    personality: rawProfile.personality !== undefined ? rawProfile.personality : (initProfile.personality || ''),
+    hobbies: rawProfile.hobbies !== undefined ? rawProfile.hobbies : (initProfile.hobbies || ''),
+    dislikes: rawProfile.dislikes !== undefined ? rawProfile.dislikes : (initProfile.dislikes || ''),
+    allergies: rawProfile.allergies !== undefined ? rawProfile.allergies : (initProfile.allergies || ''),
+    habits: Array.isArray(rawProfile.habits) ? rawProfile.habits : (initProfile.habits || []),
+    specialNote: rawProfile.specialNote !== undefined ? rawProfile.specialNote : (initProfile.specialNote || ''),
+    family: rawProfile.family !== undefined ? rawProfile.family : (initProfile.family || ''),
+    relationshipStatus: rawProfile.relationshipStatus !== undefined ? rawProfile.relationshipStatus : (initProfile.relationshipStatus || ''),
+    relationshipWithUser: rawProfile.relationshipWithUser !== undefined ? rawProfile.relationshipWithUser : (initProfile.relationshipWithUser || ''),
     aliasLabel: rawProfile.aliasLabel || initProfile.aliasLabel || 'Danh tiếng / Biệt danh',
     ageLabel: rawProfile.ageLabel || initProfile.ageLabel || 'Tuổi / Giới tính',
     heightLabel: rawProfile.heightLabel || initProfile.heightLabel || 'Chiều cao / Cân nặng',
@@ -447,7 +447,22 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
           }
           snap.docs.forEach((d) => {
             if (!LEGACY_SAMPLE_CHAR_IDS.has(d.id)) {
-              map.set(d.id, normalizeCharacter(d.data(), d.id));
+              let charObj = normalizeCharacter(d.data(), d.id);
+              try {
+                const localBackup = localStorage.getItem(`ba_char_data_${d.id}`);
+                if (localBackup) {
+                  const parsed = JSON.parse(localBackup);
+                  charObj = {
+                    ...charObj,
+                    ...parsed,
+                    profileData: {
+                      ...charObj.profileData,
+                      ...(parsed.profileData || {})
+                    }
+                  };
+                }
+              } catch (_) {}
+              map.set(d.id, charObj);
             }
           });
           const list = Array.from(map.values());
@@ -467,8 +482,12 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
 
 export async function saveCharacter(character: Character): Promise<void> {
   const path = `characters/${character.id}`;
+  const normalized = normalizeCharacter(character, character.id);
   try {
-    const normalized = normalizeCharacter(character, character.id);
+    localStorage.setItem(`ba_char_data_${character.id}`, JSON.stringify(normalized));
+  } catch (_) {}
+
+  try {
     await setDoc(doc(db, 'characters', character.id), {
       ...normalized,
       updatedAt: new Date().toISOString()
