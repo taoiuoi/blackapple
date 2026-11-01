@@ -73,6 +73,8 @@ export function CreatorPage({
             <ImageWithFallback
               src={profile.coverUrl || profile.introImageUrl || profile.avatarUrl}
               alt={`${profile.penName} Cover`}
+              priority={true}
+              targetWidth={1200}
               objectPosition="center"
               className="w-full h-full object-cover grayscale contrast-[1.03] brightness-105 group-hover:grayscale-0 transition-all duration-1000"
             />
@@ -99,6 +101,8 @@ export function CreatorPage({
                   <ImageWithFallback
                     src={profile.avatarUrl}
                     alt={profile.penName}
+                    priority={true}
+                    targetWidth={320}
                     objectPosition="center"
                     className="w-full h-full object-cover grayscale contrast-[1.05] group-hover:grayscale-0 transition-all duration-700"
                   />

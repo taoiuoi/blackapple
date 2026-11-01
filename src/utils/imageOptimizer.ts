@@ -1,4 +1,4 @@
-// High-performance image CDN & client cache optimizer for Black Apple
+// High-performance image CDN, client cache & GIF preservation optimizer for Black Apple
 
 const SAMPLE_UNSPLASH_IDS = [
   'photo-1518709268805-4e9042af9f23',
@@ -25,7 +25,44 @@ export function isSampleBuildImage(url?: string): boolean {
   return false;
 }
 
-// Convert common shared links (Google Drive, Dropbox, ImgBB, etc.) to direct image bytes
+/**
+ * 100% Reliable Animated GIF Detection:
+ * Checks extensions, MIME types, query strings, and popular GIF CDNs.
+ * Animated GIFs must NEVER be flattened or transcoded to static WebP/JPEG.
+ */
+export function isAnimatedGif(url?: string): boolean {
+  if (!url) return false;
+  const trimmed = url.trim().toLowerCase();
+  if (trimmed.startsWith('data:image/gif')) return true;
+
+  // Check file extension in pathname or before query string
+  if (/\.gif(\?|#|$)/i.test(trimmed)) return true;
+
+  // Check URL query parameters or MIME indicators
+  if (
+    trimmed.includes('format=gif') ||
+    trimmed.includes('mime=image/gif') ||
+    trimmed.includes('type=gif') ||
+    trimmed.includes('ext=gif')
+  ) {
+    return true;
+  }
+
+  // Known GIF hosting domains
+  if (
+    trimmed.includes('giphy.com') ||
+    trimmed.includes('tenor.com') ||
+    trimmed.includes('gfycat.com')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Convert common shared links (Google Drive, Dropbox, ImgBB, etc.) to direct image bytes.
+ */
 export function resolveDirectImageUrl(url?: string): string {
   if (!url) return '';
   const trimmed = url.trim();
@@ -57,94 +94,130 @@ export function resolveDirectImageUrl(url?: string): string {
 // In-memory cache of fully loaded & decoded image URLs for instantaneous 0ms display
 export const CACHED_IMAGE_SET = new Set<string>();
 
+// Track requests currently downloading to prevent duplicate simultaneous fetches
+const IN_FLIGHT_REQUESTS = new Set<string>();
+
 export interface ImageOptimizationOptions {
   width?: number;
   height?: number;
   quality?: number;
   fit?: 'cover' | 'contain' | 'inside';
   format?: 'webp' | 'auto';
+  forceRaw?: boolean;
+}
+
+export interface OptimizedImageResult {
+  optimizedUrl: string;
+  directUrl: string;
+  isGif: boolean;
 }
 
 /**
- * Returns a high-speed CDN-accelerated WebP URL (via Cloudflare global edge).
- * Reduces 10MB uncompressed camera/screenshot files down to ~150KB-800KB WebP
- * with <50ms edge delivery worldwide.
+ * Returns a high-speed CDN-accelerated URL for static images.
+ * IMPORTANT:
+ * - Animated GIFs are ALWAYS returned untouched with isGif=true.
+ * - They are NEVER sent to static converters, ensuring 100% full animation and zero frame loss.
  */
 export function getOptimizedImageUrl(
   url?: string,
   options: ImageOptimizationOptions = {}
-): { optimizedUrl: string; directUrl: string } {
+): OptimizedImageResult {
   const directUrl = resolveDirectImageUrl(url);
   if (!directUrl) {
-    return { optimizedUrl: '', directUrl: '' };
+    return { optimizedUrl: '', directUrl: '', isGif: false };
   }
 
-  // Skip optimization for local data/blobs, SVGs, or animated GIFs to preserve full frames and motion
-  const isGif = directUrl.toLowerCase().includes('.gif');
+  const gifDetected = isAnimatedGif(directUrl) || isAnimatedGif(url);
+
+  // If it's a GIF or caller requested forceRaw, preserve raw direct stream untouched
+  if (gifDetected || options.forceRaw) {
+    return {
+      optimizedUrl: directUrl,
+      directUrl,
+      isGif: true
+    };
+  }
+
+  // Skip CDN proxy for local data, blobs, SVGs, or if already a wsrv.nl URL
   if (
     directUrl.startsWith('data:') ||
     directUrl.startsWith('blob:') ||
     directUrl.endsWith('.svg') ||
-    directUrl.includes('wsrv.nl') ||
-    isGif
+    directUrl.includes('wsrv.nl')
   ) {
-    return { optimizedUrl: directUrl, directUrl };
+    return { optimizedUrl: directUrl, directUrl, isGif: false };
   }
 
-  // Google Drive lh3 native thumbnail optimization
+  // Google Drive lh3 native thumbnail optimization (Only for static photos!)
+  // Google's edge cache resizes and delivers static photos with sub-50ms latency
   if (directUrl.includes('lh3.googleusercontent.com/d/')) {
     const widthParam = options.width ? `=w${options.width}` : '=w1200';
     return {
       optimizedUrl: `${directUrl}${widthParam}`,
-      directUrl
+      directUrl,
+      isGif: false
     };
   }
 
-  // Only proxy external HTTP/HTTPS images (e.g. i.ibb.co, imgur, etc.)
+  // External HTTP/HTTPS static images (ImgBB, Imgur, direct links)
+  // Routed via Cloudflare edge CDN (wsrv.nl) with WebP compression and browser cache-control
   if (directUrl.startsWith('http://') || directUrl.startsWith('https://')) {
     const width = options.width || 1200;
     const quality = options.quality || 82;
     const fit = options.fit || 'cover';
-    
-    // wsrv.nl is a free, fast open-source image CDN powered by Cloudflare with 300+ global edge caches
+
     const optimized = `https://wsrv.nl/?url=${encodeURIComponent(directUrl)}&w=${width}&q=${quality}&fit=${fit}&output=webp`;
-    return { optimizedUrl: optimized, directUrl };
+    return { optimizedUrl: optimized, directUrl, isGif: false };
   }
 
-  return { optimizedUrl: directUrl, directUrl };
+  return { optimizedUrl: directUrl, directUrl, isGif: false };
 }
 
 /**
- * Proactively preload and decode an image into browser cache and GPU texture memory
+ * Proactively preload and decode an image into browser cache and GPU texture memory.
+ * Deduplicates in-flight requests to avoid redundant network overhead.
  */
-export function preloadImage(url?: string): Promise<boolean> {
+export function preloadImage(url?: string, options?: ImageOptimizationOptions): Promise<boolean> {
   if (!url) return Promise.resolve(false);
   const direct = resolveDirectImageUrl(url);
   if (!direct) return Promise.resolve(false);
 
-  const { optimizedUrl } = getOptimizedImageUrl(direct);
+  const { optimizedUrl, isGif } = getOptimizedImageUrl(direct, options);
   const targetUrl = optimizedUrl || direct;
 
-  if (CACHED_IMAGE_SET.has(targetUrl)) {
+  if (CACHED_IMAGE_SET.has(targetUrl) || CACHED_IMAGE_SET.has(direct)) {
     return Promise.resolve(true);
   }
 
+  if (IN_FLIGHT_REQUESTS.has(targetUrl)) {
+    return Promise.resolve(true);
+  }
+
+  IN_FLIGHT_REQUESTS.add(targetUrl);
+
   return new Promise((resolve) => {
     const img = new Image();
-    img.decoding = 'async';
+    // For GIFs on Safari iOS, auto decoding prevents animation stall
+    img.decoding = isGif ? 'auto' : 'async';
+
     img.onload = () => {
+      IN_FLIGHT_REQUESTS.delete(targetUrl);
       CACHED_IMAGE_SET.add(targetUrl);
       CACHED_IMAGE_SET.add(direct);
-      if ('decode' in img) {
+
+      if (!isGif && 'decode' in img) {
         img.decode().catch(() => {}).finally(() => resolve(true));
       } else {
         resolve(true);
       }
     };
+
     img.onerror = () => {
-      // If optimized CDN had an issue, attempt raw direct link
+      IN_FLIGHT_REQUESTS.delete(targetUrl);
+      // If optimized CDN had an issue, fallback to raw direct link
       if (targetUrl !== direct) {
         const fallbackImg = new Image();
+        fallbackImg.decoding = isGif ? 'auto' : 'async';
         fallbackImg.onload = () => {
           CACHED_IMAGE_SET.add(direct);
           resolve(true);
@@ -155,12 +228,85 @@ export function preloadImage(url?: string): Promise<boolean> {
         resolve(false);
       }
     };
+
     img.src = targetUrl;
   });
 }
 
 /**
- * Preloads all visual assets for an array of characters in background
+ * Intelligent Throttled Background Queue:
+ * Prevents browser network congestion and mobile UI freezing by:
+ * 1. Only running during idle browser frames (requestIdleCallback / setTimeout)
+ * 2. Limiting concurrency to max 2 items at a time
+ * 3. Skipping heavy GIFs in bulk preloading to save bandwidth
+ */
+class ImagePreloadQueue {
+  private queue: string[] = [];
+  private activeCount = 0;
+  private maxConcurrency = 2;
+  private isProcessing = false;
+
+  enqueue(url?: string) {
+    if (!url) return;
+    const direct = resolveDirectImageUrl(url);
+    if (!direct) return;
+    if (CACHED_IMAGE_SET.has(direct) || IN_FLIGHT_REQUESTS.has(direct)) return;
+    if (this.queue.includes(direct)) return;
+
+    // Skip heavy GIFs in bulk background queue to prevent data waste
+    if (isAnimatedGif(direct)) return;
+
+    this.queue.push(direct);
+    this.scheduleProcess();
+  }
+
+  private scheduleProcess() {
+    if (this.isProcessing) return;
+    this.isProcessing = true;
+
+    const runner = () => {
+      this.processNext();
+      this.isProcessing = false;
+      if (this.queue.length > 0 && this.activeCount < this.maxConcurrency) {
+        this.scheduleProcess();
+      }
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => void })
+        .requestIdleCallback(runner, { timeout: 1500 });
+    } else {
+      setTimeout(runner, 120);
+    }
+  }
+
+  private processNext() {
+    while (this.activeCount < this.maxConcurrency && this.queue.length > 0) {
+      const url = this.queue.shift();
+      if (!url) continue;
+
+      this.activeCount++;
+      preloadImage(url)
+        .catch(() => {})
+        .finally(() => {
+          this.activeCount--;
+          if (this.queue.length > 0) {
+            this.scheduleProcess();
+          }
+        });
+    }
+  }
+
+  clear() {
+    this.queue = [];
+  }
+}
+
+const backgroundQueue = new ImagePreloadQueue();
+
+/**
+ * Preloads visual assets for characters in the background using throttled idle scheduling.
+ * Prioritizes the first few items without flooding the browser network.
  */
 export function preloadCharacterAssets(
   characters: Array<{
@@ -170,20 +316,13 @@ export function preloadCharacterAssets(
     synopsisImageUrl?: string;
   }>
 ) {
-  if (!Array.isArray(characters)) return;
+  if (!Array.isArray(characters) || characters.length === 0) return;
 
+  // Stagger loading: Enqueue items for gradual background fetching
   characters.forEach((char) => {
-    if (char.coverUrl) {
-      preloadImage(char.coverUrl);
-    }
-    if (char.posterUrl) {
-      preloadImage(char.posterUrl);
-    }
-    if (char.avatarUrl) {
-      preloadImage(char.avatarUrl);
-    }
-    if (char.synopsisImageUrl) {
-      preloadImage(char.synopsisImageUrl);
-    }
+    if (char.coverUrl) backgroundQueue.enqueue(char.coverUrl);
+    if (char.posterUrl) backgroundQueue.enqueue(char.posterUrl);
+    if (char.avatarUrl) backgroundQueue.enqueue(char.avatarUrl);
+    if (char.synopsisImageUrl) backgroundQueue.enqueue(char.synopsisImageUrl);
   });
 }

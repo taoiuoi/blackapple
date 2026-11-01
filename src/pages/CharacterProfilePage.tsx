@@ -497,6 +497,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
               <ImageWithFallback
                 src={mainPortrait}
                 alt={character.name}
+                priority={true}
+                targetWidth={1200}
                 objectPosition={character.posterObjectPosition || '50% 25%'}
                 className="w-full h-full object-cover grayscale contrast-[1.06] brightness-100 group-hover:scale-[1.02] transition-transform duration-1000"
               />

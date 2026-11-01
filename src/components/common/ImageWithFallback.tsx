@@ -4,12 +4,13 @@ import {
   resolveDirectImageUrl,
   getOptimizedImageUrl,
   CACHED_IMAGE_SET,
-  preloadImage
+  preloadImage,
+  isAnimatedGif
 } from '../../utils/imageOptimizer';
 
-export { isSampleBuildImage, resolveDirectImageUrl, preloadImage };
+export { isSampleBuildImage, resolveDirectImageUrl, preloadImage, isAnimatedGif };
 
-interface ImageWithFallbackProps {
+export interface ImageWithFallbackProps {
   src: string;
   alt: string;
   className?: string;
@@ -17,6 +18,7 @@ interface ImageWithFallbackProps {
   priority?: boolean;
   aspectRatio?: string;
   targetWidth?: number;
+  isGif?: boolean;
   onUploadClick?: () => void;
 }
 
@@ -28,14 +30,21 @@ export function ImageWithFallback({
   priority = false,
   aspectRatio,
   targetWidth = 1200,
+  isGif: forcedIsGif,
   onUploadClick
 }: ImageWithFallbackProps) {
-  const { optimizedUrl, directUrl } = getOptimizedImageUrl(src, { width: targetWidth });
+  const { optimizedUrl, directUrl, isGif: detectedIsGif } = getOptimizedImageUrl(src, {
+    width: targetWidth,
+    forceRaw: forcedIsGif
+  });
+
+  const isGif = Boolean(forcedIsGif || detectedIsGif || isAnimatedGif(src));
+
   const [currentUrl, setCurrentUrl] = useState<string>(optimizedUrl || directUrl);
   const [hasTriedFallback, setHasTriedFallback] = useState(false);
   const [hasError, setHasError] = useState(false);
 
-  // Instant check: If the URL is already decoded in memory, zero loading state!
+  // Instant check: If the URL is already decoded in memory or browser cache, instant 0ms display
   const isPrecached =
     Boolean(currentUrl) &&
     (CACHED_IMAGE_SET.has(currentUrl) || CACHED_IMAGE_SET.has(directUrl));
@@ -43,11 +52,11 @@ export function ImageWithFallback({
   const [isLoading, setIsLoading] = useState(!isPrecached);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  // Sync on prop change
+  // Sync state whenever src or width changes
   useEffect(() => {
-    const next = getOptimizedImageUrl(src, { width: targetWidth });
+    const next = getOptimizedImageUrl(src, { width: targetWidth, forceRaw: forcedIsGif });
     const target = next.optimizedUrl || next.directUrl;
-    
+
     setHasError(false);
     setHasTriedFallback(false);
     setCurrentUrl(target);
@@ -61,17 +70,20 @@ export function ImageWithFallback({
     } else {
       setIsLoading(true);
     }
-  }, [src, targetWidth]);
+  }, [src, targetWidth, forcedIsGif]);
 
-  // Check if browser already has image completed
+  // Check if browser has already loaded & decoded image from previous cache
   useEffect(() => {
     if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
       setIsLoading(false);
       if (currentUrl) {
         CACHED_IMAGE_SET.add(currentUrl);
       }
+      if (directUrl) {
+        CACHED_IMAGE_SET.add(directUrl);
+      }
     }
-  }, [currentUrl]);
+  }, [currentUrl, directUrl]);
 
   const isValid =
     Boolean(currentUrl) &&
@@ -81,7 +93,7 @@ export function ImageWithFallback({
       currentUrl.startsWith('data:image/') ||
       currentUrl.startsWith('blob:'));
 
-  // If no valid image exists or failed all attempts
+  // Fallback UI when image URL is empty or failed loading
   if (!isValid || hasError) {
     return (
       <div
@@ -121,7 +133,7 @@ export function ImageWithFallback({
   };
 
   const handleImageError = () => {
-    // If optimized URL failed and we haven't tried direct original URL yet, retry direct
+    // If optimized CDN URL failed, immediately fallback to raw direct original URL
     if (!hasTriedFallback && directUrl && currentUrl !== directUrl) {
       setHasTriedFallback(true);
       setCurrentUrl(directUrl);
@@ -134,10 +146,9 @@ export function ImageWithFallback({
 
   return (
     <div className={`relative overflow-hidden ${className}`} style={{ aspectRatio }}>
-      {/* Refined editorial shimmer loading skeleton (No harsh black flash) */}
+      {/* Refined editorial shimmer loading skeleton (prevents CLS layout shift) */}
       {isLoading && (
         <div className="absolute inset-0 bg-[#0e0e13] flex items-center justify-center overflow-hidden pointer-events-none z-10 transition-opacity duration-300">
-          {/* Subtle animated light sweep */}
           <div
             className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent animate-pulse"
             style={{ animationDuration: '1.4s' }}
@@ -156,12 +167,21 @@ export function ImageWithFallback({
         src={currentUrl}
         alt={alt}
         loading={priority ? 'eager' : 'lazy'}
-        decoding="async"
+        // For animated GIFs on Safari iOS, 'auto' decoding prevents animation freezing
+        decoding={isGif ? 'auto' : 'async'}
+        // Modern fetchpriority hint for browser LCP optimization
+        {...({ fetchPriority: priority ? 'high' : 'auto' } as Record<string, unknown>)}
         onLoad={handleImageLoad}
         onError={handleImageError}
         style={{ objectPosition }}
-        className={`w-full h-full object-cover transition-all duration-500 ease-out ${
-          isLoading ? 'opacity-0 scale-[1.02] blur-[2px]' : 'opacity-100 scale-100 blur-0'
+        className={`w-full h-full object-cover ${
+          isGif
+            ? // Animated GIFs: render directly without blur/scale filter so Safari loops smoothly
+              'opacity-100'
+            : // Static images: smooth fade-in once loaded
+              `transition-opacity duration-300 ease-out ${
+                isLoading ? 'opacity-0' : 'opacity-100'
+              }`
         }`}
       />
     </div>

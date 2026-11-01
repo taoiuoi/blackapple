@@ -336,9 +336,11 @@ export function GalleryPage({
           </button>
 
           <div className="max-w-4xl max-h-[85vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
-            <img
+            <ImageWithFallback
               src={selectedImage.url}
-              alt={selectedImage.caption}
+              alt={selectedImage.caption || selectedImage.characterName}
+              priority={true}
+              targetWidth={1600}
               className="max-w-full max-h-[75vh] object-contain rounded-lg border border-white/10 shadow-2xl"
             />
             {selectedImage.caption && (

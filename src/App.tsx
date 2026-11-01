@@ -127,7 +127,11 @@ export default function App() {
         }
       });
       setCharacters(merged);
-      preloadCharacterAssets(merged);
+      // Stagger background asset caching after initial render to avoid network contention
+      const timer = setTimeout(() => {
+        preloadCharacterAssets(merged);
+      }, 1200);
+      return () => clearTimeout(timer);
     });
 
     const unsubGenres = subscribeGenres(setGenres);

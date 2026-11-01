@@ -64,28 +64,25 @@ export function HomePage({
   const total = characters.length;
   const currentHero = characters[activeIndex] || characters[0];
 
-  // Proactively preload all character visual assets in background to ensure instant display
-  useEffect(() => {
-    if (characters.length > 0) {
-      preloadCharacterAssets(characters);
-    }
-  }, [characters]);
-
-  // Preload immediate adjacent slides (next and prev)
+  // Preload immediate adjacent slides (next and prev) after current slide is stable
   useEffect(() => {
     if (total <= 1) return;
-    const nextChar = characters[(activeIndex + 1) % total];
-    const prevChar = characters[(activeIndex - 1 + total) % total];
+    const timer = setTimeout(() => {
+      const nextChar = characters[(activeIndex + 1) % total];
+      const prevChar = characters[(activeIndex - 1 + total) % total];
 
-    if (nextChar) {
-      const nextImg = nextChar.coverUrl || nextChar.posterUrl || nextChar.avatarUrl;
-      if (nextImg) preloadImage(nextImg);
-      if (nextChar.avatarUrl) preloadImage(nextChar.avatarUrl);
-    }
-    if (prevChar) {
-      const prevImg = prevChar.coverUrl || prevChar.posterUrl || prevChar.avatarUrl;
-      if (prevImg) preloadImage(prevImg);
-    }
+      if (nextChar) {
+        const nextImg = nextChar.coverUrl || nextChar.posterUrl || nextChar.avatarUrl;
+        if (nextImg) preloadImage(nextImg);
+        if (nextChar.avatarUrl) preloadImage(nextChar.avatarUrl);
+      }
+      if (prevChar) {
+        const prevImg = prevChar.coverUrl || prevChar.posterUrl || prevChar.avatarUrl;
+        if (prevImg) preloadImage(prevImg);
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
   }, [activeIndex, characters, total]);
 
   const triggerSlideToIndex = useCallback(

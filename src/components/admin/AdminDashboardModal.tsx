@@ -44,6 +44,7 @@ import {
   saveMusicTrack,
   deleteMusicTrack
 } from '../../services/firestoreService';
+import { ImageWithFallback } from '../common/ImageWithFallback';
 
 interface AdminDashboardModalProps {
   isOpen: boolean;
@@ -622,10 +623,11 @@ export function AdminDashboardModal({
                     {characters.map((char) => (
                       <div key={char.id} className="p-4 flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                          <img
+                          <ImageWithFallback
                             src={char.avatarUrl}
                             alt={char.name}
-                            className="w-10 h-10 rounded-lg object-cover bg-neutral-900 border border-neutral-700"
+                            targetWidth={120}
+                            className="w-10 h-10 rounded-lg object-cover bg-neutral-900 border border-neutral-700 shrink-0"
                           />
                           <div>
                             <span className="text-xs font-serif text-neutral-400 mr-2">#{char.code}</span>
