@@ -247,7 +247,7 @@ export default function App() {
   };
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       {/* Cinematic Custom Black Apple Intro Screen */}
       {showIntro && (
         <CinematicIntro
