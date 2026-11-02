@@ -225,7 +225,7 @@ export const INITIAL_TRACKS: MusicTrack[] = [
 
 export const INITIAL_COMMISSION_SETTINGS: CommissionSettings = {
   isOpen: true,
-  statusBadgeText: 'ĐANG MỞ ĐĂNG KÝ SLOT',
+  statusBadgeText: 'Đang mở đăng ký slot',
   announcementTitle: 'Đăng ký Slot Commission Roleplay AI',
   announcementContent: 'Điền thông tin liên hệ, trình bày sơ lược về idea của bạn và thời gian mong muốn hoàn thành. Sau khi nhận được form, Táo sẽ chủ động liên hệ qua Discord hoặc Facebook để trao đổi chi tiết và báo giá phù hợp.'
 };

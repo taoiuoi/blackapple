@@ -36,7 +36,6 @@ import {
 import { HomePage } from './pages/HomePage';
 import { CharactersPage } from './pages/CharactersPage';
 import { CharacterProfilePage } from './pages/CharacterProfilePage';
-import { GalleryPage } from './pages/GalleryPage';
 import { MusicPage } from './pages/MusicPage';
 import { CreatorPage } from './pages/CreatorPage';
 import { CommissionPage } from './pages/CommissionPage';
@@ -325,19 +324,10 @@ export default function App() {
           }
         />
 
-        {/* Route 4: Dedicated Visual Art & Concept Gallery */}
+        {/* Route 4: Gallery removed per request, cleanly redirected to Characters */}
         <Route
           path="/gallery"
-          element={
-            <GalleryPage
-              characters={characters}
-              settings={settings}
-              isAdmin={isAdmin}
-              onOpenAdmin={() => setIsAdminModalOpen(true)}
-              isAudioPlaying={isAudioPlaying}
-              onToggleAudio={() => setIsAudioPlaying(!isAudioPlaying)}
-            />
-          }
+          element={<Navigate to="/characters" replace />}
         />
 
         {/* Route 5: Dedicated Ambient Soundtrack Station */}

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, Image as ImageIcon, X, Tag } from 'lucide-react';
+import { Search, Plus, X, Tag, ChevronDown, Check, SlidersHorizontal, Image as ImageIcon } from 'lucide-react';
 import { Character, Genre, WebsiteSettings } from '../types';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
@@ -33,8 +33,21 @@ export function CharactersPage({
 }: CharactersPageProps) {
   const [selectedGenre, setSelectedGenre] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isGenreMenuOpen, setIsGenreMenuOpen] = useState(false);
+  const [genreFilterSearch, setGenreFilterSearch] = useState('');
   const [isAddingGenreQuick, setIsAddingGenreQuick] = useState(false);
   const [quickGenreName, setQuickGenreName] = useState('');
+  const genreDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (genreDropdownRef.current && !genreDropdownRef.current.contains(e.target as Node)) {
+        setIsGenreMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleQuickAddGenre = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +78,8 @@ export function CharactersPage({
     }
     await deleteGenre(genreId);
   };
+
+  const selectedGenreObj = genres.find((g) => g.id === selectedGenre);
 
   const filtered = characters.filter((char) => {
     const matchesGenre =
@@ -118,120 +133,265 @@ export function CharactersPage({
             </p>
           </div>
 
-          {/* Filter & Search Bar on Crisp White */}
-          <div className="pt-6 border-t border-black/[0.06] flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
-            {/* Genre Pills + Admin Quick Genre Add/Delete */}
-            <div className="flex flex-wrap items-center gap-2 py-1">
-              <button
-                type="button"
-                onClick={() => setSelectedGenre('all')}
-                className={`px-4 py-1.5 rounded-full text-xs tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-                  selectedGenre === 'all'
-                    ? 'bg-[#141416] text-white font-medium shadow-sm'
-                    : 'bg-[#F3F2EE] text-neutral-600 hover:text-[#141416]'
-                }`}
-              >
-                Tất cả ({characters.length})
-              </button>
-
-              {genres.map((g) => {
-                const count = characters.filter(
-                  (c) => c.genreIds && c.genreIds.includes(g.id)
-                ).length;
-                const isSelected = selectedGenre === g.id;
-                return (
-                  <div
-                    key={g.id}
-                    className={`inline-flex items-center rounded-full text-xs tracking-wider transition-all whitespace-nowrap ${
-                      isSelected
-                        ? 'bg-[#141416] text-white font-medium shadow-sm'
-                        : 'bg-[#F3F2EE] text-neutral-600 hover:text-[#141416]'
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGenre(g.id)}
-                      className="pl-3.5 pr-2 py-1.5 cursor-pointer"
-                    >
-                      {g.name} ({count})
-                    </button>
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        onClick={(e) => handleDeleteGenreTag(g.id, e)}
-                        className={`pr-2.5 pl-1 py-1.5 hover:text-rose-500 transition-colors cursor-pointer ${
-                          isSelected ? 'text-neutral-300' : 'text-neutral-400'
-                        }`}
-                        title={`Xóa tag thể loại "${g.name}"`}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-
-              {isAdmin && (
-                isAddingGenreQuick ? (
-                  <form onSubmit={handleQuickAddGenre} className="inline-flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={quickGenreName}
-                      onChange={(e) => setQuickGenreName(e.target.value)}
-                      placeholder="Tên thể loại mới..."
-                      autoFocus
-                      className="px-3 py-1 rounded-full bg-[#F5F4F0] border border-black/20 text-xs text-[#141416] focus:outline-none w-36"
-                    />
-                    <button
-                      type="submit"
-                      className="px-3 py-1 rounded-full bg-[#141416] text-white text-[11px] font-medium cursor-pointer"
-                    >
-                      Lưu
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingGenreQuick(false)}
-                      className="p-1 text-neutral-400 hover:text-black cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </form>
-                ) : (
+          {/* Filter & Search Bar on Crisp White - Clean & Non-cluttered */}
+          <div className="pt-6 border-t border-black/[0.06] space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+              
+              {/* Left: Sleek Genre Dropdown Trigger & Active Chip */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative" ref={genreDropdownRef}>
                   <button
                     type="button"
-                    onClick={() => setIsAddingGenreQuick(true)}
-                    className="px-3 py-1.5 rounded-full border border-dashed border-black/25 text-neutral-600 hover:text-black hover:border-black text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                    onClick={() => setIsGenreMenuOpen(!isGenreMenuOpen)}
+                    className={`px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 border transition-all cursor-pointer ${
+                      selectedGenre !== 'all'
+                        ? 'bg-[#141416] text-white border-[#141416] shadow-sm'
+                        : 'bg-[#F3F2EE] hover:bg-[#eae8e2] text-[#141416] border-black/[0.08]'
+                    }`}
                   >
-                    <Plus className="w-3 h-3" />
-                    <span>Thêm tag thể loại</span>
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-400" />
+                    <span>
+                      {selectedGenre === 'all'
+                        ? `Thể loại: Tất cả (${characters.length})`
+                        : `Thể loại: ${selectedGenreObj?.name || selectedGenre}`}
+                    </span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                        isGenreMenuOpen ? 'rotate-180' : ''
+                      }`}
+                    />
                   </button>
-                )
-              )}
-            </div>
 
-            {/* Right: Search & Admin Add Character */}
-            <div className="flex items-center gap-2.5">
-              <div className="relative flex-1 md:w-60">
-                <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Tìm tên nhân vật, mã số..."
-                  className="w-full bg-[#F5F4F0] border border-black/10 rounded-full pl-9 pr-4 py-1.5 text-xs text-[#141416] placeholder:text-neutral-400 focus:outline-none focus:border-black/40"
-                />
+                  {/* Popover Dropdown Panel */}
+                  {isGenreMenuOpen && (
+                    <div className="absolute left-0 top-full mt-2 w-72 sm:w-80 rounded-2xl bg-white border border-black/15 shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-3 z-50 animate-fadeIn">
+                      <div className="flex items-center justify-between px-2 pb-2 mb-2 border-b border-black/[0.06]">
+                        <span className="text-[10px] tracking-[0.2em] uppercase font-semibold text-neutral-400">
+                          DANH MỤC THỂ LOẠI
+                        </span>
+                        <span className="text-[10px] text-neutral-400 font-sans">
+                          {genres.length} thể loại
+                        </span>
+                      </div>
+
+                      {/* Small Quick Search within genres if > 5 */}
+                      {genres.length > 5 && (
+                        <div className="mb-2 px-1">
+                          <input
+                            type="text"
+                            value={genreFilterSearch}
+                            onChange={(e) => setGenreFilterSearch(e.target.value)}
+                            placeholder="Tìm nhanh thể loại..."
+                            className="w-full bg-[#FAF9F6] border border-black/10 rounded-lg px-2.5 py-1 text-xs text-[#141416] placeholder:text-neutral-400 focus:outline-none"
+                          />
+                        </div>
+                      )}
+
+                      {/* Scrollable Genre List */}
+                      <div className="max-h-60 overflow-y-auto space-y-1 pr-1">
+                        {/* Option: Tất cả */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedGenre('all');
+                            setIsGenreMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer ${
+                            selectedGenre === 'all'
+                              ? 'bg-[#141416] text-white font-medium'
+                              : 'hover:bg-[#F3F2EE] text-neutral-700'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            {selectedGenre === 'all' && <Check className="w-3.5 h-3.5 text-white" />}
+                            <span>Tất cả nhân vật</span>
+                          </span>
+                          <span
+                            className={`text-[11px] px-2 py-0.5 rounded-full ${
+                              selectedGenre === 'all'
+                                ? 'bg-white/20 text-white'
+                                : 'bg-[#EAE8E2] text-neutral-600'
+                            }`}
+                          >
+                            {characters.length}
+                          </span>
+                        </button>
+
+                        {/* Each Genre */}
+                        {genres
+                          .filter((g) =>
+                            !genreFilterSearch ||
+                            g.name.toLowerCase().includes(genreFilterSearch.toLowerCase())
+                          )
+                          .map((g) => {
+                            const count = characters.filter(
+                              (c) => c.genreIds && c.genreIds.includes(g.id)
+                            ).length;
+                            const isSelected = selectedGenre === g.id;
+                            return (
+                              <div
+                                key={g.id}
+                                className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors group ${
+                                  isSelected
+                                    ? 'bg-[#141416] text-white font-medium'
+                                    : 'hover:bg-[#F3F2EE] text-neutral-700'
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedGenre(g.id);
+                                    setIsGenreMenuOpen(false);
+                                  }}
+                                  className="flex-1 flex items-center gap-2 text-left cursor-pointer truncate mr-2"
+                                >
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
+                                  <span className="truncate">{g.name}</span>
+                                </button>
+
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <span
+                                    className={`text-[11px] px-2 py-0.5 rounded-full ${
+                                      isSelected
+                                        ? 'bg-white/20 text-white'
+                                        : 'bg-[#EAE8E2] text-neutral-600'
+                                    }`}
+                                  >
+                                    {count}
+                                  </span>
+
+                                  {isAdmin && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleDeleteGenreTag(g.id, e)}
+                                      className="p-1 text-neutral-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                      title={`Xóa tag "${g.name}"`}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+
+                      {/* Admin Quick Add inside Dropdown */}
+                      {isAdmin && (
+                        <div className="pt-2 mt-2 border-t border-black/[0.08]">
+                          {isAddingGenreQuick ? (
+                            <form onSubmit={handleQuickAddGenre} className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={quickGenreName}
+                                onChange={(e) => setQuickGenreName(e.target.value)}
+                                placeholder="Tên thể loại mới..."
+                                autoFocus
+                                className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#FAF9F6] border border-black/15 text-xs text-[#141416] focus:outline-none"
+                              />
+                              <button
+                                type="submit"
+                                className="px-3 py-1.5 rounded-lg bg-[#141416] text-white text-xs font-semibold cursor-pointer shrink-0"
+                              >
+                                Lưu
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setIsAddingGenreQuick(false)}
+                                className="p-1 text-neutral-400 hover:text-black cursor-pointer"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </form>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingGenreQuick(true)}
+                              className="w-full py-1.5 text-center text-xs text-neutral-600 hover:text-black flex items-center justify-center gap-1 font-medium cursor-pointer"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>Tạo thể loại mới</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* If a genre is selected, display quick remove pill */}
+                {selectedGenre !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedGenre('all')}
+                    className="px-3 py-1.5 rounded-full bg-[#EAE8E2] hover:bg-neutral-300 text-[#141416] text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Xóa bộ lọc thể loại"
+                  >
+                    <span>{selectedGenreObj?.name || 'Đang lọc'}</span>
+                    <X className="w-3 h-3 text-neutral-500" />
+                  </button>
+                )}
               </div>
 
-              {isAdmin && (
-                <Link
-                  to="/admin?tab=characters"
-                  className="px-4 py-1.5 rounded-full bg-[#141416] hover:bg-neutral-800 text-white text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Thêm / Quản lý</span>
-                </Link>
-              )}
+              {/* Right: Search & Admin Manage Characters */}
+              <div className="flex items-center gap-2.5">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Tìm tên nhân vật, mã số..."
+                    className="w-full bg-[#F5F4F0] border border-black/10 rounded-full pl-9 pr-8 py-2 text-xs text-[#141416] placeholder:text-neutral-400 focus:outline-none focus:border-black/40"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black p-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                {isAdmin && (
+                  <Link
+                    to="/admin?tab=characters"
+                    className="px-4 py-2 rounded-full bg-[#141416] hover:bg-neutral-800 text-white text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Thêm / Quản lý</span>
+                  </Link>
+                )}
+              </div>
             </div>
+
+            {/* Micro Filter Status Strip when filtering */}
+            {(selectedGenre !== 'all' || searchQuery) && (
+              <div className="flex items-center justify-between text-xs text-neutral-500 pt-1 px-1">
+                <div className="flex items-center gap-2">
+                  <span>Kết quả:</span>
+                  <strong className="text-[#141416] font-semibold">{filtered.length} nhân vật</strong>
+                  {selectedGenre !== 'all' && (
+                    <span>thuộc thể loại &ldquo;{selectedGenreObj?.name}&rdquo;</span>
+                  )}
+                  {searchQuery && (
+                    <span>khớp với từ khóa &ldquo;{searchQuery}&rdquo;</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedGenre('all');
+                    setSearchQuery('');
+                  }}
+                  className="text-[11px] underline text-neutral-600 hover:text-black cursor-pointer"
+                >
+                  Xem lại tất cả
+                </button>
+              </div>
+            )}
           </div>
         </header>
 

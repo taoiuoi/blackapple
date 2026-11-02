@@ -601,7 +601,7 @@ export function AdminPage({
               <Lock className="w-6 h-6 text-neutral-300" />
             </div>
             <div className="space-y-2">
-              <span className="text-[10px] tracking-[0.25em] uppercase text-neutral-500 block font-mono">
+              <span className="text-[10px] tracking-[0.2em] uppercase text-neutral-400 block font-sans font-medium">
                 KHU VỰC BẢO MẬT · RESTRICTED
               </span>
               <h1 className="text-lg sm:text-xl font-bold text-white">
@@ -754,7 +754,7 @@ export function AdminPage({
                           Thể Loại Nhân Vật (Chọn từ các thể loại đã tạo):
                         </span>
                       </div>
-                      <span className="text-[10px] text-neutral-400 font-mono">
+                      <span className="text-xs text-neutral-400 font-sans">
                         {editingChar.genreIds?.length || 0} thể loại được chọn
                       </span>
                     </div>
@@ -1049,8 +1049,8 @@ export function AdminPage({
                         <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                         Chuyên Khảo Hồ Sơ Chi Tiết (Tự chủ chỉnh sửa không cần sửa code):
                       </span>
-                      <span className="text-[10px] text-neutral-400 font-mono">
-                        HIỂN THỊ CHUẨN ARTBOOK
+                      <span className="text-xs text-neutral-400 font-serif italic">
+                        Hiển thị chuẩn Artbook
                       </span>
                     </div>
 
@@ -1285,7 +1285,7 @@ export function AdminPage({
                               <p className="text-[11px] text-neutral-400 line-clamp-2 leading-relaxed font-serif">
                                 {npc.description}
                               </p>
-                              <span className="text-[9px] text-neutral-500 font-mono block">
+                              <span className="text-[11px] text-neutral-400 font-sans block">
                                 {npc.avatarUrl ? 'Có ảnh đại diện' : 'Không dùng ảnh (Typography)'}
                               </span>
                             </div>
@@ -1431,7 +1431,7 @@ export function AdminPage({
                         value={editingChar.roleplayLink || ''}
                         onChange={(e) => setEditingChar({ ...editingChar, roleplayLink: e.target.value })}
                         placeholder="https://..."
-                        className="w-full bg-[#121217] border border-white/[0.15] rounded-lg px-3 py-2 text-xs text-white font-mono"
+                        className="w-full bg-[#121217] border border-white/[0.15] rounded-xl px-3.5 py-2.5 text-xs text-white font-sans focus:outline-none focus:border-white/30"
                         style={{ fontSize: '15px' }}
                       />
                     </div>
@@ -2253,87 +2253,126 @@ export function AdminPage({
 
         {/* TAB: COMMISSION ROLEPLAY AI MANAGEMENT */}
         {activeTab === 'commissions' && (
-          <div className="space-y-8 animate-fadeIn">
-            {/* Top Quick Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              <div className="p-4 rounded-xl bg-[#0e0e13] border border-white/[0.08] space-y-1">
-                <span className="text-[10px] uppercase tracking-wider text-neutral-400 block font-mono">
-                  Tổng Brief Nhận
-                </span>
-                <span className="text-xl sm:text-2xl font-bold text-white block">
-                  {commissionRequests.length}
-                </span>
+          <div className="space-y-6 sm:space-y-8 animate-fadeIn">
+            {/* Editorial Overview Header & Stats */}
+            <div className="p-5 sm:p-6 rounded-2xl bg-[#0c0c10] border border-white/[0.08] shadow-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.06]">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] tracking-[0.2em] uppercase text-neutral-400 font-sans block">
+                    TIẾN ĐỘ &amp; TỔNG QUAN
+                  </span>
+                  <h3 className="text-base sm:text-lg font-serif font-medium text-white tracking-wide">
+                    Hồ Sơ Nhận Brief &amp; Slot Commission
+                  </h3>
+                </div>
+                <div className="self-start sm:self-auto px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-xs font-serif text-neutral-300">
+                  Tổng nhận: <span className="text-white font-semibold">{commissionRequests.length}</span> brief
+                </div>
               </div>
-              <div className="p-4 rounded-xl bg-[#0e0e13] border border-amber-500/20 space-y-1">
-                <span className="text-[10px] uppercase tracking-wider text-amber-400 block font-mono">
-                  Chờ Xử Lý
-                </span>
-                <span className="text-xl sm:text-2xl font-bold text-amber-300 block">
-                  {commissionRequests.filter((r) => r.status === 'pending').length}
-                </span>
-              </div>
-              <div className="p-4 rounded-xl bg-[#0e0e13] border border-sky-500/20 space-y-1">
-                <span className="text-[10px] uppercase tracking-wider text-sky-400 block font-mono">
-                  Đang Trao Đổi
-                </span>
-                <span className="text-xl sm:text-2xl font-bold text-sky-300 block">
-                  {commissionRequests.filter((r) => r.status === 'discussing').length}
-                </span>
-              </div>
-              <div className="p-4 rounded-xl bg-[#0e0e13] border border-purple-500/20 space-y-1">
-                <span className="text-[10px] uppercase tracking-wider text-purple-400 block font-mono">
-                  Đang Viết Prompt
-                </span>
-                <span className="text-xl sm:text-2xl font-bold text-purple-300 block">
-                  {commissionRequests.filter((r) => r.status === 'writing').length}
-                </span>
-              </div>
-              <div className="p-4 rounded-xl bg-[#0e0e13] border border-emerald-500/20 space-y-1 col-span-2 sm:col-span-1">
-                <span className="text-[10px] uppercase tracking-wider text-emerald-400 block font-mono">
-                  Đã Bàn Giao
-                </span>
-                <span className="text-xl sm:text-2xl font-bold text-emerald-300 block">
-                  {commissionRequests.filter((r) => r.status === 'completed').length}
-                </span>
+
+              {/* 5 Status Cards - Pure Editorial & Monochromatic Luxury */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
+                <div className="p-3.5 rounded-xl bg-[#131318] border border-white/[0.06] hover:border-white/15 transition-colors">
+                  <span className="text-xs text-neutral-400 block font-sans mb-1">
+                    Tổng brief
+                  </span>
+                  <span className="text-2xl font-serif text-white block tracking-tight">
+                    {commissionRequests.length}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#131318] border border-amber-500/20 hover:border-amber-500/40 transition-colors">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                    <span className="text-xs text-neutral-300 font-sans">
+                      Chờ xử lý
+                    </span>
+                  </div>
+                  <span className="text-2xl font-serif text-amber-200 block tracking-tight">
+                    {commissionRequests.filter((r) => r.status === 'pending').length}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#131318] border border-white/[0.06] hover:border-white/15 transition-colors">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                    <span className="text-xs text-neutral-300 font-sans">
+                      Đang trao đổi
+                    </span>
+                  </div>
+                  <span className="text-2xl font-serif text-neutral-200 block tracking-tight">
+                    {commissionRequests.filter((r) => r.status === 'discussing').length}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#131318] border border-white/[0.06] hover:border-white/15 transition-colors">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                    <span className="text-xs text-neutral-300 font-sans">
+                      Đang viết prompt
+                    </span>
+                  </div>
+                  <span className="text-2xl font-serif text-neutral-200 block tracking-tight">
+                    {commissionRequests.filter((r) => r.status === 'writing').length}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#131318] border border-emerald-500/20 hover:border-emerald-500/40 transition-colors col-span-2 sm:col-span-1">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span className="text-xs text-neutral-300 font-sans">
+                      Đã bàn giao
+                    </span>
+                  </div>
+                  <span className="text-2xl font-serif text-emerald-200 block tracking-tight">
+                    {commissionRequests.filter((r) => r.status === 'completed').length}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Commission Settings Config Box */}
-            <div className="p-6 rounded-2xl bg-[#09090d] border border-white/[0.08] space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
-                <div>
-                  <span className="text-[11px] uppercase tracking-wider text-neutral-400 block font-mono">
-                    CẤU HÌNH DỊCH VỤ
+            {/* Commission Settings Config Box - Clean & No Overflow */}
+            <div className="p-5 sm:p-6 rounded-2xl bg-[#0c0c10] border border-white/[0.08] shadow-xl space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.06]">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] tracking-[0.2em] uppercase text-neutral-400 font-sans block">
+                    CẤU HÌNH TRẠNG THÁI &amp; THÔNG TIN
                   </span>
-                  <h3 className="text-base sm:text-lg font-bold text-white">
-                    Trạng Thái &amp; Thông Tin Nhận Commission
+                  <h3 className="text-base sm:text-lg font-serif font-medium text-white tracking-wide">
+                    Thiết Lập Nhận Commission Roleplay AI
                   </h3>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-white">
-                    <input
-                      type="checkbox"
-                      checked={commissionSettingsForm.isOpen}
-                      onChange={(e) =>
-                        setCommissionSettingsForm({
-                          ...commissionSettingsForm,
-                          isOpen: e.target.checked
-                        })
-                      }
-                      className="w-4 h-4 rounded text-white bg-black border-white/20"
+                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCommissionSettingsForm({
+                        ...commissionSettingsForm,
+                        isOpen: !commissionSettingsForm.isOpen
+                      })
+                    }
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-sans font-medium flex items-center gap-2 border transition-all cursor-pointer ${
+                      commissionSettingsForm.isOpen
+                        ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                        : 'bg-white/[0.05] border-white/10 text-neutral-400'
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        commissionSettingsForm.isOpen ? 'bg-emerald-400 animate-pulse' : 'bg-neutral-500'
+                      }`}
                     />
                     <span>
-                      {commissionSettingsForm.isOpen
-                        ? '🟢 Đang Mở Nhận Slot'
-                        : '🔴 Đang Tạm Đóng Slot'}
+                      {commissionSettingsForm.isOpen ? 'Đang mở nhận slot' : 'Đang tạm đóng slot'}
                     </span>
-                  </label>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleSaveCommSettings}
                     disabled={isSavingCommSettings}
-                    className="px-4 py-1.5 rounded-lg bg-white text-neutral-900 hover:bg-neutral-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="px-4 py-1.5 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-sans font-medium flex items-center gap-1.5 transition-all cursor-pointer shadow-sm disabled:opacity-50"
                   >
                     <Save className="w-3.5 h-3.5" />
                     <span>{isSavingCommSettings ? 'Đang lưu...' : 'Lưu Cấu Hình'}</span>
@@ -2341,9 +2380,11 @@ export function AdminPage({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans text-xs">
                 <div>
-                  <label className="block text-neutral-400 mb-1">Dòng chữ hiển thị trên Badge trạng thái:</label>
+                  <label className="block text-neutral-300 font-medium mb-1.5">
+                    Dòng chữ hiển thị trên Badge trạng thái:
+                  </label>
                   <input
                     type="text"
                     value={commissionSettingsForm.statusBadgeText || ''}
@@ -2353,14 +2394,18 @@ export function AdminPage({
                         statusBadgeText: e.target.value
                       })
                     }
-                    placeholder="VD: ĐANG MỞ ĐĂNG KÝ SLOT"
-                    className="w-full px-3 py-2 rounded-lg bg-[#121217] border border-white/[0.1] text-white"
-                    style={{ fontSize: '15px' }}
+                    placeholder="VD: Đang mở đăng ký slot"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141a] border border-white/[0.1] text-white text-sm font-sans placeholder:text-neutral-500 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
                   />
+                  <p className="text-[11px] text-neutral-500 mt-1">
+                    Xuất hiện trên huy hiệu thông báo ở trang Commission của độc giả.
+                  </p>
                 </div>
 
                 <div>
-                  <label className="block text-neutral-400 mb-1">Tiêu đề form đăng ký Slot:</label>
+                  <label className="block text-neutral-300 font-medium mb-1.5">
+                    Tiêu đề thông báo trên Form:
+                  </label>
                   <input
                     type="text"
                     value={commissionSettingsForm.announcementTitle || ''}
@@ -2371,14 +2416,18 @@ export function AdminPage({
                       })
                     }
                     placeholder="VD: Đăng ký Slot Commission Roleplay AI"
-                    className="w-full px-3 py-2 rounded-lg bg-[#121217] border border-white/[0.1] text-white"
-                    style={{ fontSize: '15px' }}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141a] border border-white/[0.1] text-white text-sm font-sans placeholder:text-neutral-500 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
                   />
+                  <p className="text-[11px] text-neutral-500 mt-1">
+                    Tiêu đề chính hiển thị ngay trên đầu mẫu đăng ký slot.
+                  </p>
                 </div>
               </div>
 
-              <div className="text-xs font-sans">
-                <label className="block text-neutral-400 mb-1">Đoạn lời nhắn đầu form:</label>
+              <div className="font-sans text-xs">
+                <label className="block text-neutral-300 font-medium mb-1.5">
+                  Đoạn lời nhắn / lưu ý gửi đến độc giả trước khi điền:
+                </label>
                 <textarea
                   rows={3}
                   value={commissionSettingsForm.announcementContent || ''}
@@ -2388,24 +2437,26 @@ export function AdminPage({
                       announcementContent: e.target.value
                     })
                   }
-                  className="w-full px-3 py-2 rounded-lg bg-[#121217] border border-white/[0.1] text-white leading-relaxed"
-                  style={{ fontSize: '15px' }}
+                  placeholder="Nhập lời nhắn gửi đến các bạn đặt commission..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#14141a] border border-white/[0.1] text-white text-sm font-serif leading-relaxed placeholder:text-neutral-500 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
                 />
               </div>
             </div>
 
             {/* Commission Slots Listing */}
-            <div className="space-y-4 font-sans">
+            <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold text-white">Danh sách Slot Đăng ký Commission</span>
-                  <span className="text-xs text-neutral-500">
-                    ({commissionRequests.length} đăng ký)
+                  <span className="text-base font-serif font-medium text-white">
+                    Danh Sách Slot Đăng Ký Commission
+                  </span>
+                  <span className="text-xs text-neutral-400 font-sans">
+                    ({commissionRequests.length} lượt gửi)
                   </span>
                 </div>
 
                 {/* Filter Pills */}
-                <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                <div className="flex items-center gap-1.5 flex-wrap text-xs font-sans">
                   {[
                     { id: 'all', label: 'Tất cả' },
                     { id: 'pending', label: 'Chờ xử lý' },
@@ -2416,10 +2467,10 @@ export function AdminPage({
                     <button
                       key={f.id}
                       onClick={() => setCommStatusFilter(f.id as any)}
-                      className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
                         commStatusFilter === f.id
-                          ? 'bg-white text-black font-semibold'
-                          : 'bg-white/[0.05] text-neutral-400 hover:text-white'
+                          ? 'bg-white text-black font-medium shadow-sm'
+                          : 'bg-white/[0.04] text-neutral-400 hover:text-white border border-white/[0.06]'
                       }`}
                     >
                       {f.label}
@@ -2430,8 +2481,8 @@ export function AdminPage({
 
               {/* Slot Cards List */}
               {commissionRequests.length === 0 ? (
-                <div className="p-12 rounded-2xl bg-[#09090d] border border-white/[0.06] text-center text-neutral-400 text-xs font-serif">
-                  Chưa có bạn nào điền form đăng ký slot commission. Khi có người gửi form, thông tin liên hệ và brief thô sơ sẽ hiển thị tại đây.
+                <div className="p-12 rounded-2xl bg-[#0c0c10] border border-white/[0.06] text-center text-neutral-400 text-xs font-serif leading-relaxed">
+                  Chưa có bạn nào điền form đăng ký slot commission. Khi có bạn đọc gửi form, thông tin liên hệ và brief thô sơ sẽ hiển thị tại đây.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
@@ -2443,49 +2494,49 @@ export function AdminPage({
                       return (
                         <div
                           key={req.id}
-                          className="p-5 rounded-2xl bg-[#09090d] border border-white/[0.08] hover:border-white/20 transition-all space-y-4"
+                          className="p-5 sm:p-6 rounded-2xl bg-[#0c0c10] border border-white/[0.08] hover:border-white/20 transition-all space-y-4 shadow-lg"
                         >
                           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h4 className="text-base font-bold text-white">
+                            <div className="space-y-1.5 min-w-0">
+                              <div className="flex items-center gap-2.5 flex-wrap">
+                                <h4 className="text-base sm:text-lg font-serif font-medium text-white tracking-wide">
                                   {req.clientName}
                                 </h4>
                                 {req.isUrgent ? (
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30 font-semibold">
-                                    ⚡ CẦN GẤP
+                                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-sans font-medium bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                                    ⚡ Cần gấp
                                   </span>
                                 ) : (
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-white/10 text-neutral-300">
-                                    THÔNG THƯỜNG
+                                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-sans text-neutral-400 bg-white/[0.05] border border-white/[0.08]">
+                                    Tiêu chuẩn
                                   </span>
                                 )}
-                                <span className="text-[11px] text-neutral-500">
+                                <span className="text-xs text-neutral-500 font-sans">
                                   {new Date(req.createdAt).toLocaleDateString('vi-VN')}
                                 </span>
                               </div>
-                              <div className="text-xs text-neutral-300 font-mono">
-                                Liên hệ: <strong className="text-amber-300">{req.contactMethod}</strong>
+                              <div className="text-xs text-neutral-300 font-sans">
+                                Liên hệ: <strong className="text-amber-200 font-medium">{req.contactMethod}</strong>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {/* Status Selector */}
                               <select
                                 value={req.status}
                                 onChange={(e) =>
                                   handleUpdateCommStatus(req.id, e.target.value as CommissionStatus)
                                 }
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold outline-none cursor-pointer border ${
+                                className={`px-3 py-1.5 rounded-xl text-xs font-sans font-medium outline-none cursor-pointer border transition-colors ${
                                   req.status === 'pending'
-                                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
                                     : req.status === 'discussing'
-                                    ? 'bg-sky-500/10 border-sky-500/30 text-sky-300'
+                                    ? 'bg-sky-500/10 border-sky-500/30 text-sky-200'
                                     : req.status === 'writing'
-                                    ? 'bg-purple-500/10 border-purple-500/30 text-purple-300'
+                                    ? 'bg-purple-500/10 border-purple-500/30 text-purple-200'
                                     : req.status === 'completed'
-                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                                    : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+                                    : 'bg-rose-500/10 border-rose-500/30 text-rose-200'
                                 }`}
                               >
                                 <option value="pending" className="bg-[#121217] text-white">
@@ -2511,7 +2562,7 @@ export function AdminPage({
                                   setSelectedCommission(req);
                                   setAdminNoteInput(req.adminNotes || '');
                                 }}
-                                className="px-3.5 py-1.5 rounded-lg bg-white/10 hover:bg-white text-white hover:text-black text-xs font-medium transition-colors cursor-pointer"
+                                className="px-3.5 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white text-white hover:text-black text-xs font-sans font-medium transition-colors cursor-pointer"
                               >
                                 Xem Chi Tiết
                               </button>
@@ -2519,7 +2570,7 @@ export function AdminPage({
                               <button
                                 type="button"
                                 onClick={() => handleDeleteComm(req.id)}
-                                className="p-1.5 rounded-lg text-neutral-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                className="p-2 rounded-xl text-neutral-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                                 title="Xóa đăng ký này"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -2528,28 +2579,28 @@ export function AdminPage({
                           </div>
 
                           {/* Brief & Timeline Preview */}
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-black/40 p-3.5 rounded-xl border border-white/[0.04]">
-                            <div className="sm:col-span-2">
-                              <span className="text-neutral-500 block text-[10px] uppercase font-mono mb-0.5">
-                                Brief thô sơ (Idea của khách):
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs bg-black/40 p-4 rounded-xl border border-white/[0.04]">
+                            <div className="sm:col-span-2 space-y-1">
+                              <span className="text-neutral-400 block text-[11px] font-sans font-medium uppercase tracking-wider">
+                                Brief thô sơ (Ý tưởng của bạn đọc):
                               </span>
-                              <p className="text-neutral-200 font-serif whitespace-pre-line line-clamp-3">
+                              <p className="text-neutral-200 font-serif leading-relaxed whitespace-pre-line line-clamp-3 break-words">
                                 {briefText}
                               </p>
                             </div>
-                            <div>
-                              <span className="text-neutral-500 block text-[10px] uppercase font-mono mb-0.5">
+                            <div className="space-y-1">
+                              <span className="text-neutral-400 block text-[11px] font-sans font-medium uppercase tracking-wider">
                                 Thời gian mong muốn hoàn thành:
                               </span>
-                              <span className="text-neutral-200 font-medium">
+                              <span className="text-neutral-200 font-sans font-medium block">
                                 {timelineText}
                               </span>
                             </div>
                           </div>
 
                           {req.adminNotes && (
-                            <div className="text-[11px] text-amber-200/90 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">
-                              <strong>Ghi chú của Táo:</strong> {req.adminNotes}
+                            <div className="text-xs text-amber-200/90 bg-amber-500/[0.08] px-3.5 py-2 rounded-xl border border-amber-500/20 font-serif">
+                              <strong className="font-sans font-semibold">Ghi chú riêng:</strong> {req.adminNotes}
                             </div>
                           )}
                         </div>
@@ -2562,23 +2613,23 @@ export function AdminPage({
             {/* Detailed Slot Modal */}
             {selectedCommission && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-                <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#0f0f14] border border-white/15 p-6 sm:p-8 shadow-2xl text-neutral-200 space-y-6">
+                <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#0e0e13] border border-white/15 p-6 sm:p-8 shadow-2xl text-neutral-200 space-y-5">
                   <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/10">
-                    <div>
-                      <span className="text-[10px] font-mono tracking-widest text-neutral-400 uppercase block">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-sans tracking-[0.2em] text-neutral-400 uppercase block">
                         THÔNG TIN ĐĂNG KÝ SLOT COMMISSION
                       </span>
-                      <h3 className="text-xl sm:text-2xl font-bold text-white mt-1">
+                      <h3 className="text-xl sm:text-2xl font-serif font-medium text-white tracking-wide">
                         {selectedCommission.clientName}
                       </h3>
-                      <p className="text-xs text-amber-400 font-mono mt-1">
-                        {selectedCommission.contactMethod}
+                      <p className="text-xs text-amber-300 font-sans">
+                        Liên hệ: {selectedCommission.contactMethod}
                       </p>
                     </div>
 
                     <button
                       onClick={() => setSelectedCommission(null)}
-                      className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
+                      className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -2587,54 +2638,54 @@ export function AdminPage({
                   <div className="space-y-4 text-xs font-sans">
                     <div className="grid grid-cols-2 gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                       <div>
-                        <span className="text-neutral-500 block text-[10px] uppercase font-mono">
+                        <span className="text-neutral-400 block text-[10px] uppercase font-sans mb-1">
                           Mức độ ưu tiên:
                         </span>
-                        <span className="font-semibold text-white">
+                        <span className="font-medium text-white text-xs">
                           {selectedCommission.isUrgent
-                            ? '⚡ Cần gấp (Báo giá ưu tiên)'
-                            : 'Thông thường (Theo slot)'}
+                            ? '⚡ Cần gấp (Ưu tiên)'
+                            : 'Tiêu chuẩn (Theo slot)'}
                         </span>
                       </div>
                       <div>
-                        <span className="text-neutral-500 block text-[10px] uppercase font-mono">
+                        <span className="text-neutral-400 block text-[10px] uppercase font-sans mb-1">
                           Ngày gửi form:
                         </span>
-                        <span className="font-semibold text-white">
+                        <span className="font-medium text-white text-xs">
                           {new Date(selectedCommission.createdAt).toLocaleDateString('vi-VN')}
                         </span>
                       </div>
                     </div>
 
                     <div>
-                      <span className="text-neutral-400 block text-[11px] font-semibold uppercase mb-1">
-                        Thời gian bạn ấy muốn Táo hoàn thành:
+                      <span className="text-neutral-300 block text-xs font-medium uppercase tracking-wider mb-1.5">
+                        Thời gian mong muốn hoàn thành:
                       </span>
-                      <p className="p-3 rounded-lg bg-black/40 border border-white/[0.05] text-neutral-200 font-serif">
+                      <p className="p-3.5 rounded-xl bg-black/40 border border-white/[0.06] text-neutral-200 font-sans text-xs">
                         {selectedCommission.desiredTimeline || 'Không ghi chú'}
                       </p>
                     </div>
 
                     <div>
-                      <span className="text-neutral-400 block text-[11px] font-semibold uppercase mb-1">
-                        Brief thô sơ (Idea của bạn đặt comm):
+                      <span className="text-neutral-300 block text-xs font-medium uppercase tracking-wider mb-1.5">
+                        Brief thô sơ (Ý tưởng của bạn đọc):
                       </span>
-                      <p className="p-4 rounded-lg bg-black/40 border border-white/[0.05] text-neutral-200 font-serif leading-relaxed whitespace-pre-line">
+                      <p className="p-4 rounded-xl bg-black/40 border border-white/[0.06] text-neutral-200 font-serif leading-relaxed whitespace-pre-line break-words text-xs">
                         {selectedCommission.roughBrief || selectedCommission.personalityTone || ''}
                       </p>
                     </div>
 
                     {/* Admin Note Input */}
                     <div className="pt-3 border-t border-white/10 space-y-2">
-                      <label className="block text-[11px] font-semibold text-neutral-300 uppercase">
-                        Ghi chú riêng của Táo (Báo giá, tiến độ,...):
+                      <label className="block text-xs font-medium text-neutral-300 uppercase tracking-wider">
+                        Ghi chú riêng của bạn (Báo giá, tiến độ,...):
                       </label>
                       <textarea
-                        rows={2}
+                        rows={3}
                         value={adminNoteInput}
                         onChange={(e) => setAdminNoteInput(e.target.value)}
-                        placeholder="Nhập ghi chú riêng của bạn cho slot này..."
-                        className="w-full px-3 py-2 rounded-lg bg-black/50 border border-white/15 text-white text-xs outline-none focus:border-white/40"
+                        placeholder="Nhập ghi chú riêng cho slot này..."
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-sans outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all placeholder:text-neutral-500"
                       />
                       <button
                         type="button"
@@ -2645,7 +2696,7 @@ export function AdminPage({
                             adminNoteInput
                           )
                         }
-                        className="px-4 py-1.5 rounded-lg bg-white/10 hover:bg-white text-white hover:text-black text-xs font-semibold transition-colors cursor-pointer"
+                        className="px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white text-white hover:text-black text-xs font-sans font-medium transition-colors cursor-pointer"
                       >
                         Lưu Ghi Chú
                       </button>
@@ -2656,7 +2707,7 @@ export function AdminPage({
                     <button
                       type="button"
                       onClick={() => handleDeleteComm(selectedCommission.id)}
-                      className="px-3.5 py-1.5 rounded-lg text-xs text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl text-xs text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer font-sans"
                     >
                       Xóa Slot Này
                     </button>
@@ -2664,7 +2715,7 @@ export function AdminPage({
                     <button
                       type="button"
                       onClick={() => setSelectedCommission(null)}
-                      className="px-5 py-2 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs font-semibold transition-colors cursor-pointer"
+                      className="px-5 py-2 rounded-xl bg-white text-black hover:bg-neutral-200 text-xs font-sans font-medium transition-colors cursor-pointer"
                     >
                       Đóng
                     </button>

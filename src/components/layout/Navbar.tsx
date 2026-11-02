@@ -35,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const navItems = [
     { path: '/', label: 'Home' },
-    { path: '/characters', label: 'Thể loại' },
+    { path: '/characters', label: 'Character' },
     { path: '/creator', label: 'Creator' },
     { path: '/commission', label: 'Commission' },
     { path: '/confessions', label: 'Confession' }
@@ -175,15 +175,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
                 <span className="text-[10px] text-neutral-600">MENU</span>
               </div>
-
-              <Link
-                to="/gallery"
-                onClick={() => setMoreMenuOpen(false)}
-                className="flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-neutral-300 hover:text-white hover:bg-white/[0.05] transition-colors"
-              >
-                <ImageIcon className="w-3.5 h-3.5 text-neutral-400" />
-                <span>Bộ sưu tập (Gallery)</span>
-              </Link>
 
               <Link
                 to="/music"

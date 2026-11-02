@@ -91,22 +91,16 @@ export function ConfessionsPage({
       />
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 sm:px-12 py-12 sm:py-20 space-y-16 pb-32">
-        <div className="border-b border-white/[0.08] pb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-          <div>
-            <span className="text-xs font-times italic text-neutral-400 block mb-1">
-              Lưu bút độc giả
-            </span>
-            <h1 className="font-editorial text-3xl sm:text-5xl font-light tracking-wide text-white uppercase">
-              Góp ý & Tâm sự
-            </h1>
-            <p className="text-xs sm:text-sm text-neutral-400 font-light mt-2 max-w-lg leading-relaxed">
-              Nơi gửi gắm những cảm xúc, suy tư và tình cảm tới các nhân vật trong vũ trụ BLACK APPLE.
-            </p>
-          </div>
-
-          <span className="text-xs font-times text-neutral-400">
-            {displayList.length} tâm sự đã duyệt
+        <div className="border-b border-white/[0.08] pb-8">
+          <span className="text-xs font-times italic text-neutral-400 block mb-1">
+            Lưu bút độc giả
           </span>
+          <h1 className="font-editorial text-3xl sm:text-5xl font-light tracking-wide text-white uppercase">
+            Góp ý & Tâm sự
+          </h1>
+          <p className="text-xs sm:text-sm text-neutral-400 font-light mt-2 max-w-lg leading-relaxed">
+            Nơi gửi gắm những cảm xúc, suy tư và tình cảm tới các nhân vật trong vũ trụ BLACK APPLE.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
