@@ -152,6 +152,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     about: ''
   });
 
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+
   useEffect(() => {
     if (!character) return;
     setCharMetaForm({
@@ -295,114 +297,168 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   // Save Canon Basic Info & Genres (Preserves detailed dossier fields!)
   const handleSaveCanonInfo = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updated: Character = {
-      ...character,
-      name: charMetaForm.name.trim() || character.name,
-      code: charMetaForm.code.trim() || character.code,
-      originalChineseName: charMetaForm.originalChineseName.trim(),
-      originalNovelTitle: charMetaForm.originalNovelTitle.trim(),
-      genreIds: charMetaForm.genreIds,
-      profileData: {
-        ...character.profileData,
-        ...canonForm
-      }
-    };
-    await saveCharacter(updated);
-    onCharacterUpdated(updated);
-    setIsEditingCanon(false);
+    try {
+      setSaveStatus('Đang lưu thông tin Canon vào Cloud Firebase...');
+      const updated: Character = {
+        ...character,
+        name: charMetaForm.name.trim() || character.name,
+        code: charMetaForm.code.trim() || character.code,
+        originalChineseName: charMetaForm.originalChineseName.trim(),
+        originalNovelTitle: charMetaForm.originalNovelTitle.trim(),
+        genreIds: charMetaForm.genreIds,
+        profileData: {
+          ...character.profileData,
+          ...canonForm
+        }
+      };
+      await saveCharacter(updated);
+      onCharacterUpdated(updated);
+      setIsEditingCanon(false);
+      setSaveStatus('✓ Đã lưu thông tin Canon vào Cloud Firebase thành công!');
+      setTimeout(() => setSaveStatus(null), 4000);
+    } catch (err: any) {
+      console.error('Lỗi khi lưu thông tin Canon:', err);
+      setSaveStatus('✕ Lỗi khi lưu: ' + (err?.message || 'Không thể kết nối Firebase'));
+      setTimeout(() => setSaveStatus(null), 6000);
+    }
   };
 
   // Save Detailed Dossier (Section 02-06)
   const handleSaveDossierInfo = async (e: React.FormEvent) => {
     e.preventDefault();
-    const habitsList = dossierForm.habitsText
-      .split('\n')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+    try {
+      setSaveStatus('Đang lưu chuyên khảo hồ sơ vào Cloud Firebase...');
+      const habitsList = dossierForm.habitsText
+        .split('\n')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
 
-    const updated: Character = {
-      ...character,
-      profileData: {
-        ...character.profileData,
-        appearance: dossierForm.appearance.trim(),
-        personality: dossierForm.personality.trim(),
-        hobbies: dossierForm.hobbies.trim(),
-        dislikes: dossierForm.dislikes.trim(),
-        allergies: dossierForm.allergies.trim(),
-        habits: habitsList,
-        specialNote: dossierForm.specialNote.trim(),
-        family: dossierForm.family.trim(),
-        relationshipStatus: dossierForm.relationshipStatus.trim(),
-        relationshipWithUser: dossierForm.relationshipWithUser.trim(),
-        about: dossierForm.about.trim()
-      }
-    };
-    await saveCharacter(updated);
-    onCharacterUpdated(updated);
-    setIsEditingDossier(false);
+      const updated: Character = {
+        ...character,
+        profileData: {
+          ...character.profileData,
+          appearance: dossierForm.appearance.trim(),
+          personality: dossierForm.personality.trim(),
+          hobbies: dossierForm.hobbies.trim(),
+          dislikes: dossierForm.dislikes.trim(),
+          allergies: dossierForm.allergies.trim(),
+          habits: habitsList,
+          specialNote: dossierForm.specialNote.trim(),
+          family: dossierForm.family.trim(),
+          relationshipStatus: dossierForm.relationshipStatus.trim(),
+          relationshipWithUser: dossierForm.relationshipWithUser.trim(),
+          about: dossierForm.about.trim()
+        }
+      };
+      await saveCharacter(updated);
+      onCharacterUpdated(updated);
+      setIsEditingDossier(false);
+      setSaveStatus('✓ Đã lưu chuyên khảo hồ sơ (Mục 02 - 06) vào Cloud Firebase thành công!');
+      setTimeout(() => setSaveStatus(null), 4000);
+    } catch (err: any) {
+      console.error('Lỗi khi lưu chuyên khảo hồ sơ:', err);
+      setSaveStatus('✕ Lỗi khi lưu: ' + (err?.message || 'Không thể kết nối Firebase'));
+      setTimeout(() => setSaveStatus(null), 6000);
+    }
   };
 
   // Add Important NPC
   const handleAddNpc = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNpcName.trim()) return;
-    const npc: CharacterNPC = {
-      id: `npc-${Date.now()}`,
-      name: newNpcName.trim(),
-      role: newNpcRole.trim() || 'Nhân vật liên quan',
-      description: newNpcDesc.trim(),
-      avatarUrl: newNpcAvatar.trim() || character.avatarUrl
-    };
-    const updated: Character = {
-      ...character,
-      npcs: [...(character.npcs || []), npc]
-    };
-    await saveCharacter(updated);
-    onCharacterUpdated(updated);
-    setNewNpcName('');
-    setNewNpcRole('');
-    setNewNpcDesc('');
-    setNewNpcAvatar('');
-    setIsAddingNpc(false);
+    try {
+      setSaveStatus('Đang thêm NPC vào Cloud Firebase...');
+      const npc: CharacterNPC = {
+        id: `npc-${Date.now()}`,
+        name: newNpcName.trim(),
+        role: newNpcRole.trim() || 'Nhân vật liên quan',
+        description: newNpcDesc.trim(),
+        avatarUrl: newNpcAvatar.trim() || character.avatarUrl
+      };
+      const updated: Character = {
+        ...character,
+        npcs: [...(character.npcs || []), npc]
+      };
+      await saveCharacter(updated);
+      onCharacterUpdated(updated);
+      setNewNpcName('');
+      setNewNpcRole('');
+      setNewNpcDesc('');
+      setNewNpcAvatar('');
+      setIsAddingNpc(false);
+      setSaveStatus('✓ Đã thêm NPC vào Cloud Firebase thành công!');
+      setTimeout(() => setSaveStatus(null), 4000);
+    } catch (err: any) {
+      console.error('Lỗi khi thêm NPC:', err);
+      setSaveStatus('✕ Lỗi khi thêm NPC: ' + (err?.message || 'Không thể kết nối Firebase'));
+      setTimeout(() => setSaveStatus(null), 6000);
+    }
   };
 
   // Delete NPC
   const handleDeleteNpc = async (npcId: string) => {
-    const updated: Character = {
-      ...character,
-      npcs: (character.npcs || []).filter((n) => n.id !== npcId)
-    };
-    await saveCharacter(updated);
-    onCharacterUpdated(updated);
+    try {
+      setSaveStatus('Đang xóa NPC khỏi Cloud Firebase...');
+      const updated: Character = {
+        ...character,
+        npcs: (character.npcs || []).filter((n) => n.id !== npcId)
+      };
+      await saveCharacter(updated);
+      onCharacterUpdated(updated);
+      setSaveStatus('✓ Đã xóa NPC khỏi Cloud Firebase thành công!');
+      setTimeout(() => setSaveStatus(null), 4000);
+    } catch (err: any) {
+      console.error('Lỗi khi xóa NPC:', err);
+      setSaveStatus('✕ Lỗi khi xóa NPC: ' + (err?.message || 'Không thể kết nối Firebase'));
+      setTimeout(() => setSaveStatus(null), 6000);
+    }
   };
 
   // Save Synopsis
   const handleSaveSynopsis = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updated: Character = {
-      ...character,
-      synopsis: editedSynopsis,
-      tagline: editedTagline
-    };
-    await saveCharacter(updated);
-    onCharacterUpdated(updated);
-    setIsEditingSynopsis(false);
+    try {
+      setSaveStatus('Đang lưu văn án vào Cloud Firebase...');
+      const updated: Character = {
+        ...character,
+        synopsis: editedSynopsis,
+        tagline: editedTagline
+      };
+      await saveCharacter(updated);
+      onCharacterUpdated(updated);
+      setIsEditingSynopsis(false);
+      setSaveStatus('✓ Đã lưu văn án vào Cloud Firebase thành công!');
+      setTimeout(() => setSaveStatus(null), 4000);
+    } catch (err: any) {
+      console.error('Lỗi khi lưu văn án:', err);
+      setSaveStatus('✕ Lỗi khi lưu văn án: ' + (err?.message || 'Không thể kết nối Firebase'));
+      setTimeout(() => setSaveStatus(null), 6000);
+    }
   };
 
   // Save GGAI Link Config
   const handleSaveGgaiConfig = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updated: Character = {
-      ...character,
-      roleplayLink: ggaiForm.roleplayLink.trim(),
-      isRoleplayLocked: ggaiForm.isRoleplayLocked,
-      roleplayUnlockQuestion: ggaiForm.roleplayUnlockQuestion.trim(),
-      roleplayUnlockAnswer: ggaiForm.roleplayUnlockAnswer.trim()
-    };
-    await saveCharacter(updated);
-    onCharacterUpdated(updated);
-    setIsGgaiUnlocked(!updated.isRoleplayLocked);
-    setIsEditingGgai(false);
+    try {
+      setSaveStatus('Đang lưu cấu hình Link Roleplay vào Cloud Firebase...');
+      const updated: Character = {
+        ...character,
+        roleplayLink: ggaiForm.roleplayLink.trim(),
+        isRoleplayLocked: ggaiForm.isRoleplayLocked,
+        roleplayUnlockQuestion: ggaiForm.roleplayUnlockQuestion.trim(),
+        roleplayUnlockAnswer: ggaiForm.roleplayUnlockAnswer.trim()
+      };
+      await saveCharacter(updated);
+      onCharacterUpdated(updated);
+      setIsGgaiUnlocked(!updated.isRoleplayLocked);
+      setIsEditingGgai(false);
+      setSaveStatus('✓ Đã lưu cấu hình Link Roleplay vào Cloud Firebase thành công!');
+      setTimeout(() => setSaveStatus(null), 4000);
+    } catch (err: any) {
+      console.error('Lỗi khi lưu GGAI config:', err);
+      setSaveStatus('✕ Lỗi khi lưu cấu hình: ' + (err?.message || 'Không thể kết nối Firebase'));
+      setTimeout(() => setSaveStatus(null), 6000);
+    }
   };
 
   // Unlock Private GGAI Link
@@ -2049,6 +2105,28 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Floating Save Status Toast Notification */}
+      {saveStatus && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 max-w-sm px-4 py-3 rounded-xl shadow-2xl text-xs font-medium flex items-center gap-2.5 transition-all animate-bounce-short border ${
+            saveStatus.startsWith('✓')
+              ? 'bg-emerald-950 text-emerald-200 border-emerald-500/40'
+              : saveStatus.startsWith('✕')
+              ? 'bg-rose-950 text-rose-200 border-rose-500/40'
+              : 'bg-[#18181A] text-white border-white/20'
+          }`}
+        >
+          {saveStatus.startsWith('✓') ? (
+            <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          ) : saveStatus.startsWith('✕') ? (
+            <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+          ) : (
+            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+          )}
+          <span>{saveStatus}</span>
+        </div>
+      )}
     </div>
   );
 };

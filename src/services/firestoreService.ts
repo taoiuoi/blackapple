@@ -14,6 +14,7 @@ import { handleFirestoreError, OperationType } from '../lib/firestoreErrors';
 import { isSampleBuildImage } from '../components/common/ImageWithFallback';
 import {
   Character,
+  CharacterNPC,
   CharacterProfileData,
   Genre,
   Quote,
@@ -173,24 +174,25 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
   const posterUrl = sanitizeImageUrl(raw?.posterUrl);
   const synopsisImageUrl = sanitizeImageUrl(raw?.synopsisImageUrl);
 
-  const rawNpcs = Array.isArray(raw?.npcs) ? raw.npcs : [];
-  let cleanNpcs = rawNpcs
-    .filter(
-      (n: any) =>
-        n &&
-        n.id !== 'npc-1' &&
-        n.id !== 'npc-2' &&
-        n.id !== 'npc-default-1' &&
-        n.id !== 'npc-default-2' &&
-        !(n.name === 'Thẩm Nghiễn' && n.role?.includes('Người giữ mật lệnh')) &&
-        !(n.name === 'Lục Tư Hiền' && n.role?.includes('Đối thủ kiêm cộng sự ngầm'))
-    )
-    .map((n: any) => ({
-      ...n,
-      avatarUrl: sanitizeImageUrl(n.avatarUrl)
-    }));
-
-  if (cleanNpcs.length === 0 && Array.isArray(initialTemplate?.npcs) && initialTemplate.npcs.length > 0) {
+  const rawNpcs = Array.isArray(raw?.npcs) ? raw.npcs : undefined;
+  let cleanNpcs: CharacterNPC[] = [];
+  if (rawNpcs !== undefined) {
+    cleanNpcs = rawNpcs
+      .filter(
+        (n: any) =>
+          n &&
+          n.id !== 'npc-1' &&
+          n.id !== 'npc-2' &&
+          n.id !== 'npc-default-1' &&
+          n.id !== 'npc-default-2' &&
+          !(n.name === 'Thẩm Nghiễn' && n.role?.includes('Người giữ mật lệnh')) &&
+          !(n.name === 'Lục Tư Hiền' && n.role?.includes('Đối thủ kiêm cộng sự ngầm'))
+      )
+      .map((n: any) => ({
+        ...n,
+        avatarUrl: sanitizeImageUrl(n.avatarUrl)
+      }));
+  } else if (Array.isArray(initialTemplate?.npcs)) {
     cleanNpcs = initialTemplate.npcs;
   }
 
@@ -279,7 +281,7 @@ export async function initializeDatabaseIfEmpty(forceAsAdmin = false) {
     const settingData = settingSnap.exists() ? settingSnap.data() : null;
     const migrationV6Done = Boolean(settingData?.migrationV6Done);
 
-    // 1. Clean up Characters & Seed the 5 Requested Characters with Full Canon Dossiers
+    // 1. Clean up Characters & Seed any MISSING characters into Firestore
     const charSnap = await getDocs(collection(db, 'characters'));
     const existingMap = new Map<string, Record<string, any>>();
     charSnap.docs.forEach((d) => existingMap.set(d.id, d.data()));
@@ -294,9 +296,8 @@ export async function initializeDatabaseIfEmpty(forceAsAdmin = false) {
       }
     }
 
-    // Also purge any sample images on all existing characters
+    // Only purge legacy sample build images if present
     for (const [docId, rawData] of existingMap.entries()) {
-      const cleaned = normalizeCharacter(rawData, docId);
       const hadSampleImages =
         (rawData.avatarUrl && isSampleBuildImage(rawData.avatarUrl)) ||
         (rawData.coverUrl && isSampleBuildImage(rawData.coverUrl)) ||
@@ -304,54 +305,19 @@ export async function initializeDatabaseIfEmpty(forceAsAdmin = false) {
         (rawData.synopsisImageUrl && isSampleBuildImage(rawData.synopsisImageUrl)) ||
         (Array.isArray(rawData.gallery) && rawData.gallery.some((g: any) => isSampleBuildImage(g?.url)));
 
-      if (!migrationV6Done || hadSampleImages) {
+      if (hadSampleImages) {
+        const cleaned = normalizeCharacter(rawData, docId);
         await setDoc(doc(db, 'characters', docId), cleaned);
       }
     }
 
-    // Ensure all 5 requested characters exist in Firestore with complete 01-07 dossiers & NPCs
+    // Ensure all 5 requested characters exist in Firestore ONLY IF MISSING
+    // CRITICAL: If a document already exists in Firestore, NEVER overwrite it!
+    // The user's edits in Firestore are permanent and authoritative.
     for (const templateChar of INITIAL_CHARACTERS) {
       const existing = existingMap.get(templateChar.id);
       if (!existing) {
         await setDoc(doc(db, 'characters', templateChar.id), templateChar);
-      } else if (
-        templateChar.id === 'phan-quy-man' ||
-        templateChar.id === 'luc-tu-hien' ||
-        templateChar.id === 'chu-lac-thien' ||
-        templateChar.id === 'gian-di-ninh' ||
-        templateChar.id === 'nguy-tu-viet'
-      ) {
-        // Update character with full canon profile data (01-07) & NPCs, preserving existing images, genres & synopsis
-        const cleaned = normalizeCharacter(existing, templateChar.id);
-        const merged = {
-          ...cleaned,
-          name: templateChar.name,
-          code: templateChar.code,
-          originalChineseName: templateChar.originalChineseName || cleaned.originalChineseName,
-          originalNovelTitle: templateChar.originalNovelTitle || cleaned.originalNovelTitle,
-          tagline: cleaned.tagline || templateChar.tagline,
-          // CRITICAL: Keep existing synopsis untouched if present
-          synopsis:
-            existing.synopsis !== undefined && existing.synopsis !== null && existing.synopsis !== ''
-              ? existing.synopsis
-              : cleaned.synopsis || templateChar.synopsis,
-          profileData: {
-            ...cleaned.profileData,
-            ...templateChar.profileData,
-            quote: cleaned.profileData.quote || templateChar.profileData.quote,
-            notes: cleaned.profileData.notes || templateChar.profileData.notes
-          },
-          npcs:
-            templateChar.id === 'chu-lac-thien' || templateChar.id === 'luc-tu-hien'
-              ? []
-              : templateChar.npcs && templateChar.npcs.length > 0
-              ? templateChar.npcs
-              : cleaned.npcs
-        };
-        await setDoc(doc(db, 'characters', templateChar.id), merged);
-      } else if (!migrationV6Done) {
-        const cleaned = normalizeCharacter(existing, templateChar.id);
-        await setDoc(doc(db, 'characters', templateChar.id), cleaned);
       }
     }
 
