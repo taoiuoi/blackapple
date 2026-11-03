@@ -27,7 +27,8 @@ import {
   deleteComment,
   saveCharacter,
   saveGenre,
-  deleteGenre
+  deleteGenre,
+  normalizeCharacter
 } from '../services/firestoreService';
 import { Navbar } from '../components/layout/Navbar';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
@@ -67,46 +68,9 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     (c) => c.id === id || c.code.toLowerCase() === id?.toLowerCase()
   );
 
-  // Normalize character fields safely without injecting fake defaults
+  // Normalize character fields with full INITIAL_CHARACTERS fallback for all 01-07 sections & NPCs
   const character: Character | undefined = rawCharacter
-    ? {
-        ...rawCharacter,
-        synopsis: rawCharacter.synopsis || '',
-        gallery: Array.isArray(rawCharacter.gallery) ? rawCharacter.gallery : [],
-        genreIds: Array.isArray(rawCharacter.genreIds) ? rawCharacter.genreIds : [],
-        npcs: Array.isArray(rawCharacter.npcs) ? rawCharacter.npcs : [],
-        profileData: {
-          ...rawCharacter.profileData,
-          role: rawCharacter.profileData?.role || '',
-          alias: rawCharacter.profileData?.alias || '',
-          age: rawCharacter.profileData?.age || '',
-          birthday: rawCharacter.profileData?.birthday || '',
-          height: rawCharacter.profileData?.height || '',
-          affiliation: rawCharacter.profileData?.affiliation || '',
-          weapon: rawCharacter.profileData?.weapon || '',
-          status: rawCharacter.profileData?.status || '',
-          quote: rawCharacter.profileData?.quote || rawCharacter.tagline || '',
-          notes: rawCharacter.profileData?.notes || '',
-          appearance: rawCharacter.profileData?.appearance || '',
-          personality: rawCharacter.profileData?.personality || '',
-          hobbies: rawCharacter.profileData?.hobbies || '',
-          dislikes: rawCharacter.profileData?.dislikes || '',
-          allergies: rawCharacter.profileData?.allergies || '',
-          habits: rawCharacter.profileData?.habits || [],
-          specialNote: rawCharacter.profileData?.specialNote || '',
-          family: rawCharacter.profileData?.family || '',
-          relationshipStatus: rawCharacter.profileData?.relationshipStatus || '',
-          relationshipWithUser: rawCharacter.profileData?.relationshipWithUser || '',
-          about: rawCharacter.profileData?.about || '',
-          aliasLabel: rawCharacter.profileData?.aliasLabel || 'Biệt danh / Danh xưng',
-          ageLabel: rawCharacter.profileData?.ageLabel || 'Tuổi / Ngày sinh',
-          heightLabel: rawCharacter.profileData?.heightLabel || 'Chiều cao / Ngoại hình',
-          affiliationLabel: rawCharacter.profileData?.affiliationLabel || 'Xuất thân / Bối cảnh',
-          weaponLabel: rawCharacter.profileData?.weaponLabel || 'Đặc điểm / Sở thích',
-          statusLabel: rawCharacter.profileData?.statusLabel || 'Tính cách / Khí chất',
-          roleLabel: rawCharacter.profileData?.roleLabel || 'Thân phận & Thể loại'
-        }
-      }
+    ? normalizeCharacter(rawCharacter, rawCharacter.id)
     : undefined;
 
   useEffect(() => {

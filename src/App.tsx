@@ -111,44 +111,27 @@ export default function App() {
     });
 
     const unsubChars = subscribeCharacters((chars) => {
-      // Merge with any client-side localStorage overrides (excluding sample build images)
+      // Merge with any client-side localStorage image overrides (excluding sample build images)
       const merged = chars.map((c) => {
         try {
+          localStorage.removeItem(`ba_char_data_${c.id}`);
           const localAvatar = sanitizeImageUrl(localStorage.getItem(`ba_char_${c.id}_avatarUrl`) || '');
           const localCover = sanitizeImageUrl(localStorage.getItem(`ba_char_${c.id}_coverUrl`) || '');
           const localPoster = sanitizeImageUrl(localStorage.getItem(`ba_char_${c.id}_posterUrl`) || '');
           const localSynopsisImg = sanitizeImageUrl(localStorage.getItem(`ba_char_${c.id}_synopsisImageUrl`) || '');
           const localPos = localStorage.getItem(`ba_char_${c.id}_pos`);
-          let localCharData: any = null;
-          try {
-            const rawBackup = localStorage.getItem(`ba_char_data_${c.id}`);
-            if (rawBackup) localCharData = JSON.parse(rawBackup);
-          } catch (_) {}
-
-          const combined = localCharData
-            ? normalizeCharacter(
-                {
-                  ...c,
-                  ...localCharData,
-                  profileData: {
-                    ...c.profileData,
-                    ...(localCharData.profileData || {})
-                  }
-                },
-                c.id
-              )
-            : c;
+          const normalized = normalizeCharacter(c, c.id);
 
           return {
-            ...combined,
-            avatarUrl: localAvatar || combined.avatarUrl,
-            coverUrl: localCover || combined.coverUrl,
-            posterUrl: localPoster || combined.posterUrl,
-            synopsisImageUrl: localSynopsisImg || combined.synopsisImageUrl,
-            posterObjectPosition: localPos || combined.posterObjectPosition
+            ...normalized,
+            avatarUrl: localAvatar || normalized.avatarUrl,
+            coverUrl: localCover || normalized.coverUrl,
+            posterUrl: localPoster || normalized.posterUrl,
+            synopsisImageUrl: localSynopsisImg || normalized.synopsisImageUrl,
+            posterObjectPosition: localPos || normalized.posterObjectPosition
           };
         } catch (_) {
-          return c;
+          return normalizeCharacter(c, c.id);
         }
       });
       setCharacters(merged);

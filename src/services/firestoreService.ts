@@ -235,18 +235,17 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
 
 export function cleanLocalStorageSampleImages() {
   try {
-    // Purge stale full-character JSON snapshots that cached empty profileData strings before dossier updates
-    if (localStorage.getItem('ba_dossier_sync_v12') !== 'true') {
-      const staleCharSnapshots: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith('ba_char_data_')) {
-          staleCharSnapshots.push(k);
-        }
+    // Always purge any legacy full-character JSON snapshots (ba_char_data_*)
+    // because they cached empty profileData strings (appearance: "", personality: "", etc.)
+    // before the detailed dossiers (Sections 02-07 & NPCs) were added.
+    const staleCharSnapshots: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('ba_char_data_')) {
+        staleCharSnapshots.push(k);
       }
-      staleCharSnapshots.forEach((k) => localStorage.removeItem(k));
-      localStorage.setItem('ba_dossier_sync_v12', 'true');
     }
+    staleCharSnapshots.forEach((k) => localStorage.removeItem(k));
 
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -280,7 +279,7 @@ export async function initializeDatabaseIfEmpty(forceAsAdmin = false) {
     const settingData = settingSnap.exists() ? settingSnap.data() : null;
     const migrationV6Done = Boolean(settingData?.migrationV6Done);
 
-    // 1. Clean up Characters & Seed the 5 Requested Characters with Empty Info
+    // 1. Clean up Characters & Seed the 5 Requested Characters with Full Canon Dossiers
     const charSnap = await getDocs(collection(db, 'characters'));
     const existingMap = new Map<string, Record<string, any>>();
     charSnap.docs.forEach((d) => existingMap.set(d.id, d.data()));
@@ -310,13 +309,19 @@ export async function initializeDatabaseIfEmpty(forceAsAdmin = false) {
       }
     }
 
-    // Ensure all 5 requested characters exist in Firestore
+    // Ensure all 5 requested characters exist in Firestore with complete 01-07 dossiers & NPCs
     for (const templateChar of INITIAL_CHARACTERS) {
       const existing = existingMap.get(templateChar.id);
       if (!existing) {
         await setDoc(doc(db, 'characters', templateChar.id), templateChar);
-      } else if (templateChar.id === 'phan-quy-man' || templateChar.id === 'luc-tu-hien' || templateChar.id === 'chu-lac-thien' || templateChar.id === 'gian-di-ninh' || templateChar.id === 'nguy-tu-viet') {
-        // Update character with newly provided profile data & NPCs, preserving any existing images & synopsis
+      } else if (
+        templateChar.id === 'phan-quy-man' ||
+        templateChar.id === 'luc-tu-hien' ||
+        templateChar.id === 'chu-lac-thien' ||
+        templateChar.id === 'gian-di-ninh' ||
+        templateChar.id === 'nguy-tu-viet'
+      ) {
+        // Update character with full canon profile data (01-07) & NPCs, preserving existing images, genres & synopsis
         const cleaned = normalizeCharacter(existing, templateChar.id);
         const merged = {
           ...cleaned,
@@ -326,18 +331,25 @@ export async function initializeDatabaseIfEmpty(forceAsAdmin = false) {
           originalNovelTitle: templateChar.originalNovelTitle || cleaned.originalNovelTitle,
           tagline: cleaned.tagline || templateChar.tagline,
           // CRITICAL: Keep existing synopsis untouched if present
-          synopsis: existing.synopsis !== undefined && existing.synopsis !== null && existing.synopsis !== '' ? existing.synopsis : (cleaned.synopsis || templateChar.synopsis),
+          synopsis:
+            existing.synopsis !== undefined && existing.synopsis !== null && existing.synopsis !== ''
+              ? existing.synopsis
+              : cleaned.synopsis || templateChar.synopsis,
           profileData: {
             ...cleaned.profileData,
             ...templateChar.profileData,
             quote: cleaned.profileData.quote || templateChar.profileData.quote,
             notes: cleaned.profileData.notes || templateChar.profileData.notes
           },
-          npcs: (templateChar.id === 'chu-lac-thien' || templateChar.id === 'luc-tu-hien') ? [] : (templateChar.npcs && templateChar.npcs.length > 0 ? templateChar.npcs : cleaned.npcs)
+          npcs:
+            templateChar.id === 'chu-lac-thien' || templateChar.id === 'luc-tu-hien'
+              ? []
+              : templateChar.npcs && templateChar.npcs.length > 0
+              ? templateChar.npcs
+              : cleaned.npcs
         };
         await setDoc(doc(db, 'characters', templateChar.id), merged);
       } else if (!migrationV6Done) {
-        // Preserve any real Firebase/linked images the user already added, but keep text info clean
         const cleaned = normalizeCharacter(existing, templateChar.id);
         await setDoc(doc(db, 'characters', templateChar.id), cleaned);
       }
@@ -455,14 +467,12 @@ export async function getCharacters(): Promise<Character[]> {
       return INITIAL_CHARACTERS;
     }
     const map = new Map<string, Character>();
+    INITIAL_CHARACTERS.forEach((c) => map.set(c.id, c));
     snap.docs.forEach((d) => {
       if (!LEGACY_SAMPLE_CHAR_IDS.has(d.id)) {
         map.set(d.id, normalizeCharacter(d.data(), d.id));
       }
     });
-    if (map.size === 0) {
-      return INITIAL_CHARACTERS;
-    }
     const list = Array.from(map.values());
     list.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
     return list;
@@ -488,24 +498,7 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
 
           snap.docs.forEach((d) => {
             if (!LEGACY_SAMPLE_CHAR_IDS.has(d.id)) {
-              let charObj = normalizeCharacter(d.data(), d.id);
-              try {
-                const localBackup = localStorage.getItem(`ba_char_data_${d.id}`);
-                if (localBackup) {
-                  const parsed = JSON.parse(localBackup);
-                  charObj = normalizeCharacter(
-                    {
-                      ...charObj,
-                      ...parsed,
-                      profileData: {
-                        ...charObj.profileData,
-                        ...(parsed.profileData || {})
-                      }
-                    },
-                    d.id
-                  );
-                }
-              } catch (_) {}
+              const charObj = normalizeCharacter(d.data(), d.id);
               map.set(d.id, charObj);
             }
           });
@@ -528,7 +521,7 @@ export async function saveCharacter(character: Character): Promise<void> {
   const path = `characters/${character.id}`;
   const normalized = normalizeCharacter(character, character.id);
   try {
-    localStorage.setItem(`ba_char_data_${character.id}`, JSON.stringify(normalized));
+    localStorage.removeItem(`ba_char_data_${character.id}`);
   } catch (_) {}
 
   try {

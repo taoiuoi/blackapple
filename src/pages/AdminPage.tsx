@@ -239,7 +239,8 @@ export function AdminPage({
             specialNote: bp.specialNote || '',
             family: bp.family || '',
             relationshipStatus: bp.relationshipStatus || '',
-            relationshipWithUser: bp.relationshipWithUser || ''
+            relationshipWithUser: bp.relationshipWithUser || '',
+            about: bp.about || ''
           }
         });
         setActiveTab('characters');
@@ -301,7 +302,7 @@ export function AdminPage({
     try {
       await saveCharacter(editingChar);
       try {
-        localStorage.setItem(`ba_char_data_${editingChar.id}`, JSON.stringify(editingChar));
+        localStorage.removeItem(`ba_char_data_${editingChar.id}`);
         if (editingChar.avatarUrl) localStorage.setItem(`ba_char_${editingChar.id}_avatarUrl`, editingChar.avatarUrl);
         if (editingChar.coverUrl) localStorage.setItem(`ba_char_${editingChar.id}_coverUrl`, editingChar.coverUrl);
         if (editingChar.posterUrl) localStorage.setItem(`ba_char_${editingChar.id}_posterUrl`, editingChar.posterUrl);
@@ -1605,7 +1606,8 @@ export function AdminPage({
                                   specialNote: bp.specialNote || '',
                                   family: bp.family || '',
                                   relationshipStatus: bp.relationshipStatus || '',
-                                  relationshipWithUser: bp.relationshipWithUser || ''
+                                  relationshipWithUser: bp.relationshipWithUser || '',
+                                  about: bp.about || ''
                                 }
                               });
                             }}
