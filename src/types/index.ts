@@ -35,6 +35,7 @@ export interface CharacterProfileData {
   family?: string;
   relationshipStatus?: string;
   relationshipWithUser?: string;
+  about?: string;
   // Optional custom field labels per character so any genre can tailor headings
   aliasLabel?: string;
   ageLabel?: string;

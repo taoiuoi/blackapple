@@ -63,13 +63,13 @@ export default function App() {
   // Cinematic Intro Screen State (Stored in sessionStorage so it doesn't repeat on refresh unless requested)
   const [showIntro, setShowIntro] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('black_apple_intro_v6_seen') !== 'true';
+      return sessionStorage.getItem('black_apple_intro_v11_seen') !== 'true';
     }
     return true;
   });
 
   const handleIntroComplete = () => {
-    sessionStorage.setItem('black_apple_intro_v6_seen', 'true');
+    sessionStorage.setItem('black_apple_intro_v11_seen', 'true');
     setShowIntro(false);
     setIsAudioPlaying(true);
   };
@@ -77,6 +77,12 @@ export default function App() {
   const handleReplayIntro = () => {
     setShowIntro(true);
   };
+
+  useEffect(() => {
+    const onReplayEvent = () => setShowIntro(true);
+    window.addEventListener('ba:replay-intro', onReplayEvent);
+    return () => window.removeEventListener('ba:replay-intro', onReplayEvent);
+  }, []);
 
   // Ambient Audio State (Auto-plays on website entry & persists across route changes)
   const [isAudioPlaying, setIsAudioPlaying] = useState(true);

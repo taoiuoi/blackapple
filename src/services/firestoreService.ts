@@ -121,16 +121,17 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
     status: isLegacySampleDoc ? (initProfile.status ?? '') : cleanSampleText(rawProfile.status) || initProfile.status || '',
     quote: isLegacySampleDoc ? '' : cleanSampleText(rawProfile.quote) || initProfile.quote || '',
     notes: isLegacySampleDoc ? (initProfile.notes ?? '') : cleanSampleText(rawProfile.notes) || initProfile.notes || '',
-    appearance: rawProfile.appearance !== undefined ? rawProfile.appearance : (initProfile.appearance || ''),
-    personality: rawProfile.personality !== undefined ? rawProfile.personality : (initProfile.personality || ''),
-    hobbies: rawProfile.hobbies !== undefined ? rawProfile.hobbies : (initProfile.hobbies || ''),
-    dislikes: rawProfile.dislikes !== undefined ? rawProfile.dislikes : (initProfile.dislikes || ''),
-    allergies: rawProfile.allergies !== undefined ? rawProfile.allergies : (initProfile.allergies || ''),
-    habits: Array.isArray(rawProfile.habits) ? rawProfile.habits : (initProfile.habits || []),
-    specialNote: rawProfile.specialNote !== undefined ? rawProfile.specialNote : (initProfile.specialNote || ''),
-    family: rawProfile.family !== undefined ? rawProfile.family : (initProfile.family || ''),
-    relationshipStatus: rawProfile.relationshipStatus !== undefined ? rawProfile.relationshipStatus : (initProfile.relationshipStatus || ''),
-    relationshipWithUser: rawProfile.relationshipWithUser !== undefined ? rawProfile.relationshipWithUser : (initProfile.relationshipWithUser || ''),
+    appearance: rawProfile.appearance !== undefined && rawProfile.appearance !== '' ? rawProfile.appearance : (initProfile.appearance || ''),
+    personality: rawProfile.personality !== undefined && rawProfile.personality !== '' ? rawProfile.personality : (initProfile.personality || ''),
+    hobbies: rawProfile.hobbies !== undefined && rawProfile.hobbies !== '' ? rawProfile.hobbies : (initProfile.hobbies || ''),
+    dislikes: rawProfile.dislikes !== undefined && rawProfile.dislikes !== '' ? rawProfile.dislikes : (initProfile.dislikes || ''),
+    allergies: rawProfile.allergies !== undefined && rawProfile.allergies !== '' ? rawProfile.allergies : (initProfile.allergies || ''),
+    habits: Array.isArray(rawProfile.habits) && rawProfile.habits.length > 0 ? rawProfile.habits : (initProfile.habits || []),
+    specialNote: rawProfile.specialNote !== undefined && rawProfile.specialNote !== '' ? rawProfile.specialNote : (initProfile.specialNote || ''),
+    family: rawProfile.family !== undefined && rawProfile.family !== '' ? rawProfile.family : (initProfile.family || ''),
+    relationshipStatus: rawProfile.relationshipStatus !== undefined && rawProfile.relationshipStatus !== '' ? rawProfile.relationshipStatus : (initProfile.relationshipStatus || ''),
+    relationshipWithUser: rawProfile.relationshipWithUser !== undefined && rawProfile.relationshipWithUser !== '' ? rawProfile.relationshipWithUser : (initProfile.relationshipWithUser || ''),
+    about: rawProfile.about !== undefined && rawProfile.about !== '' ? rawProfile.about : (initProfile.about || ''),
     aliasLabel: rawProfile.aliasLabel || initProfile.aliasLabel || 'Danh tiếng / Biệt danh',
     ageLabel: rawProfile.ageLabel || initProfile.ageLabel || 'Tuổi / Giới tính',
     heightLabel: rawProfile.heightLabel || initProfile.heightLabel || 'Chiều cao / Cân nặng',
@@ -274,24 +275,27 @@ export async function initializeDatabaseIfEmpty(forceAsAdmin = false) {
       const existing = existingMap.get(templateChar.id);
       if (!existing) {
         await setDoc(doc(db, 'characters', templateChar.id), templateChar);
-      } else if (templateChar.id === 'nguy-tu-viet') {
-        // Update Ngụy Tứ Việt with newly provided profile data & NPCs, preserving synopsis & images
+      } else if (templateChar.id === 'phan-quy-man' || templateChar.id === 'luc-tu-hien' || templateChar.id === 'chu-lac-thien' || templateChar.id === 'gian-di-ninh' || templateChar.id === 'nguy-tu-viet') {
+        // Update character with newly provided profile data & NPCs, preserving any existing images & synopsis
         const cleaned = normalizeCharacter(existing, templateChar.id);
-        const mergedNguyTuViet = {
+        const merged = {
           ...cleaned,
-          name: 'Ngụy Tứ Việt',
+          name: templateChar.name,
+          code: templateChar.code,
+          originalChineseName: templateChar.originalChineseName || cleaned.originalChineseName,
+          originalNovelTitle: templateChar.originalNovelTitle || cleaned.originalNovelTitle,
           tagline: cleaned.tagline || templateChar.tagline,
-          // CRITICAL: Keep existing synopsis untouched
-          synopsis: existing.synopsis !== undefined && existing.synopsis !== null ? existing.synopsis : cleaned.synopsis,
+          // CRITICAL: Keep existing synopsis untouched if present
+          synopsis: existing.synopsis !== undefined && existing.synopsis !== null && existing.synopsis !== '' ? existing.synopsis : (cleaned.synopsis || templateChar.synopsis),
           profileData: {
             ...cleaned.profileData,
             ...templateChar.profileData,
             quote: cleaned.profileData.quote || templateChar.profileData.quote,
             notes: cleaned.profileData.notes || templateChar.profileData.notes
           },
-          npcs: templateChar.npcs && templateChar.npcs.length > 0 ? templateChar.npcs : cleaned.npcs
+          npcs: (templateChar.id === 'chu-lac-thien' || templateChar.id === 'luc-tu-hien') ? [] : (templateChar.npcs && templateChar.npcs.length > 0 ? templateChar.npcs : cleaned.npcs)
         };
-        await setDoc(doc(db, 'characters', 'nguy-tu-viet'), mergedNguyTuViet);
+        await setDoc(doc(db, 'characters', templateChar.id), merged);
       } else if (!migrationV6Done) {
         // Preserve any real Firebase/linked images the user already added, but keep text info clean
         const cleaned = normalizeCharacter(existing, templateChar.id);

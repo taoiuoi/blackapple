@@ -214,18 +214,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </button>
 
-              {onReplayIntro && (
-                <button
-                  onClick={() => {
-                    setMoreMenuOpen(false);
+              <button
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  if (onReplayIntro) {
                     onReplayIntro();
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-neutral-300 hover:text-white hover:bg-white/[0.05] transition-colors"
-                >
-                  <Clapperboard className="w-3.5 h-3.5 text-neutral-400" />
-                  <span>Xem lại Intro mở đầu</span>
-                </button>
-              )}
+                  } else {
+                    window.dispatchEvent(new CustomEvent('ba:replay-intro'));
+                  }
+                }}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-neutral-300 hover:text-white hover:bg-white/[0.05] transition-colors cursor-pointer"
+              >
+                <Clapperboard className="w-3.5 h-3.5 text-neutral-400" />
+                <span>Xem lại Intro mở đầu</span>
+              </button>
 
               <div className="my-1 border-t border-white/[0.06]" />
 

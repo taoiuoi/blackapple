@@ -97,6 +97,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
           family: rawCharacter.profileData?.family || '',
           relationshipStatus: rawCharacter.profileData?.relationshipStatus || '',
           relationshipWithUser: rawCharacter.profileData?.relationshipWithUser || '',
+          about: rawCharacter.profileData?.about || '',
           aliasLabel: rawCharacter.profileData?.aliasLabel || 'Biệt danh / Danh xưng',
           ageLabel: rawCharacter.profileData?.ageLabel || 'Tuổi / Ngày sinh',
           heightLabel: rawCharacter.profileData?.heightLabel || 'Chiều cao / Ngoại hình',
@@ -183,7 +184,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     specialNote: '',
     family: '',
     relationshipStatus: '',
-    relationshipWithUser: ''
+    relationshipWithUser: '',
+    about: ''
   });
 
   useEffect(() => {
@@ -224,7 +226,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       specialNote: character.profileData.specialNote || '',
       family: character.profileData.family || '',
       relationshipStatus: character.profileData.relationshipStatus || '',
-      relationshipWithUser: character.profileData.relationshipWithUser || ''
+      relationshipWithUser: character.profileData.relationshipWithUser || '',
+      about: character.profileData.about || ''
     });
     setEditedSynopsis(character.synopsis || '');
     setEditedTagline(character.tagline || '');
@@ -286,7 +289,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     character.profileData.specialNote ||
     character.profileData.family ||
     character.profileData.relationshipWithUser ||
-    character.profileData.relationshipStatus
+    character.profileData.relationshipStatus ||
+    character.profileData.about
   );
 
   const toggleCharacterGenre = (genreId: string) => {
@@ -365,7 +369,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
         specialNote: dossierForm.specialNote.trim(),
         family: dossierForm.family.trim(),
         relationshipStatus: dossierForm.relationshipStatus.trim(),
-        relationshipWithUser: dossierForm.relationshipWithUser.trim()
+        relationshipWithUser: dossierForm.relationshipWithUser.trim(),
+        about: dossierForm.about.trim()
       }
     };
     await saveCharacter(updated);
@@ -1289,6 +1294,21 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                   />
                 </div>
 
+                {/* 07. Một chút về nhân vật */}
+                <div className="p-4 rounded-xl bg-neutral-50/70 border border-neutral-200 space-y-2">
+                  <span className="text-xs font-semibold text-[#18181A]">
+                    ˙✦ 07. Một chút về {character.name}:
+                  </span>
+                  <textarea
+                    rows={4}
+                    value={dossierForm.about}
+                    onChange={(e) => setDossierForm({ ...dossierForm, about: e.target.value })}
+                    placeholder="Những khía cạnh tự sự, góc nhìn sâu sắc về nhân vật..."
+                    className="w-full p-3 rounded-lg bg-white border border-neutral-200 text-xs text-[#18181A] leading-relaxed font-sans"
+                    style={{ fontSize: '15px' }}
+                  />
+                </div>
+
                 <div className="flex justify-end gap-2 pt-2">
                   <button
                     type="button"
@@ -1457,6 +1477,20 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
               </div>
             )}
 
+            {/* 07. MỘT CHÚT VỀ NHÂN VẬT */}
+            {character.profileData.about && (
+              <div className="bg-white p-7 sm:p-10 border border-black/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.02)] space-y-4">
+                <div className="pb-3 border-b border-black/[0.06]">
+                  <h3 className="font-editorial italic text-xl sm:text-2xl text-[#18181A]">
+                    ˙✦ 07. Một chút về {character.name}
+                  </h3>
+                </div>
+                <div className="font-serif text-xs sm:text-[14px] text-neutral-700 leading-[2.2] whitespace-pre-line">
+                  {character.profileData.about}
+                </div>
+              </div>
+            )}
+
           </div>
         </section>
       )}
@@ -1464,10 +1498,11 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       {/* =====================================================================
           SECTION 02: NPCS QUAN TRỌNG (IMPORTANT NPCS)
       ===================================================================== */}
-      <section
-        id="npcs-section"
-        className="w-full bg-[#FAF9F6] py-16 sm:py-24 px-4 sm:px-8 border-b border-black/[0.08]"
-      >
+      {((character.npcs && character.npcs.length > 0) || isAdmin) && (
+        <section
+          id="npcs-section"
+          className="w-full bg-[#FAF9F6] py-16 sm:py-24 px-4 sm:px-8 border-b border-black/[0.08]"
+        >
         <div className="max-w-[880px] mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-black/15">
             <div>
@@ -1602,6 +1637,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
           )}
         </div>
       </section>
+      )}
 
       {/* =====================================================================
           SECTION 03: VĂN ÁN (OFFICIAL SYNOPSIS)

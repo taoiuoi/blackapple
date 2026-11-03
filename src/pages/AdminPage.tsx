@@ -1253,6 +1253,26 @@ export function AdminPage({
                         style={{ fontSize: '15px' }}
                       />
                     </div>
+
+                    {/* 07. Một chút về nhân vật */}
+                    <div>
+                      <label className="block text-[11px] font-medium text-neutral-300 mb-1">
+                        ˙✦ 07. Một chút về nhân vật (Tự sự / Góc nhìn riêng):
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={editingChar.profileData.about || ''}
+                        onChange={(e) =>
+                          setEditingChar({
+                            ...editingChar,
+                            profileData: { ...editingChar.profileData, about: e.target.value }
+                          })
+                        }
+                        placeholder="VD: Không có tuổi thơ bất hạnh, được nuông chiều, không phải chờ Player cảm hóa..."
+                        className="w-full bg-[#121217] border border-white/[0.1] rounded-lg p-2.5 text-xs text-white leading-relaxed font-sans"
+                        style={{ fontSize: '15px' }}
+                      />
+                    </div>
                   </div>
 
                   {/* QUẢN LÝ NPCS LIÊN QUAN TRỰC TIẾP */}
