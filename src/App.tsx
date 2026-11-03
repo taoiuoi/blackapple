@@ -20,7 +20,8 @@ import {
   subscribeMusicTracks,
   updateCharacterImageUrl,
   saveCreatorProfile,
-  sanitizeImageUrl
+  sanitizeImageUrl,
+  normalizeCharacter
 } from './services/firestoreService';
 import { preloadCharacterAssets } from './utils/imageOptimizer';
 import {
@@ -124,18 +125,27 @@ export default function App() {
             if (rawBackup) localCharData = JSON.parse(rawBackup);
           } catch (_) {}
 
+          const combined = localCharData
+            ? normalizeCharacter(
+                {
+                  ...c,
+                  ...localCharData,
+                  profileData: {
+                    ...c.profileData,
+                    ...(localCharData.profileData || {})
+                  }
+                },
+                c.id
+              )
+            : c;
+
           return {
-            ...c,
-            ...(localCharData || {}),
-            avatarUrl: localAvatar || c.avatarUrl,
-            coverUrl: localCover || c.coverUrl,
-            posterUrl: localPoster || c.posterUrl,
-            synopsisImageUrl: localSynopsisImg || c.synopsisImageUrl,
-            posterObjectPosition: localPos || c.posterObjectPosition,
-            profileData: {
-              ...c.profileData,
-              ...(localCharData?.profileData || {})
-            }
+            ...combined,
+            avatarUrl: localAvatar || combined.avatarUrl,
+            coverUrl: localCover || combined.coverUrl,
+            posterUrl: localPoster || combined.posterUrl,
+            synopsisImageUrl: localSynopsisImg || combined.synopsisImageUrl,
+            posterObjectPosition: localPos || combined.posterObjectPosition
           };
         } catch (_) {
           return c;

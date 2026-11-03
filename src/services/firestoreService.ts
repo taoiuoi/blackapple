@@ -64,7 +64,18 @@ const LEGACY_SAMPLE_STRINGS = new Set([
   'Chiếc bật lửa bạc & Khuyên tai đá đen',
   'Đang hoạt động bí mật',
   'Đằng sau vẻ ngoài lịch duyệt và chiếc kính gọng mảnh là một kẻ cầm cờ tàn nhẫn, kiên định.',
-  'Ba năm trước, cuộc gặp gỡ định mệnh diễn ra ở thành phố nào?'
+  'Ba năm trước, cuộc gặp gỡ định mệnh diễn ra ở thành phố nào?',
+  'Hồ sơ nhân vật đang được cập nhật.'
+]);
+
+const GENERIC_DEFAULT_LABELS = new Set([
+  'Danh tiếng / Biệt danh',
+  'Tuổi / Giới tính',
+  'Chiều cao / Cân nặng',
+  'Trường học / Khối lớp',
+  'Nghề nghiệp / Sở trường',
+  'Tính cách / Khí chất',
+  'Thân phận & Thể loại'
 ]);
 
 export function sanitizeImageUrl(url?: string): string {
@@ -94,6 +105,22 @@ function cleanSampleText(val?: string): string {
   return val;
 }
 
+function pickNonEmpty(rawVal?: string, initVal?: string, fallback = ''): string {
+  const cleanedRaw = cleanSampleText(rawVal);
+  if (cleanedRaw && cleanedRaw.trim() !== '') return cleanedRaw;
+  if (initVal && initVal.trim() !== '') return initVal;
+  return fallback;
+}
+
+function pickLabel(rawLabel?: string, initLabel?: string, fallback = ''): string {
+  if (rawLabel && rawLabel.trim() !== '' && !GENERIC_DEFAULT_LABELS.has(rawLabel.trim())) {
+    return rawLabel;
+  }
+  if (initLabel && initLabel.trim() !== '') return initLabel;
+  if (rawLabel && rawLabel.trim() !== '') return rawLabel;
+  return fallback;
+}
+
 // Helper to guarantee every Character object has clean fields without injecting fake/sample info
 export function normalizeCharacter(raw: Record<string, any>, id: string): Character {
   const initialTemplate = INITIAL_CHARACTERS.find((c) => c.id === id);
@@ -106,39 +133,39 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
 
   const initProfile = initialTemplate?.profileData || ({} as any);
   const defaultProfileData: CharacterProfileData = {
-    role: isLegacySampleDoc ? (initProfile.role ?? '') : (rawProfile.role ?? initProfile.role ?? ''),
-    alias: isLegacySampleDoc ? (initProfile.alias ?? '') : cleanSampleText(rawProfile.alias) || initProfile.alias || '',
-    age: isLegacySampleDoc ? (initProfile.age ?? '') : (rawProfile.age ?? initProfile.age ?? ''),
-    gender: rawProfile.gender ?? initProfile.gender ?? '',
-    birthday: isLegacySampleDoc ? (initProfile.birthday ?? '') : (rawProfile.birthday ?? initProfile.birthday ?? ''),
-    height: isLegacySampleDoc ? (initProfile.height ?? '') : (rawProfile.height ?? initProfile.height ?? ''),
-    weight: rawProfile.weight ?? initProfile.weight ?? '',
-    school: rawProfile.school ?? initProfile.school ?? '',
-    grade: rawProfile.grade ?? initProfile.grade ?? '',
-    reputation: rawProfile.reputation ?? initProfile.reputation ?? '',
-    affiliation: isLegacySampleDoc ? (initProfile.affiliation ?? '') : cleanSampleText(rawProfile.affiliation) || initProfile.affiliation || '',
-    weapon: isLegacySampleDoc ? (initProfile.weapon ?? '') : cleanSampleText(rawProfile.weapon) || initProfile.weapon || '',
-    status: isLegacySampleDoc ? (initProfile.status ?? '') : cleanSampleText(rawProfile.status) || initProfile.status || '',
-    quote: isLegacySampleDoc ? '' : cleanSampleText(rawProfile.quote) || initProfile.quote || '',
-    notes: isLegacySampleDoc ? (initProfile.notes ?? '') : cleanSampleText(rawProfile.notes) || initProfile.notes || '',
-    appearance: rawProfile.appearance !== undefined && rawProfile.appearance !== '' ? rawProfile.appearance : (initProfile.appearance || ''),
-    personality: rawProfile.personality !== undefined && rawProfile.personality !== '' ? rawProfile.personality : (initProfile.personality || ''),
-    hobbies: rawProfile.hobbies !== undefined && rawProfile.hobbies !== '' ? rawProfile.hobbies : (initProfile.hobbies || ''),
-    dislikes: rawProfile.dislikes !== undefined && rawProfile.dislikes !== '' ? rawProfile.dislikes : (initProfile.dislikes || ''),
-    allergies: rawProfile.allergies !== undefined && rawProfile.allergies !== '' ? rawProfile.allergies : (initProfile.allergies || ''),
+    role: isLegacySampleDoc ? (initProfile.role || '') : pickNonEmpty(rawProfile.role, initProfile.role),
+    alias: isLegacySampleDoc ? (initProfile.alias || '') : pickNonEmpty(rawProfile.alias, initProfile.alias),
+    age: isLegacySampleDoc ? (initProfile.age || '') : pickNonEmpty(rawProfile.age, initProfile.age),
+    gender: pickNonEmpty(rawProfile.gender, initProfile.gender),
+    birthday: isLegacySampleDoc ? (initProfile.birthday || '') : pickNonEmpty(rawProfile.birthday, initProfile.birthday),
+    height: isLegacySampleDoc ? (initProfile.height || '') : pickNonEmpty(rawProfile.height, initProfile.height),
+    weight: pickNonEmpty(rawProfile.weight, initProfile.weight),
+    school: pickNonEmpty(rawProfile.school, initProfile.school),
+    grade: pickNonEmpty(rawProfile.grade, initProfile.grade),
+    reputation: pickNonEmpty(rawProfile.reputation, initProfile.reputation),
+    affiliation: isLegacySampleDoc ? (initProfile.affiliation || '') : pickNonEmpty(rawProfile.affiliation, initProfile.affiliation),
+    weapon: isLegacySampleDoc ? (initProfile.weapon || '') : pickNonEmpty(rawProfile.weapon, initProfile.weapon),
+    status: isLegacySampleDoc ? (initProfile.status || '') : pickNonEmpty(rawProfile.status, initProfile.status),
+    quote: isLegacySampleDoc ? (initProfile.quote || '') : pickNonEmpty(rawProfile.quote, initProfile.quote),
+    notes: isLegacySampleDoc ? (initProfile.notes || '') : pickNonEmpty(rawProfile.notes, initProfile.notes),
+    appearance: pickNonEmpty(rawProfile.appearance, initProfile.appearance),
+    personality: pickNonEmpty(rawProfile.personality, initProfile.personality),
+    hobbies: pickNonEmpty(rawProfile.hobbies, initProfile.hobbies),
+    dislikes: pickNonEmpty(rawProfile.dislikes, initProfile.dislikes),
+    allergies: pickNonEmpty(rawProfile.allergies, initProfile.allergies),
     habits: Array.isArray(rawProfile.habits) && rawProfile.habits.length > 0 ? rawProfile.habits : (initProfile.habits || []),
-    specialNote: rawProfile.specialNote !== undefined && rawProfile.specialNote !== '' ? rawProfile.specialNote : (initProfile.specialNote || ''),
-    family: rawProfile.family !== undefined && rawProfile.family !== '' ? rawProfile.family : (initProfile.family || ''),
-    relationshipStatus: rawProfile.relationshipStatus !== undefined && rawProfile.relationshipStatus !== '' ? rawProfile.relationshipStatus : (initProfile.relationshipStatus || ''),
-    relationshipWithUser: rawProfile.relationshipWithUser !== undefined && rawProfile.relationshipWithUser !== '' ? rawProfile.relationshipWithUser : (initProfile.relationshipWithUser || ''),
-    about: rawProfile.about !== undefined && rawProfile.about !== '' ? rawProfile.about : (initProfile.about || ''),
-    aliasLabel: rawProfile.aliasLabel || initProfile.aliasLabel || 'Danh tiếng / Biệt danh',
-    ageLabel: rawProfile.ageLabel || initProfile.ageLabel || 'Tuổi / Giới tính',
-    heightLabel: rawProfile.heightLabel || initProfile.heightLabel || 'Chiều cao / Cân nặng',
-    affiliationLabel: rawProfile.affiliationLabel || initProfile.affiliationLabel || 'Trường học / Khối lớp',
-    weaponLabel: rawProfile.weaponLabel || initProfile.weaponLabel || 'Nghề nghiệp / Sở trường',
-    statusLabel: rawProfile.statusLabel || initProfile.statusLabel || 'Tính cách / Khí chất',
-    roleLabel: rawProfile.roleLabel || initProfile.roleLabel || 'Thân phận & Thể loại'
+    specialNote: pickNonEmpty(rawProfile.specialNote, initProfile.specialNote),
+    family: pickNonEmpty(rawProfile.family, initProfile.family),
+    relationshipStatus: pickNonEmpty(rawProfile.relationshipStatus, initProfile.relationshipStatus),
+    relationshipWithUser: pickNonEmpty(rawProfile.relationshipWithUser, initProfile.relationshipWithUser),
+    about: pickNonEmpty(rawProfile.about, initProfile.about),
+    aliasLabel: pickLabel(rawProfile.aliasLabel, initProfile.aliasLabel, 'Danh tiếng / Biệt danh'),
+    ageLabel: pickLabel(rawProfile.ageLabel, initProfile.ageLabel, 'Tuổi / Giới tính'),
+    heightLabel: pickLabel(rawProfile.heightLabel, initProfile.heightLabel, 'Chiều cao / Cân nặng'),
+    affiliationLabel: pickLabel(rawProfile.affiliationLabel, initProfile.affiliationLabel, 'Trường học / Khối lớp'),
+    weaponLabel: pickLabel(rawProfile.weaponLabel, initProfile.weaponLabel, 'Nghề nghiệp / Sở trường'),
+    statusLabel: pickLabel(rawProfile.statusLabel, initProfile.statusLabel, 'Tính cách / Khí chất'),
+    roleLabel: pickLabel(rawProfile.roleLabel, initProfile.roleLabel, 'Thân phận & Thể loại')
   };
 
   const avatarUrl = sanitizeImageUrl(raw?.avatarUrl);
@@ -176,18 +203,18 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
     id,
     name:
       id === 'nguy-tu-viet'
-        ? raw?.name || initialTemplate?.name || 'Ngụy Tứ Việt'
-        : raw?.name || initialTemplate?.name || id,
-    code: isLegacySampleDoc ? (initialTemplate?.code || 'BA-01') : (raw?.code || initialTemplate?.code || 'BA-01'),
-    originalNovelTitle: raw?.originalNovelTitle ? cleanSampleText(raw.originalNovelTitle) : (initialTemplate?.originalNovelTitle || ''),
-    originalChineseName: raw?.originalChineseName ? cleanSampleText(raw.originalChineseName) : (initialTemplate?.originalChineseName || ''),
-    tagline: isLegacySampleDoc ? (initialTemplate?.tagline || '') : (raw?.tagline || initialTemplate?.tagline || ''),
+        ? pickNonEmpty(raw?.name, initialTemplate?.name, 'Ngụy Tứ Việt')
+        : pickNonEmpty(raw?.name, initialTemplate?.name, id),
+    code: isLegacySampleDoc ? (initialTemplate?.code || 'BA-01') : pickNonEmpty(raw?.code, initialTemplate?.code, 'BA-01'),
+    originalNovelTitle: pickNonEmpty(raw?.originalNovelTitle, initialTemplate?.originalNovelTitle),
+    originalChineseName: pickNonEmpty(raw?.originalChineseName, initialTemplate?.originalChineseName),
+    tagline: isLegacySampleDoc ? (initialTemplate?.tagline || '') : pickNonEmpty(raw?.tagline, initialTemplate?.tagline),
     avatarUrl,
     coverUrl,
     posterUrl,
     synopsisImageUrl,
     posterObjectPosition: raw?.posterObjectPosition || initialTemplate?.posterObjectPosition || '50% 25%',
-    synopsis: isLegacySampleDoc ? '' : (raw?.synopsis !== undefined && raw.synopsis !== null ? raw.synopsis : (initialTemplate?.synopsis || '')),
+    synopsis: isLegacySampleDoc ? '' : (raw?.synopsis !== undefined && raw.synopsis !== null && raw.synopsis !== '' ? raw.synopsis : (initialTemplate?.synopsis || '')),
     profileData: defaultProfileData,
     npcs: cleanNpcs,
     gallery: sanitizeGalleryList(raw?.gallery),
@@ -208,6 +235,19 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
 
 export function cleanLocalStorageSampleImages() {
   try {
+    // Purge stale full-character JSON snapshots that cached empty profileData strings before dossier updates
+    if (localStorage.getItem('ba_dossier_sync_v12') !== 'true') {
+      const staleCharSnapshots: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('ba_char_data_')) {
+          staleCharSnapshots.push(k);
+        }
+      }
+      staleCharSnapshots.forEach((k) => localStorage.removeItem(k));
+      localStorage.setItem('ba_dossier_sync_v12', 'true');
+    }
+
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -433,6 +473,7 @@ export async function getCharacters(): Promise<Character[]> {
 }
 
 export function subscribeCharacters(callback: (characters: Character[]) => void) {
+  cleanLocalStorageSampleImages();
   try {
     const colRef = collection(db, 'characters');
     return onSnapshot(
@@ -442,13 +483,9 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
           callback(INITIAL_CHARACTERS);
         } else {
           const map = new Map<string, Character>();
-          // Ensure the 5 initial characters are visible immediately even while migration is in flight
-          const hasAllFive = INITIAL_CHARACTERS.every((ic) =>
-            snap.docs.some((d) => d.id === ic.id)
-          );
-          if (!hasAllFive && snap.docs.some((d) => LEGACY_SAMPLE_CHAR_IDS.has(d.id))) {
-            INITIAL_CHARACTERS.forEach((c) => map.set(c.id, c));
-          }
+          // Always seed all 5 canon characters from INITIAL_CHARACTERS first so none are ever missing
+          INITIAL_CHARACTERS.forEach((c) => map.set(c.id, c));
+
           snap.docs.forEach((d) => {
             if (!LEGACY_SAMPLE_CHAR_IDS.has(d.id)) {
               let charObj = normalizeCharacter(d.data(), d.id);
@@ -456,14 +493,17 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
                 const localBackup = localStorage.getItem(`ba_char_data_${d.id}`);
                 if (localBackup) {
                   const parsed = JSON.parse(localBackup);
-                  charObj = {
-                    ...charObj,
-                    ...parsed,
-                    profileData: {
-                      ...charObj.profileData,
-                      ...(parsed.profileData || {})
-                    }
-                  };
+                  charObj = normalizeCharacter(
+                    {
+                      ...charObj,
+                      ...parsed,
+                      profileData: {
+                        ...charObj.profileData,
+                        ...(parsed.profileData || {})
+                      }
+                    },
+                    d.id
+                  );
                 }
               } catch (_) {}
               map.set(d.id, charObj);
