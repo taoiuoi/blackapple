@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, MoreHorizontal, Volume2, VolumeX, Sparkles, Clapperboard, Disc, Image as ImageIcon, Shield, X } from 'lucide-react';
+import { Search, MoreHorizontal, Volume2, VolumeX, Sparkles, Clapperboard, Disc, Image as ImageIcon, Shield, X, User } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { WebsiteSettings } from '../../types';
@@ -227,6 +227,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Clapperboard className="w-3.5 h-3.5 text-neutral-400" />
                 <span>Xem lại Intro mở đầu</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  window.dispatchEvent(new CustomEvent('ba:show-creator-popup'));
+                }}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-neutral-300 hover:text-white hover:bg-white/[0.05] transition-colors cursor-pointer"
+              >
+                <User className="w-3.5 h-3.5 text-neutral-400" />
+                <span>Khung Giới thiệu Creator</span>
               </button>
 
               <div className="my-1 border-t border-white/[0.06]" />

@@ -45,6 +45,7 @@ import { AdminPage } from './pages/AdminPage';
 
 // Common Components & Modals
 import { CinematicIntro } from './components/common/CinematicIntro';
+import { CreatorIntroPopup } from './components/common/CreatorIntroPopup';
 import { AudioPlayerBar } from './components/audio/AudioPlayerBar';
 import { DirectImageUrlModal } from './components/common/DirectImageUrlModal';
 
@@ -69,10 +70,29 @@ export default function App() {
     return true;
   });
 
+  // Creator Introduction Popup State (Buffering bridge before Home interaction)
+  const [showCreatorPopup, setShowCreatorPopup] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const introSeen = sessionStorage.getItem('black_apple_intro_v11_seen') === 'true';
+      const creatorSeen = sessionStorage.getItem('black_apple_creator_popup_v1_seen') === 'true';
+      return introSeen && !creatorSeen;
+    }
+    return false;
+  });
+
+  const handleCloseCreatorPopup = () => {
+    sessionStorage.setItem('black_apple_creator_popup_v1_seen', 'true');
+    setShowCreatorPopup(false);
+  };
+
   const handleIntroComplete = () => {
     sessionStorage.setItem('black_apple_intro_v11_seen', 'true');
     setShowIntro(false);
     setIsAudioPlaying(true);
+    // Gracefully open the creator intro popup as the intro concludes to buffer assets
+    if (sessionStorage.getItem('black_apple_creator_popup_v1_seen') !== 'true') {
+      setShowCreatorPopup(true);
+    }
   };
 
   const handleReplayIntro = () => {
@@ -81,8 +101,13 @@ export default function App() {
 
   useEffect(() => {
     const onReplayEvent = () => setShowIntro(true);
+    const onShowCreatorPopupEvent = () => setShowCreatorPopup(true);
     window.addEventListener('ba:replay-intro', onReplayEvent);
-    return () => window.removeEventListener('ba:replay-intro', onReplayEvent);
+    window.addEventListener('ba:show-creator-popup', onShowCreatorPopupEvent);
+    return () => {
+      window.removeEventListener('ba:replay-intro', onReplayEvent);
+      window.removeEventListener('ba:show-creator-popup', onShowCreatorPopupEvent);
+    };
   }, []);
 
   // Ambient Audio State (Auto-plays on website entry & persists across route changes)
@@ -267,6 +292,13 @@ export default function App() {
           siteTitle={settings.siteTitle || 'BLACK APPLE'}
         />
       )}
+
+      {/* Creator Introduction Popup (Buffering Bridge before Home interaction) */}
+      <CreatorIntroPopup
+        isOpen={showCreatorPopup && !showIntro}
+        onClose={handleCloseCreatorPopup}
+        profile={creatorProfile}
+      />
 
       {/* Multi-Page Routes */}
       <Routes>

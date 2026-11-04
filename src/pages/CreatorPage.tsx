@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Heart,
   Edit3,
@@ -44,6 +44,18 @@ export function CreatorPage({
   onRequestChangeCharacterImage
 }: CreatorPageProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash === '#donate' || location.hash === '#patronage' || window.location.hash === '#donate') {
+      setTimeout(() => {
+        const el = document.getElementById('donate');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 200);
+    }
+  }, [location.hash]);
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#141416] font-content flex flex-col selection:bg-[#141416] selection:text-white">
@@ -239,7 +251,10 @@ export function CreatorPage({
           </div>
 
           {/* Right 5 Cols: Donate QR & Intro Art Card */}
-          <div className="lg:col-span-5 bg-white rounded-[28px] border border-black/[0.08] p-8 sm:p-10 shadow-[0_15px_50px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <div
+            id="donate"
+            className="lg:col-span-5 bg-white rounded-[28px] border border-black/[0.08] p-8 sm:p-10 shadow-[0_15px_50px_rgba(0,0,0,0.04)] flex flex-col justify-between scroll-mt-24"
+          >
             <div>
               <div className="flex items-center justify-between text-[10px] tracking-[0.2em] uppercase text-neutral-400 mb-6">
                 <span>PATRONAGE // ỦNG HỘ</span>
