@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - master
   workflow_dispatch:
 
 # Permissions required to publish to GitHub Pages
@@ -35,11 +36,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
       - name: Build site with Vite
         run: npm run build
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path || '/' }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

@@ -457,7 +457,7 @@ export function HomePage({
                 • {currentHero.originalNovelTitle || 'Black Apple.'}
               </span>
 
-              <div className="flex items-center gap-4 sm:gap-6">
+              <div className="flex items-center gap-3 sm:gap-5">
                 <Link
                   to={`/character/${currentHero.id}`}
                   className="text-white border-b border-white pb-0.5 font-medium"
@@ -470,6 +470,14 @@ export function HomePage({
                 >
                   Danh sách
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('ba:show-creator-popup'))}
+                  className="text-white/80 hover:text-white transition-colors cursor-pointer text-[10px] sm:text-[11px]"
+                  title="Mở khung giới thiệu Creator & Donate"
+                >
+                  ✦ Creator
+                </button>
                 <Link
                   to="/creator"
                   className="text-white/75 hover:text-white transition-colors"

@@ -62,46 +62,52 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
-  // Cinematic Intro Screen State (Stored in sessionStorage so it doesn't repeat on refresh unless requested)
-  const [showIntro, setShowIntro] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('black_apple_intro_v11_seen') !== 'true';
-    }
-    return true;
-  });
+  // Detect if user directly navigated to an inner deep route (e.g. /character/phan-quy-man)
+  const isDeepRoute = typeof window !== 'undefined' && 
+    window.location.pathname !== '/' && 
+    window.location.pathname !== '' &&
+    !window.location.pathname.endsWith('/blackapple') &&
+    !window.location.pathname.endsWith('/blackapple/');
 
-  // Creator Introduction Popup State (Buffering bridge before Home interaction)
-  const [showCreatorPopup, setShowCreatorPopup] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const introSeen = sessionStorage.getItem('black_apple_intro_v11_seen') === 'true';
-      const creatorSeen = sessionStorage.getItem('black_apple_creator_popup_v1_seen') === 'true';
-      return introSeen && !creatorSeen;
-    }
-    return false;
-  });
+  // Step 1: Cinematic Intro Screen (Active on entry when not deep-routed)
+  const [showIntro, setShowIntro] = useState<boolean>(!isDeepRoute);
+
+  // Step 2: Creator Introduction Popup (Appears right after Intro ends)
+  const [showCreatorPopup, setShowCreatorPopup] = useState<boolean>(false);
+
+  // Step 3: Has entered Home (Home is concealed until Creator popup is closed)
+  const [hasEnteredHome, setHasEnteredHome] = useState<boolean>(isDeepRoute);
+
+  // Whether the Creator popup is currently acting as the entrance gate
+  const [isEntranceGate, setIsEntranceGate] = useState<boolean>(!isDeepRoute);
 
   const handleCloseCreatorPopup = () => {
-    sessionStorage.setItem('black_apple_creator_popup_v1_seen', 'true');
     setShowCreatorPopup(false);
+    setHasEnteredHome(true);
+    setIsEntranceGate(false);
   };
 
   const handleIntroComplete = () => {
-    sessionStorage.setItem('black_apple_intro_v11_seen', 'true');
     setShowIntro(false);
     setIsAudioPlaying(true);
-    // Gracefully open the creator intro popup as the intro concludes to buffer assets
-    if (sessionStorage.getItem('black_apple_creator_popup_v1_seen') !== 'true') {
-      setShowCreatorPopup(true);
-    }
+    // Immediately display Creator Intro Popup upon intro disappearance
+    setShowCreatorPopup(true);
+    setIsEntranceGate(true);
   };
 
   const handleReplayIntro = () => {
     setShowIntro(true);
+    setShowCreatorPopup(false);
+    setHasEnteredHome(false);
+    setIsEntranceGate(true);
   };
 
   useEffect(() => {
-    const onReplayEvent = () => setShowIntro(true);
-    const onShowCreatorPopupEvent = () => setShowCreatorPopup(true);
+    const onReplayEvent = () => handleReplayIntro();
+    const onShowCreatorPopupEvent = () => {
+      setShowCreatorPopup(true);
+      setIsEntranceGate(false);
+    };
     window.addEventListener('ba:replay-intro', onReplayEvent);
     window.addEventListener('ba:show-creator-popup', onShowCreatorPopupEvent);
     return () => {
@@ -298,10 +304,27 @@ export default function App() {
         isOpen={showCreatorPopup && !showIntro}
         onClose={handleCloseCreatorPopup}
         profile={creatorProfile}
+        isEntranceGate={isEntranceGate}
       />
 
-      {/* Multi-Page Routes */}
-      <Routes>
+      {/* Solid Noir Veil concealing Home until Creator Popup is closed */}
+      {!hasEnteredHome && !isDeepRoute && (
+        <div
+          className="fixed inset-0 z-30 bg-[#030304] pointer-events-none transition-opacity duration-700 ease-out"
+          style={{ opacity: showIntro || showCreatorPopup ? 1 : 0 }}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Multi-Page Routes with Smooth Entrance Reveal */}
+      <div
+        className={`transition-opacity duration-700 ease-out min-h-screen ${
+          !hasEnteredHome && !isDeepRoute
+            ? 'opacity-0 pointer-events-none'
+            : 'opacity-100 pointer-events-auto'
+        }`}
+      >
+        <Routes>
         {/* Route 1: Homepage (Spacious Editorial Cover directly reflecting IMG_0441_6b99bddd.jpeg) */}
         <Route
           path="/"
@@ -454,6 +477,7 @@ export default function App() {
         {/* Route Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </div>
 
       {/* Persistent Audio Player Bar */}
       <AudioPlayerBar

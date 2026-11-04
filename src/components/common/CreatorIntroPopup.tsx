@@ -9,13 +9,15 @@ interface CreatorIntroPopupProps {
   onClose: () => void;
   profile: CreatorProfile;
   onDonateClick?: () => void;
+  isEntranceGate?: boolean;
 }
 
 export const CreatorIntroPopup: React.FC<CreatorIntroPopupProps> = ({
   isOpen,
   onClose,
   profile,
-  onDonateClick
+  onDonateClick,
+  isEntranceGate = false
 }) => {
   const navigate = useNavigate();
   const [showDirectQr, setShowDirectQr] = useState(false);
@@ -40,9 +42,26 @@ export const CreatorIntroPopup: React.FC<CreatorIntroPopupProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="creator-popup-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm select-none transition-all duration-300"
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 select-none transition-all duration-500 ${
+        isEntranceGate
+          ? 'bg-[#030304]'
+          : 'bg-black/85 backdrop-blur-md'
+      }`}
     >
-      {/* Click outside to close */}
+      <style>{`
+        @keyframes baCreatorPopupIn {
+          0% {
+            opacity: 0;
+            transform: scale(0.94) translateY(12px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+      `}</style>
+
+      {/* Click outside to close (or tap outside to enter home) */}
       <div
         className="absolute inset-0 -z-10"
         onClick={onClose}
@@ -50,7 +69,12 @@ export const CreatorIntroPopup: React.FC<CreatorIntroPopupProps> = ({
       />
 
       {/* Main Frame Container */}
-      <div className="relative w-full max-w-[430px] my-auto">
+      <div
+        className="relative w-full max-w-[430px] my-auto"
+        style={{
+          animation: 'baCreatorPopupIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both'
+        }}
+      >
         {/* Angled Graphic Wireframe Outline (Inspired by reference IMG_0656) */}
         <div
           className="absolute -inset-2 sm:-inset-2.5 border border-white/20 rounded-2xl -rotate-[2.2deg] pointer-events-none transition-transform"
