@@ -60,3 +60,21 @@
 .font-content {
   font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
 }
+
+/* 60FPS Optimization for Older Mobile Devices (iPhone 8, A11, Low-end Androids) */
+img {
+  content-visibility: auto;
+}
+
+/* Hardware accelerated transform compositing */
+.transform-gpu {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Prevent tap delay and highlight flicker */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+

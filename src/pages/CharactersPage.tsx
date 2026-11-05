@@ -507,8 +507,22 @@ export function CharactersPage({
                       {char.tagline || char.synopsis || 'Chưa cập nhật văn án.'}
                     </p>
 
+                    {/* Public Metrics: Views & Roleplay Clicks (Strictly NO eye icon, synchronous editorial font) */}
+                    <div className="mt-3 py-1.5 px-3 rounded-full bg-[#FAF9F6] border border-black/[0.06] flex items-center justify-between text-[10px] text-neutral-500 font-sans tracking-wide">
+                      <span className="flex items-center gap-1" title="Số lượt xem hồ sơ">
+                        <span className="font-serif text-[#18181A]">— 閱覽</span>
+                        <strong className="text-[#18181A]">{(char.views || 0).toLocaleString()}</strong>
+                      </span>
+                      <span className="text-neutral-300">•</span>
+                      <span className="flex items-center gap-1" title="Số lượt nhận link Roleplay">
+                        <span className="text-[#18181A] font-serif">—</span>
+                        <span>ROLEPLAY:</span>
+                        <strong className="text-[#18181A]">{(char.roleplayClicks || 0).toLocaleString()}</strong>
+                      </span>
+                    </div>
+
                     {/* Tiny Ornamental Cross & Flanking Quote Marks */}
-                    <div className="mt-6 mb-2">
+                    <div className="mt-4 mb-2">
                       <div className="text-[10px] text-neutral-400">❖</div>
                       <div className="flex items-center justify-between px-10 text-neutral-300 text-lg font-serif leading-none mt-1">
                         <span>”</span>

@@ -14,7 +14,7 @@ export function Footer({ settings }: FooterProps) {
         {/* 1. Brand Monogram & Title */}
         <div className="space-y-2.5">
           <div className="inline-flex items-center justify-center text-neutral-500 mb-1">
-            <span className="text-[10px] tracking-[0.3em] uppercase font-mono text-neutral-500">✦ ARCHIVE ✦</span>
+            <span className="text-[10px] tracking-[0.3em] uppercase font-mono text-neutral-500">— ARCHIVE —</span>
           </div>
 
           <h3 className="font-editorial text-lg sm:text-xl font-medium tracking-[0.35em] text-neutral-100 uppercase">

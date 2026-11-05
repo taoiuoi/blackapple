@@ -6,7 +6,8 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
-  query
+  query,
+  increment
 } from 'firebase/firestore';
 import { onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
@@ -226,8 +227,9 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
     roleplayUnlockQuestion: isLegacySampleDoc ? '' : cleanSampleText(raw?.roleplayUnlockQuestion),
     roleplayUnlockAnswer: isLegacySampleDoc ? '' : (raw?.roleplayUnlockAnswer || ''),
     isPublished: raw?.isPublished !== false,
-    views: typeof raw?.views === 'number' && !isLegacySampleDoc ? raw.views : 0,
-    likes: typeof raw?.likes === 'number' && !isLegacySampleDoc ? raw.likes : 0,
+    views: typeof raw?.views === 'number' && !isLegacySampleDoc ? raw.views : (typeof initialTemplate?.views === 'number' ? initialTemplate.views : 0),
+    likes: typeof raw?.likes === 'number' && !isLegacySampleDoc ? raw.likes : (typeof initialTemplate?.likes === 'number' ? initialTemplate.likes : 0),
+    roleplayClicks: typeof raw?.roleplayClicks === 'number' && !isLegacySampleDoc ? raw.roleplayClicks : (typeof initialTemplate?.roleplayClicks === 'number' ? initialTemplate.roleplayClicks : 0),
     featured: raw?.featured ?? true,
     order: typeof initialTemplate?.order === 'number' ? initialTemplate.order : (typeof raw?.order === 'number' ? raw.order : 99),
     createdAt: raw?.createdAt || new Date().toISOString(),
@@ -260,6 +262,35 @@ export function cleanLocalStorageSampleImages() {
       }
     }
     keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch (_) {}
+}
+
+// ---------------- LOCALSTORAGE SMART CACHE (MINIMIZE FIREBASE READS & 0ms FIRST PAINT) ----------------
+export function getCachedFirestoreData<T>(key: string, maxAgeMs = 15 * 60 * 1000): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const { timestamp, data } = parsed;
+    if (typeof timestamp === 'number' && Date.now() - timestamp < maxAgeMs) {
+      return data as T;
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
+export function setCachedFirestoreData<T>(key: string, data: T): void {
+  try {
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        timestamp: Date.now(),
+        data
+      })
+    );
   } catch (_) {}
 }
 
@@ -450,6 +481,13 @@ export async function getCharacters(): Promise<Character[]> {
 
 export function subscribeCharacters(callback: (characters: Character[]) => void) {
   cleanLocalStorageSampleImages();
+
+  // Instant 0ms cache-first delivery to eliminate loading delay
+  const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v3');
+  if (cached && Array.isArray(cached) && cached.length > 0) {
+    callback(cached);
+  }
+
   try {
     const colRef = collection(db, 'characters');
     return onSnapshot(
@@ -470,6 +508,8 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
           });
           const list = Array.from(map.values());
           list.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
+          // Persist to local cache so future visits/reloads require 0 reads
+          setCachedFirestoreData('ba_cache_characters_v3', list);
           callback(list);
         }
       },
@@ -546,6 +586,33 @@ export async function updateCharacterImageUrl(
     } catch (_) {}
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+// Increment Character Views counter atomically in Firestore (Publicly callable)
+export async function incrementCharacterViews(characterId: string): Promise<void> {
+  const path = `characters/${characterId}`;
+  try {
+    const docRef = doc(db, 'characters', characterId);
+    await updateDoc(docRef, {
+      views: increment(1)
+    });
+  } catch (error) {
+    // Non-fatal if offline or unseeded
+    console.warn(`Could not increment views for character ${characterId}:`, error);
+  }
+}
+
+// Increment Roleplay link clicks counter atomically in Firestore (Publicly callable)
+export async function incrementRoleplayClicks(characterId: string): Promise<void> {
+  const path = `characters/${characterId}`;
+  try {
+    const docRef = doc(db, 'characters', characterId);
+    await updateDoc(docRef, {
+      roleplayClicks: increment(1)
+    });
+  } catch (error) {
+    console.warn(`Could not increment roleplay click for character ${characterId}:`, error);
   }
 }
 
@@ -696,19 +763,27 @@ export async function getCreatorProfile(): Promise<CreatorProfile> {
 }
 
 export function subscribeCreatorProfile(callback: (profile: CreatorProfile) => void) {
+  // Instant cache-first delivery
+  const cached = getCachedFirestoreData<CreatorProfile>('ba_cache_creator_v3');
+  if (cached) {
+    callback(cached);
+  }
+
   try {
     return onSnapshot(
       doc(db, 'creatorProfile', 'main'),
       (snap) => {
         if (snap.exists()) {
           const data = snap.data() as CreatorProfile;
-          callback({
+          const cleaned = {
             ...INITIAL_CREATOR_PROFILE,
             ...data,
             avatarUrl: sanitizeImageUrl(data.avatarUrl),
             coverUrl: sanitizeImageUrl(data.coverUrl),
             introImageUrl: sanitizeImageUrl(data.introImageUrl)
-          });
+          };
+          setCachedFirestoreData('ba_cache_creator_v3', cleaned);
+          callback(cleaned);
         } else {
           callback(INITIAL_CREATOR_PROFILE);
         }
@@ -757,12 +832,20 @@ export async function getSettings(): Promise<WebsiteSettings> {
 }
 
 export function subscribeSettings(callback: (settings: WebsiteSettings) => void) {
+  // Instant cache-first delivery
+  const cached = getCachedFirestoreData<WebsiteSettings>('ba_cache_settings_v3');
+  if (cached) {
+    callback(cached);
+  }
+
   try {
     return onSnapshot(
       doc(db, 'settings', 'general'),
       (snap) => {
         if (snap.exists()) {
-          callback({ ...INITIAL_SETTINGS, ...(snap.data() as WebsiteSettings) });
+          const merged = { ...INITIAL_SETTINGS, ...(snap.data() as WebsiteSettings) };
+          setCachedFirestoreData('ba_cache_settings_v3', merged);
+          callback(merged);
         } else {
           callback(INITIAL_SETTINGS);
         }
@@ -781,6 +864,28 @@ export async function saveSettings(settings: WebsiteSettings): Promise<void> {
   const path = 'settings/general';
   try {
     await setDoc(doc(db, 'settings', 'general'), { ...INITIAL_SETTINGS, ...settings }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+// Update Hot Character of the Week spotlight settings (Admin only)
+export async function saveHotCharacterSpotlight(
+  hotCharacterId: string,
+  awardTitle?: string,
+  reason?: string
+): Promise<void> {
+  const path = 'settings/general';
+  try {
+    await setDoc(
+      doc(db, 'settings', 'general'),
+      {
+        hotCharacterId,
+        ...(awardTitle !== undefined ? { hotCharacterAwardTitle: awardTitle } : {}),
+        ...(reason !== undefined ? { hotCharacterReason: reason } : {})
+      },
+      { merge: true }
+    );
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -976,6 +1081,12 @@ export async function getMusicTracks(): Promise<MusicTrack[]> {
 }
 
 export function subscribeMusicTracks(callback: (tracks: MusicTrack[]) => void) {
+  // Instant cache-first delivery
+  const cached = getCachedFirestoreData<MusicTrack[]>('ba_cache_tracks_v3');
+  if (cached && Array.isArray(cached) && cached.length > 0) {
+    callback(cached);
+  }
+
   try {
     return onSnapshot(
       collection(db, 'musicTracks'),
@@ -984,7 +1095,9 @@ export function subscribeMusicTracks(callback: (tracks: MusicTrack[]) => void) {
           callback(INITIAL_TRACKS);
         } else {
           const list = snap.docs.map((d) => ({ ...d.data(), id: d.id } as MusicTrack));
-          callback(normalizeMusicTrackList(list));
+          const normalized = normalizeMusicTrackList(list);
+          setCachedFirestoreData('ba_cache_tracks_v3', normalized);
+          callback(normalized);
         }
       },
       (error) => {

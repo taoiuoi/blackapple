@@ -21,7 +21,8 @@ import {
   updateCharacterImageUrl,
   saveCreatorProfile,
   sanitizeImageUrl,
-  normalizeCharacter
+  normalizeCharacter,
+  getCachedFirestoreData
 } from './services/firestoreService';
 import { preloadCharacterAssets } from './utils/imageOptimizer';
 import {
@@ -50,13 +51,25 @@ import { AudioPlayerBar } from './components/audio/AudioPlayerBar';
 import { DirectImageUrlModal } from './components/common/DirectImageUrlModal';
 
 export default function App() {
-  // Main Data States
-  const [characters, setCharacters] = useState<Character[]>(INITIAL_CHARACTERS);
+  // Main Data States (Initialize from 0ms Local Cache to eliminate network delay)
+  const [characters, setCharacters] = useState<Character[]>(() => {
+    const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v3');
+    return cached && Array.isArray(cached) && cached.length > 0 ? cached : INITIAL_CHARACTERS;
+  });
   const [genres, setGenres] = useState<Genre[]>(INITIAL_GENRES);
   const [quotes, setQuotes] = useState<Quote[]>(INITIAL_QUOTES);
-  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile>(INITIAL_CREATOR_PROFILE);
-  const [settings, setSettings] = useState<WebsiteSettings>(INITIAL_SETTINGS);
-  const [musicTracks, setMusicTracks] = useState<MusicTrack[]>(INITIAL_TRACKS);
+  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile>(() => {
+    const cached = getCachedFirestoreData<CreatorProfile>('ba_cache_creator_v3');
+    return cached || INITIAL_CREATOR_PROFILE;
+  });
+  const [settings, setSettings] = useState<WebsiteSettings>(() => {
+    const cached = getCachedFirestoreData<WebsiteSettings>('ba_cache_settings_v3');
+    return cached || INITIAL_SETTINGS;
+  });
+  const [musicTracks, setMusicTracks] = useState<MusicTrack[]>(() => {
+    const cached = getCachedFirestoreData<MusicTrack[]>('ba_cache_tracks_v3');
+    return cached && Array.isArray(cached) && cached.length > 0 ? cached : INITIAL_TRACKS;
+  });
 
   // App UI & Admin States (Strictly false until authenticated as admin)
   const [isAdmin, setIsAdmin] = useState<boolean>(false);

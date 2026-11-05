@@ -33,3 +33,7 @@ Thumbs.db
 
 # Root-level mockup/test screenshot artifacts (keeps public/assets untouched)
 /*.png
+
+# Chat reference image attachments (temporary files sent in chat)
+public/assets/aistudio/
+

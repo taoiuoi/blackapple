@@ -507,7 +507,10 @@ export const INITIAL_SETTINGS: WebsiteSettings = {
   logoUrl: '',
   faviconUrl: '',
   bannerNotice: 'Chào mừng bạn đến với vũ trụ nhân vật BLACK APPLE.',
-  footerText: '© 2026 BLACK APPLE. Mọi quyền tác phẩm và hồ sơ nhân vật được bảo lưu bởi TAOIUOI.'
+  footerText: '© 2026 BLACK APPLE. Mọi quyền tác phẩm và hồ sơ nhân vật được bảo lưu bởi TAOIUOI.',
+  hotCharacterId: 'phan-quy-man',
+  hotCharacterAwardTitle: 'NHÂN VẬT NỔI BẬT & ĐƯỢC QUAN TÂM NHẤT TUẦN',
+  hotCharacterReason: 'Gây ấn tượng sâu sắc với phong thái công tử Vĩnh Long 1930, tính cách tự do bất kham và mối nhân duyên trắc trở.'
 };
 
 export const INITIAL_TRACKS: MusicTrack[] = [

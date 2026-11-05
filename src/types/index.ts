@@ -78,6 +78,7 @@ export interface Character {
   roleplayUnlockAnswer?: string;
   views: number;
   likes: number;
+  roleplayClicks?: number;
   featured: boolean;
   order: number;
   createdAt: string;
@@ -149,6 +150,9 @@ export interface WebsiteSettings {
   bannerNotice?: string;
   customBgUrl?: string;
   footerText: string;
+  hotCharacterId?: string;
+  hotCharacterAwardTitle?: string;
+  hotCharacterReason?: string;
 }
 
 export interface MusicTrack {

@@ -15,6 +15,8 @@ import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { preloadCharacterAssets, preloadImage } from '../utils/imageOptimizer';
+import { HotCharacterSpotlight } from '../components/home/HotCharacterSpotlight';
+import { incrementRoleplayClicks } from '../services/firestoreService';
 
 // Helper to extract or display Chinese Name for the archive header
 function getChineseDisplay(char?: Character): string {
@@ -112,8 +114,10 @@ export function HomePage({
   useEffect(() => {
     if (total <= 1 || isPaused) return;
     const timer = setInterval(() => {
+      // Don't auto-slide if user is in background tab or reading
+      if (typeof document !== 'undefined' && document.hidden) return;
       handleNext();
-    }, 4800);
+    }, 8000);
     return () => clearInterval(timer);
   }, [total, isPaused, handleNext]);
 
@@ -132,6 +136,7 @@ export function HomePage({
       setRoleplayPasswordError(false);
       setShowRoleplayModal(true);
     } else {
+      incrementRoleplayClicks(currentHero.id);
       window.open(currentHero.roleplayLink, '_blank', 'noopener,noreferrer');
     }
   };
@@ -144,6 +149,7 @@ export function HomePage({
       setShowRoleplayModal(false);
       setRoleplayPasswordError(false);
       if (currentHero.roleplayLink) {
+        incrementRoleplayClicks(currentHero.id);
         window.open(currentHero.roleplayLink, '_blank', 'noopener,noreferrer');
       }
     } else {
@@ -385,7 +391,7 @@ export function HomePage({
 
               {/* Discreet Editorial Badge */}
               <span className="text-[10px] text-neutral-500 font-serif tracking-[0.25em] uppercase select-none group-hover:text-neutral-300 transition-colors">
-                ✦ NOIR
+                — NOIR
               </span>
             </div>
 
@@ -430,6 +436,21 @@ export function HomePage({
               <p className="font-editorial italic text-sm sm:text-[15px] text-neutral-200/95 font-light leading-relaxed tracking-wide group-hover/quote:text-white transition-colors">
                 {formattedQuote}
               </p>
+            </div>
+
+            {/* Public Character Metrics: Views & Roleplay Link clicks (No eye icon, synchronized editorial font) */}
+            <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-[10px] text-neutral-400 font-sans tracking-wider">
+              <span className="flex items-center gap-1.5" title="Số lượt xem hồ sơ nhân vật">
+                <span className="font-serif text-neutral-300">— 閱覽</span>
+                <span className="text-white font-medium">{(currentHero.views || 0).toLocaleString()}</span>
+                <span className="text-neutral-500">lượt</span>
+              </span>
+              <span className="flex items-center gap-1.5" title="Số lượt nhấp nhận link Roleplay">
+                <span className="text-neutral-300 font-serif">—</span>
+                <span className="text-neutral-300">ROLEPLAY:</span>
+                <span className="text-white font-medium">{(currentHero.roleplayClicks || 0).toLocaleString()}</span>
+                <span className="text-neutral-500">lượt</span>
+              </span>
             </div>
           </div>
 
@@ -476,7 +497,7 @@ export function HomePage({
                   className="text-white/80 hover:text-white transition-colors cursor-pointer text-[10px] sm:text-[11px]"
                   title="Mở khung giới thiệu Creator & Donate"
                 >
-                  ✦ Creator
+                  Creator
                 </button>
                 <Link
                   to="/creator"
@@ -523,6 +544,31 @@ export function HomePage({
           </section>
         </div>
       </main>
+
+      {/* =========================================================
+          HONORARY PODIUM: CHARACTER HOT TRONG TUẦN (LAUREL OF THE WEEK)
+      ========================================================= */}
+      <HotCharacterSpotlight
+        characters={characters}
+        settings={settings}
+        isAdmin={isAdmin}
+        onRoleplayClick={(char) => {
+          if (!char.roleplayLink) {
+            navigate(`/character/${char.id}`);
+            return;
+          }
+          if (char.isRoleplayLocked) {
+            const idx = characters.findIndex((c) => c.id === char.id);
+            if (idx >= 0) setActiveIndex(idx);
+            setRoleplayPasswordInput('');
+            setRoleplayPasswordError(false);
+            setShowRoleplayModal(true);
+          } else {
+            incrementRoleplayClicks(char.id);
+            window.open(char.roleplayLink, '_blank', 'noopener,noreferrer');
+          }
+        }}
+      />
 
       {/* Discreet Editorial Footer */}
       <Footer

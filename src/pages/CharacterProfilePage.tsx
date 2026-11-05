@@ -28,7 +28,9 @@ import {
   saveCharacter,
   saveGenre,
   deleteGenre,
-  normalizeCharacter
+  normalizeCharacter,
+  incrementCharacterViews,
+  incrementRoleplayClicks
 } from '../services/firestoreService';
 import { Navbar } from '../components/layout/Navbar';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
@@ -207,7 +209,14 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     });
     setIsGgaiUnlocked(!character.isRoleplayLocked);
     setPasswordError(false);
-    setPasswordInput('');
+    // Increment character view count once per browser session
+    if (character.id) {
+      const sessionKey = `ba_viewed_${character.id}`;
+      if (typeof window !== 'undefined' && sessionStorage.getItem(sessionKey) !== 'true') {
+        sessionStorage.setItem(sessionKey, 'true');
+        incrementCharacterViews(character.id);
+      }
+    }
 
     const unsubscribe = subscribeComments(character.id, (fetchedComments) => {
       setComments(fetchedComments);
@@ -469,6 +478,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     if (entered === expected || entered === 'blackapple') {
       setIsGgaiUnlocked(true);
       setPasswordError(false);
+      incrementRoleplayClicks(character.id);
     } else {
       setPasswordError(true);
     }
@@ -564,13 +574,29 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
           )}
 
           {/* Top Centered Roman / Code Header ("XIV. CLAIS / lugar, seguro" vibe) */}
-          <div className="text-center mb-10 sm:mb-14">
+          <div className="text-center mb-10 sm:mb-14 space-y-2.5">
             <h1 className="text-sm sm:text-base font-bold tracking-[0.08em] uppercase text-[#161618]">
               {character.code}. {character.name.toUpperCase()}
             </h1>
-            <div className="mt-1.5 flex items-center justify-center gap-8 text-xs sm:text-[13px] text-neutral-600 font-light tracking-wide">
+            <div className="flex items-center justify-center gap-8 text-xs sm:text-[13px] text-neutral-600 font-light tracking-wide">
               <span>hồ sơ,</span>
               <span>chính thức</span>
+            </div>
+
+            {/* Public Character Metrics Banner (Strictly NO eye icon, pure editorial typography) */}
+            <div className="inline-flex items-center justify-center gap-3 sm:gap-4 px-4 py-1.5 rounded-full bg-white/80 border border-black/10 text-[10px] sm:text-[11px] text-neutral-600 font-sans tracking-wider shadow-sm">
+              <span className="flex items-center gap-1.5" title="Số lượt xem hồ sơ nhân vật">
+                <span className="font-serif text-[#18181A] font-medium">— 閱覽</span>
+                <span className="text-[#18181A] font-semibold">{(character.views || 0).toLocaleString()}</span>
+                <span className="text-neutral-500">lượt tiếp cận</span>
+              </span>
+              <span className="text-neutral-300 font-serif">•</span>
+              <span className="flex items-center gap-1.5" title="Số lượt nhấp nhận link Roleplay">
+                <span className="text-[#18181A] font-serif">—</span>
+                <span className="text-[#18181A] font-medium">ROLEPLAY:</span>
+                <span className="text-[#18181A] font-semibold">{(character.roleplayClicks || 0).toLocaleString()}</span>
+                <span className="text-neutral-500">lượt nhận link</span>
+              </span>
             </div>
           </div>
 
@@ -1910,16 +1936,20 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                 </h2>
               </div>
 
-              {/* Status Badge: PUBLIC or PRIVATE */}
-              <div className="flex items-center gap-2">
+              {/* Status Badge: PUBLIC or PRIVATE & Roleplay Clicks Counter */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3.5 py-1 rounded-full bg-black/40 text-neutral-300 border border-white/15 text-[10px] tracking-[0.16em] uppercase font-sans font-medium flex items-center gap-1.5 shadow-sm" title="Tổng số lượt nhấp nhận link Roleplay">
+                  <span className="text-neutral-300 font-serif">—</span>
+                  <span>{(character.roleplayClicks || 0).toLocaleString()} LƯỢT NHẬN LINK</span>
+                </span>
                 {character.isRoleplayLocked ? (
-                  <span className="px-3.5 py-1 rounded-full bg-[#18181A] text-white text-[10px] tracking-[0.18em] uppercase font-semibold flex items-center gap-1.5">
-                    <Lock className="w-3 h-3" />
+                  <span className="px-3.5 py-1 rounded-full bg-[#18181A] text-white text-[10px] tracking-[0.18em] uppercase font-semibold flex items-center gap-1.5 border border-white/20">
+                    <Lock className="w-3 h-3 text-amber-400" />
                     <span>PRIVATE · YÊU CẦU PASS</span>
                   </span>
                 ) : (
                   <span className="px-3.5 py-1 rounded-full bg-white text-[#18181A] border border-black/20 text-[10px] tracking-[0.18em] uppercase font-semibold flex items-center gap-1.5">
-                    <Unlock className="w-3 h-3" />
+                    <Unlock className="w-3 h-3 text-emerald-600" />
                     <span>PUBLIC · TRUY CẬP TỰ DO</span>
                   </span>
                 )}
@@ -1938,7 +1968,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                     href={character.roleplayLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#18181A] hover:bg-neutral-800 text-white text-xs font-semibold tracking-[0.2em] uppercase transition-all shadow-lg"
+                    onClick={() => incrementRoleplayClicks(character.id)}
+                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#18181A] hover:bg-neutral-800 text-white text-xs font-semibold tracking-[0.2em] uppercase transition-all shadow-lg active:scale-95"
                   >
                     <span>Truy cập Link GGAI</span>
                     <ExternalLink className="w-3.5 h-3.5" />

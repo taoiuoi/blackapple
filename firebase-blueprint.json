@@ -19,6 +19,7 @@
         "gallery": { "type": "array" },
         "views": { "type": "number" },
         "likes": { "type": "number" },
+        "roleplayClicks": { "type": "number" },
         "featured": { "type": "boolean" },
         "order": { "type": "number" },
         "createdAt": { "type": "string" },
@@ -112,7 +113,10 @@
         "faviconUrl": { "type": "string", "maxLength": 1000 },
         "bannerNotice": { "type": "string", "maxLength": 500 },
         "customBgUrl": { "type": "string", "maxLength": 1000 },
-        "footerText": { "type": "string", "maxLength": 500 }
+        "footerText": { "type": "string", "maxLength": 500 },
+        "hotCharacterId": { "type": "string", "maxLength": 100 },
+        "hotCharacterAwardTitle": { "type": "string", "maxLength": 300 },
+        "hotCharacterReason": { "type": "string", "maxLength": 2000 }
       },
       "required": ["siteTitle"]
     },

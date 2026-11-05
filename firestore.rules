@@ -57,8 +57,20 @@ service cloud.firestore {
     // Character Collection
     match /characters/{characterId} {
       allow read: if true;
-      allow create, update: if isValidId(characterId) && isAdmin() && isValidCharacter(incoming());
-      allow delete: if isValidId(characterId) && isAdmin();
+      allow create, delete: if isValidId(characterId) && isAdmin();
+      allow update: if isValidId(characterId) && (
+        (isAdmin() && isValidCharacter(incoming())) ||
+        // Public Action: Increment view count
+        (incoming().diff(existing()).affectedKeys().hasOnly(['views']) &&
+         incoming().views is number) ||
+        // Public Action: Increment roleplay link clicks
+        (incoming().diff(existing()).affectedKeys().hasOnly(['roleplayClicks']) &&
+         incoming().roleplayClicks is number) ||
+        // Public Action: Increment both view count and roleplay link clicks
+        (incoming().diff(existing()).affectedKeys().hasOnly(['views', 'roleplayClicks']) &&
+         (!('views' in incoming()) || incoming().views is number) &&
+         (!('roleplayClicks' in incoming()) || incoming().roleplayClicks is number))
+      );
     }
 
     // Genre Catalog

@@ -2260,11 +2260,65 @@ export function AdminPage({
                 />
               </div>
 
+              {/* HOT CHARACTER OF THE WEEK SPOTLIGHT CONFIGURATION */}
+              <div className="pt-3 border-t border-white/[0.1] space-y-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                    Thiết lập Character Hot Trong Tuần (Laurel of the Week):
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-neutral-400 mb-1">
+                    Nhân vật được vinh danh trong tuần:
+                  </label>
+                  <select
+                    value={settingsForm.hotCharacterId || 'phan-quy-man'}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, hotCharacterId: e.target.value })}
+                    className="w-full bg-[#121217] border border-white/[0.15] rounded px-3 py-2 text-xs text-white"
+                  >
+                    {characters.map((c) => (
+                      <option key={c.id} value={c.id} className="bg-[#121217] text-white">
+                        {c.name} ({c.code}) — Lượt xem: {(c.views || 0).toLocaleString()} | Link Roleplay: {(c.roleplayClicks || 0).toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-neutral-400 mb-1">
+                    Tiêu đề danh hiệu / Giải thưởng tôn vinh:
+                  </label>
+                  <input
+                    type="text"
+                    value={settingsForm.hotCharacterAwardTitle || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, hotCharacterAwardTitle: e.target.value })}
+                    placeholder="VD: NHÂN VẬT NỔI BẬT & ĐƯỢC QUAN TÂM NHẤT TUẦN"
+                    className="w-full bg-[#121217] border border-white/[0.1] rounded px-3 py-2 text-xs text-white"
+                    style={{ fontSize: '15px' }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-neutral-400 mb-1">
+                    Lời nhận xét / Lý do tôn vinh (Citation):
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={settingsForm.hotCharacterReason || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, hotCharacterReason: e.target.value })}
+                    placeholder="Lời khen ngợi nghệ thuật hoặc trích dẫn tiêu biểu..."
+                    className="w-full bg-[#121217] border border-white/[0.1] rounded px-3 py-2 text-xs text-white leading-relaxed font-serif"
+                  />
+                </div>
+              </div>
+
               <div className="pt-2">
                 <button
                   type="button"
                   onClick={handleSaveSettings}
-                  className="px-5 py-2 rounded bg-white text-neutral-900 text-xs font-semibold"
+                  className="px-5 py-2 rounded bg-white text-neutral-900 text-xs font-semibold cursor-pointer shadow-md"
                 >
                   Lưu cài đặt
                 </button>
