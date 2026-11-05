@@ -45,6 +45,12 @@ import {
   CommissionStatus
 } from '../types';
 import {
+  generateCharacterSlug,
+  slugifyVietnamese,
+  getCharacterPath,
+  getCharacterSlug
+} from '../utils/slugify';
+import {
   saveCharacter,
   deleteCharacter,
   saveGenre,
@@ -300,18 +306,46 @@ export function AdminPage({
     if (!isAdmin || !editingChar) return;
 
     try {
-      await saveCharacter(editingChar);
+      let finalChar: Character = { ...editingChar };
+      const originalId = editingChar.id;
+
+      // Auto-generate clean slug URL from character name if id is empty, generic, or legacy timestamp
+      if ((!finalChar.id || finalChar.id.startsWith('char-')) && finalChar.name.trim()) {
+        const cleanSlug = generateCharacterSlug(finalChar.name, characters, finalChar.id);
+        finalChar.id = cleanSlug;
+        finalChar.slug = cleanSlug;
+      } else if (!finalChar.slug && finalChar.name.trim()) {
+        finalChar.slug = slugifyVietnamese(finalChar.name);
+      }
+
+      // Fallback if still empty
+      if (!finalChar.id) {
+        finalChar.id = generateCharacterSlug(finalChar.name || `nhan-vat-${Date.now()}`, characters);
+        finalChar.slug = finalChar.id;
+      }
+
+      await saveCharacter(finalChar);
+
+      // If migrated from old 'char-timestamp' doc ID to a clean slug, delete the old document
+      if (originalId && originalId !== finalChar.id && originalId.startsWith('char-')) {
+        try {
+          await deleteCharacter(originalId);
+        } catch (_) {}
+      }
+
       try {
-        localStorage.removeItem(`ba_char_data_${editingChar.id}`);
-        if (editingChar.avatarUrl) localStorage.setItem(`ba_char_${editingChar.id}_avatarUrl`, editingChar.avatarUrl);
-        if (editingChar.coverUrl) localStorage.setItem(`ba_char_${editingChar.id}_coverUrl`, editingChar.coverUrl);
-        if (editingChar.posterUrl) localStorage.setItem(`ba_char_${editingChar.id}_posterUrl`, editingChar.posterUrl);
-        if (editingChar.synopsisImageUrl) localStorage.setItem(`ba_char_${editingChar.id}_synopsisImageUrl`, editingChar.synopsisImageUrl);
-        if (editingChar.posterObjectPosition) localStorage.setItem(`ba_char_${editingChar.id}_pos`, editingChar.posterObjectPosition);
+        localStorage.removeItem(`ba_char_data_${originalId}`);
+        localStorage.removeItem(`ba_char_data_${finalChar.id}`);
+        if (finalChar.avatarUrl) localStorage.setItem(`ba_char_${finalChar.id}_avatarUrl`, finalChar.avatarUrl);
+        if (finalChar.coverUrl) localStorage.setItem(`ba_char_${finalChar.id}_coverUrl`, finalChar.coverUrl);
+        if (finalChar.posterUrl) localStorage.setItem(`ba_char_${finalChar.id}_posterUrl`, finalChar.posterUrl);
+        if (finalChar.synopsisImageUrl) localStorage.setItem(`ba_char_${finalChar.id}_synopsisImageUrl`, finalChar.synopsisImageUrl);
+        if (finalChar.posterObjectPosition) localStorage.setItem(`ba_char_${finalChar.id}_pos`, finalChar.posterObjectPosition);
       } catch (_) {}
+
       setEditingChar(null);
       setIsCreatingChar(false);
-      setStatusMessage(`Đã lưu thành công nhân vật: ${editingChar.name} vào Firestore!`);
+      setStatusMessage(`Đã lưu thành công nhân vật: ${finalChar.name} (Link: /character/${finalChar.id}) vào Firestore!`);
     } catch (err: any) {
       setStatusMessage('Lỗi lưu nhân vật: ' + (err?.message || 'Lỗi không xác định'));
     }
@@ -327,7 +361,8 @@ export function AdminPage({
     if (!isAdmin) return;
     const nextCode = `BA-0${characters.length + 1}`;
     const newChar: Character = {
-      id: `char-${Date.now()}`,
+      id: '', // Will automatically populate as clean slug from character name
+      slug: '',
       code: nextCode,
       name: '',
       originalChineseName: '',
@@ -338,6 +373,8 @@ export function AdminPage({
       synopsisImageUrl: '',
       tagline: '',
       synopsis: '',
+      isSynopsis18Plus: false,
+      synopsis18WarningNote: '',
       genreIds: [],
       profileData: {
         alias: '',
@@ -715,7 +752,16 @@ export function AdminPage({
                       <input
                         type="text"
                         value={editingChar.name || ''}
-                        onChange={(e) => setEditingChar({ ...editingChar, name: e.target.value })}
+                        onChange={(e) => {
+                          const newName = e.target.value;
+                          const isAutoEligible = isCreatingChar || !editingChar.id || editingChar.id.startsWith('char-');
+                          if (isAutoEligible) {
+                            const autoSlug = generateCharacterSlug(newName, characters, editingChar.id);
+                            setEditingChar({ ...editingChar, name: newName, id: autoSlug, slug: autoSlug });
+                          } else {
+                            setEditingChar({ ...editingChar, name: newName, slug: editingChar.slug || slugifyVietnamese(newName) });
+                          }
+                        }}
                         className="w-full bg-[#121217] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white"
                         style={{ fontSize: '15px' }}
                         required
@@ -743,6 +789,50 @@ export function AdminPage({
                         className="w-full bg-[#121217] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white"
                         style={{ fontSize: '15px' }}
                       />
+                    </div>
+                  </div>
+
+                  {/* URL Slug Path Configuration & Live Link Preview */}
+                  <div className="p-3.5 bg-white/[0.03] border border-white/[0.1] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-neutral-200">
+                          Đường dẫn URL / Slug nhân vật:
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">
+                          Tự động tạo từ tên
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-neutral-400">
+                        Link truy cập: <code className="text-emerald-400 bg-black/60 px-2 py-0.5 rounded font-mono text-xs">/character/{editingChar.id || getCharacterSlug(editingChar) || 'ten-nhan-vat'}</code>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <input
+                        type="text"
+                        value={editingChar.id || ''}
+                        onChange={(e) => {
+                          const customSlug = slugifyVietnamese(e.target.value);
+                          setEditingChar({ ...editingChar, id: customSlug, slug: customSlug });
+                        }}
+                        placeholder="ten-nhan-vat"
+                        className="bg-[#121217] border border-white/[0.15] rounded-lg px-3 py-1.5 text-xs text-white font-mono w-48 sm:w-56"
+                        title="Tùy chỉnh slug URL"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (editingChar.name) {
+                            const autoSlug = generateCharacterSlug(editingChar.name, characters, editingChar.id);
+                            setEditingChar({ ...editingChar, id: autoSlug, slug: autoSlug });
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors whitespace-nowrap"
+                        title="Tự động đồng bộ URL theo tên nhân vật"
+                      >
+                        Tạo từ tên
+                      </button>
                     </div>
                   </div>
 
@@ -891,7 +981,64 @@ export function AdminPage({
                     </div>
 
                     <div>
-                      <label className="block text-xs text-neutral-400 mb-1">Văn án cốt truyện (Giữ nguyên ngắt dòng):</label>
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <label className="block text-xs text-neutral-400">
+                          Văn án cốt truyện (Giữ nguyên ngắt dòng):
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingChar({
+                                ...editingChar,
+                                isSynopsis18Plus: !editingChar.isSynopsis18Plus
+                              })
+                            }
+                            className={`px-3 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                              editingChar.isSynopsis18Plus
+                                ? 'bg-red-900/90 border-red-500 text-white shadow-sm'
+                                : 'bg-white/[0.04] border-white/15 text-neutral-300 hover:border-red-500/50 hover:text-red-300'
+                            }`}
+                          >
+                            <Lock className={`w-3.5 h-3.5 ${editingChar.isSynopsis18Plus ? 'text-red-300' : 'text-red-400'}`} />
+                            <span>
+                              {editingChar.isSynopsis18Plus
+                                ? 'Khóa Văn Án 18+: ĐANG BẬT'
+                                : 'Bật Khóa Văn Án 18+'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {editingChar.isSynopsis18Plus && (
+                        <div className="mb-3 p-3 rounded-lg bg-red-950/30 border border-red-500/30 space-y-2">
+                          <div className="flex items-center gap-2 text-[11px] text-red-300 font-medium">
+                            <Lock className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                            <span>
+                              Chế độ Khóa 18+ đang bật: Văn án sẽ hiển thị dấu khóa màu đỏ và yêu cầu người đọc xác nhận đủ 18 tuổi & hoàn toàn ý thức trước khi mở ra.
+                            </span>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] text-red-300/80 mb-1">
+                              Lời cảnh báo 18+ tùy chỉnh (Để trống sẽ dùng lời nhắc chuẩn mặc định):
+                            </label>
+                            <input
+                              type="text"
+                              value={editingChar.synopsis18WarningNote || ''}
+                              onChange={(e) =>
+                                setEditingChar({
+                                  ...editingChar,
+                                  synopsis18WarningNote: e.target.value
+                                })
+                              }
+                              placeholder="VD: Văn án có yếu tố 18+, tâm lý nặng hoặc tình tiết nhạy cảm. Vui lòng cân nhắc kỹ trước khi đọc."
+                              className="w-full bg-[#121217] border border-red-500/30 rounded px-3 py-1.5 text-xs text-white"
+                              style={{ fontSize: '14px' }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
                       <textarea
                         rows={7}
                         value={editingChar.synopsis || ''}
@@ -1580,19 +1727,24 @@ export function AdminPage({
 
                       <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
                         <Link
-                          to={`/character/${char.id}`}
-                          className="text-neutral-400 hover:text-white flex items-center gap-1 text-[11px]"
+                          to={getCharacterPath(char)}
+                          className="text-neutral-400 hover:text-white flex items-center gap-1 text-[11px] font-mono"
+                          title={`Xem hồ sơ /character/${getCharacterSlug(char)}`}
                         >
-                          <ExternalLink className="w-3 h-3" />
-                          <span>Xem hồ sơ</span>
+                          <ExternalLink className="w-3 h-3 text-neutral-400" />
+                          <span>/{getCharacterSlug(char)}</span>
                         </Link>
 
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => {
                               const bp = char.profileData || ({} as any);
+                              const cleanSlug = char.slug || (char.name ? slugifyVietnamese(char.name) : char.id);
+                              const effectiveId = char.id && !char.id.startsWith('char-') ? char.id : cleanSlug;
                               setEditingChar({
                                 ...char,
+                                id: effectiveId,
+                                slug: cleanSlug,
                                 profileData: {
                                   ...bp,
                                   role: bp.role || '',

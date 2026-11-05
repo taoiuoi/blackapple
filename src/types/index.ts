@@ -57,6 +57,7 @@ export interface CharacterNPC {
 export interface Character {
   id: string;
   name: string; // e.g. "Ngụy Tứ Việt"
+  slug?: string; // e.g. "nguy-tu-viet", "phan-quy-man"
   code: string; // e.g. "BA-01", "10-0"
   originalNovelTitle?: string; // e.g. "@NAM THÀNH VỊ VÃN"
   originalChineseName?: string; // e.g. "Wei Si Yue · 魏肆越"
@@ -69,6 +70,8 @@ export interface Character {
   posterObjectPosition?: string;
   synopsis: string; // Văn án
   synopsisImageUrl?: string;
+  isSynopsis18Plus?: boolean; // Chế độ khóa xác nhận 18+ cho Văn án
+  synopsis18WarningNote?: string; // Ghi chú cảnh báo nội dung 18+ tùy chỉnh
   profileData: CharacterProfileData;
   npcs?: CharacterNPC[];
   gallery: GalleryImage[];

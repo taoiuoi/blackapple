@@ -17,6 +17,7 @@ import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { preloadCharacterAssets, preloadImage } from '../utils/imageOptimizer';
 import { HotCharacterSpotlight } from '../components/home/HotCharacterSpotlight';
 import { incrementRoleplayClicks } from '../services/firestoreService';
+import { getCharacterPath } from '../utils/slugify';
 
 // Helper to extract or display Chinese Name for the archive header
 function getChineseDisplay(char?: Character): string {
@@ -128,7 +129,7 @@ export function HomePage({
   const handleRoleplayClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentHero.roleplayLink) {
-      navigate(`/character/${currentHero.id}`);
+      navigate(getCharacterPath(currentHero));
       return;
     }
     if (currentHero.isRoleplayLocked) {
@@ -263,7 +264,7 @@ export function HomePage({
             {/* Upper Framed Monochrome Photo */}
             <div className="p-3.5 sm:p-5 pb-0">
               <div
-                onClick={() => navigate(`/character/${currentHero.id}`)}
+                onClick={() => navigate(getCharacterPath(currentHero))}
                 className="relative aspect-[4/3] sm:aspect-[16/11] w-full rounded-[8px] overflow-hidden bg-[#141416] cursor-pointer group"
               >
                 <ImageWithFallback
@@ -307,7 +308,7 @@ export function HomePage({
                   onClick={() =>
                     isAdmin
                       ? onRequestChangeCharacterImage(currentHero, 'avatarUrl')
-                      : navigate(`/character/${currentHero.id}`)
+                      : navigate(getCharacterPath(currentHero))
                   }
                   className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border border-black/15 bg-neutral-200 shadow-sm cursor-pointer group"
                   title={isAdmin ? 'Nhấn để đổi Avatar' : currentHero.name}
@@ -343,7 +344,7 @@ export function HomePage({
             {/* Lower Asymmetric Name & Calligraphic Title Row */}
             {/* Lower Asymmetric Name Row (Right side left completely empty as requested) */}
             <div
-              onClick={() => navigate(`/character/${currentHero.id}`)}
+              onClick={() => navigate(getCharacterPath(currentHero))}
               className="px-6 sm:px-9 py-5 sm:py-7 flex items-center justify-between gap-4 cursor-pointer group"
             >
               {/* Left: Tiny Triangle Arrow + Character Name & Subtitle */}
@@ -429,7 +430,7 @@ export function HomePage({
 
             {/* Line 3: Signature Quote */}
             <div
-              onClick={() => navigate(`/character/${currentHero.id}`)}
+              onClick={() => navigate(getCharacterPath(currentHero))}
               className="cursor-pointer group/quote"
               title="Nhấn để xem chi tiết hồ sơ nhân vật"
             >
@@ -480,7 +481,7 @@ export function HomePage({
 
               <div className="flex items-center gap-3 sm:gap-5">
                 <Link
-                  to={`/character/${currentHero.id}`}
+                  to={getCharacterPath(currentHero)}
                   className="text-white border-b border-white pb-0.5 font-medium"
                 >
                   Hồ sơ
@@ -534,7 +535,7 @@ export function HomePage({
               </div>
 
               <button
-                onClick={() => navigate(`/character/${currentHero.id}`)}
+                onClick={() => navigate(getCharacterPath(currentHero))}
                 className="self-start sm:self-end px-4 py-2 rounded-full bg-white hover:bg-neutral-200 text-black text-[10px] tracking-[0.16em] uppercase font-semibold flex items-center gap-1.5 transition-all shrink-0 shadow-lg"
               >
                 <span>Xem hồ sơ</span>
@@ -554,7 +555,7 @@ export function HomePage({
         isAdmin={isAdmin}
         onRoleplayClick={(char) => {
           if (!char.roleplayLink) {
-            navigate(`/character/${char.id}`);
+            navigate(getCharacterPath(char));
             return;
           }
           if (char.isRoleplayLocked) {

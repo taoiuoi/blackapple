@@ -15,6 +15,8 @@
         "posterUrl": { "type": "string", "maxLength": 1000 },
         "synopsis": { "type": "string", "maxLength": 5000 },
         "synopsisImageUrl": { "type": "string", "maxLength": 1000 },
+        "isSynopsis18Plus": { "type": "boolean" },
+        "synopsis18WarningNote": { "type": "string", "maxLength": 500 },
         "profileData": { "type": "object" },
         "gallery": { "type": "array" },
         "views": { "type": "number" },

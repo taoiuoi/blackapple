@@ -6,6 +6,7 @@ import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { saveGenre, deleteGenre } from '../services/firestoreService';
+import { getCharacterPath, getCharacterSlug } from '../utils/slugify';
 
 interface CharactersPageProps {
   characters: Character[];
@@ -409,7 +410,7 @@ export function CharactersPage({
               return (
                 <Link
                   key={char.id}
-                  to={`/character/${char.id}`}
+                  to={getCharacterPath(char)}
                   className="group relative bg-white rounded-t-[120px] rounded-b-[26px] border border-black/[0.08] shadow-[0_22px_60px_rgba(0,0,0,0.06)] hover:shadow-[0_30px_80px_rgba(0,0,0,0.13)] transition-all duration-500 overflow-hidden flex flex-col justify-between pt-9"
                 >
                   {/* Admin Quick Change Poster Button */}
@@ -504,7 +505,11 @@ export function CharactersPage({
 
                     {/* Centered Poetic Excerpt */}
                     <p className="mt-4 text-[11px] text-neutral-500 leading-[1.65] max-w-[225px] mx-auto line-clamp-3 font-serif min-h-[36px]">
-                      {char.tagline || char.synopsis || 'Chưa cập nhật văn án.'}
+                      {char.tagline ||
+                        (char.isSynopsis18Plus
+                          ? 'Hồ sơ văn án giới hạn độ tuổi (18+).'
+                          : char.synopsis) ||
+                        'Chưa cập nhật văn án.'}
                     </p>
 
                     {/* Public Metrics: Views & Roleplay Clicks (Strictly NO eye icon, synchronous editorial font) */}
@@ -557,8 +562,8 @@ export function CharactersPage({
                       <span className="font-editorial italic text-base text-[#141416] block leading-tight">
                         {char.name}.
                       </span>
-                      <span className="text-[9px] tracking-[0.16em] text-neutral-500">
-                        @{char.id}
+                      <span className="text-[9px] tracking-[0.16em] text-neutral-500 font-mono">
+                        @{getCharacterSlug(char) || char.code.toLowerCase()}
                       </span>
                     </div>
                   </div>

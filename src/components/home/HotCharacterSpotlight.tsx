@@ -4,6 +4,7 @@ import { Settings, Check, ArrowUpRight } from 'lucide-react';
 import { Character, WebsiteSettings } from '../../types';
 import { ImageWithFallback } from '../common/ImageWithFallback';
 import { saveHotCharacterSpotlight } from '../../services/firestoreService';
+import { getCharacterPath } from '../../utils/slugify';
 
 interface HotCharacterSpotlightProps {
   characters: Character[];
@@ -108,7 +109,7 @@ export const HotCharacterSpotlight: React.FC<HotCharacterSpotlightProps> = ({
           Cấu trúc xếp lớp tạp chí nghệ thuật (Layered Editorial Collage) - Đen Trắng
       ========================================================================= */}
       <div
-        onClick={() => navigate(`/character/${honoredChar.id}`)}
+        onClick={() => navigate(getCharacterPath(honoredChar))}
         className="group relative w-full rounded-[16px] bg-[#08080B] border border-white/[0.14] hover:border-white/[0.28] shadow-[0_30px_90px_rgba(0,0,0,0.95)] overflow-hidden cursor-pointer transition-all duration-700 p-5 sm:p-8"
         title={`Xem hồ sơ nhân vật ${honoredChar.name}`}
       >

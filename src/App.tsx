@@ -54,7 +54,10 @@ export default function App() {
   // Main Data States (Initialize from 0ms Local Cache to eliminate network delay)
   const [characters, setCharacters] = useState<Character[]>(() => {
     const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v3');
-    return cached && Array.isArray(cached) && cached.length > 0 ? cached : INITIAL_CHARACTERS;
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      return cached.map((c) => normalizeCharacter(c, c.id));
+    }
+    return INITIAL_CHARACTERS;
   });
   const [genres, setGenres] = useState<Genre[]>(INITIAL_GENRES);
   const [quotes, setQuotes] = useState<Quote[]>(INITIAL_QUOTES);
@@ -73,7 +76,7 @@ export default function App() {
 
   // App UI & Admin States (Strictly false until authenticated as admin)
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const handleOpenAdmin = () => {};
 
   // Detect if user directly navigated to an inner deep route (e.g. /character/phan-quy-man)
   const isDeepRoute = typeof window !== 'undefined' && 
@@ -346,7 +349,7 @@ export default function App() {
               characters={characters}
               settings={settings}
               isAdmin={isAdmin}
-              onOpenAdmin={() => setIsAdminModalOpen(true)}
+              onOpenAdmin={handleOpenAdmin}
               isAudioPlaying={isAudioPlaying}
               onToggleAudio={() => setIsAudioPlaying(!isAudioPlaying)}
               onRequestChangeCharacterImage={handleRequestChangeCharacterImage}
@@ -364,7 +367,7 @@ export default function App() {
               genres={genres}
               settings={settings}
               isAdmin={isAdmin}
-              onOpenAdmin={() => setIsAdminModalOpen(true)}
+              onOpenAdmin={handleOpenAdmin}
               isAudioPlaying={isAudioPlaying}
               onToggleAudio={() => setIsAudioPlaying(!isAudioPlaying)}
               onRequestChangeCharacterImage={handleRequestChangeCharacterImage}
@@ -383,7 +386,7 @@ export default function App() {
               settings={settings}
               onCharacterUpdated={handleCharacterUpdated}
               onRequestChangeCharacterImage={handleRequestChangeCharacterImage}
-              onOpenAdmin={() => setIsAdminModalOpen(true)}
+              onOpenAdmin={handleOpenAdmin}
               isAudioPlaying={isAudioPlaying}
               onToggleAudio={() => setIsAudioPlaying(!isAudioPlaying)}
               onReplayIntro={handleReplayIntro}
@@ -405,7 +408,7 @@ export default function App() {
               tracks={musicTracks}
               settings={settings}
               isAdmin={isAdmin}
-              onOpenAdmin={() => setIsAdminModalOpen(true)}
+              onOpenAdmin={handleOpenAdmin}
               isAudioPlaying={isAudioPlaying}
               onToggleAudio={() => setIsAudioPlaying(!isAudioPlaying)}
               currentTrackIndex={currentTrackIndex}
@@ -423,7 +426,7 @@ export default function App() {
               characters={characters}
               settings={settings}
               isAdmin={isAdmin}
-              onOpenAdmin={() => setIsAdminModalOpen(true)}
+              onOpenAdmin={handleOpenAdmin}
               isAudioPlaying={isAudioPlaying}
               onToggleAudio={() => setIsAudioPlaying(!isAudioPlaying)}
               onRequestChangeImage={handleRequestChangeCreatorImage}
@@ -439,7 +442,7 @@ export default function App() {
             <CommissionPage
               settings={settings}
               isAdmin={isAdmin}
-              onOpenAdmin={() => setIsAdminModalOpen(true)}
+              onOpenAdmin={handleOpenAdmin}
               isAudioPlaying={isAudioPlaying}
               onToggleAudio={() => setIsAudioPlaying(!isAudioPlaying)}
               onReplayIntro={handleReplayIntro}
@@ -454,7 +457,7 @@ export default function App() {
             <ConfessionsPage
               settings={settings}
               isAdmin={isAdmin}
-              onOpenAdmin={() => setIsAdminModalOpen(true)}
+              onOpenAdmin={handleOpenAdmin}
               isAudioPlaying={isAudioPlaying}
               onToggleAudio={() => setIsAudioPlaying(!isAudioPlaying)}
             />

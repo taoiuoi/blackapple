@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Lock,
@@ -35,6 +35,7 @@ import {
 import { Navbar } from '../components/layout/Navbar';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { QuickScrollScrubber } from '../components/common/QuickScrollScrubber';
+import { matchesCharacter, getCharacterSlug } from '../utils/slugify';
 
 const profileSections = [
   { id: 'dossier-hero', label: 'Đầu trang · Chân dung' },
@@ -76,14 +77,34 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  // Robust character lookup: matches doc ID, explicit slug, slugified name, or code
   const rawCharacter = characters.find(
-    (c) => c.id === id || c.code.toLowerCase() === id?.toLowerCase()
+    (c) => matchesCharacter(c, id || '')
   );
 
   // Normalize character fields with full INITIAL_CHARACTERS fallback for all 01-07 sections & NPCs
   const character: Character | undefined = rawCharacter
     ? normalizeCharacter(rawCharacter, rawCharacter.id)
     : undefined;
+
+  // Canonical slug URL synchronization:
+  // Only redirect once if opened via legacy timestamp ID (char-...) or raw uppercase code
+  const hasRedirectedRef = useRef(false);
+  useEffect(() => {
+    if (!character || !id || hasRedirectedRef.current) return;
+    const canonicalSlug = getCharacterSlug(character);
+    if (!canonicalSlug) return;
+
+    const isLegacyId = id.startsWith('char-');
+    const isRawCode = Boolean(character.code && id.toLowerCase() === character.code.toLowerCase());
+
+    if (isLegacyId || isRawCode) {
+      if (id !== canonicalSlug) {
+        hasRedirectedRef.current = true;
+        navigate(`/character/${canonicalSlug}`, { replace: true });
+      }
+    }
+  }, [id, character?.code, character?.slug, character?.name, navigate]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -133,6 +154,13 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   const [isEditingSynopsis, setIsEditingSynopsis] = useState(false);
   const [editedSynopsis, setEditedSynopsis] = useState('');
   const [editedTagline, setEditedTagline] = useState('');
+  const [editedSynopsis18Plus, setEditedSynopsis18Plus] = useState(false);
+  const [editedSynopsis18Warning, setEditedSynopsis18Warning] = useState('');
+
+  // 18+ Synopsis Confirmation Gate State
+  const [isSynopsis18Unlocked, setIsSynopsis18Unlocked] = useState(false);
+  const [isAgeConfirmedCheckbox, setIsAgeConfirmedCheckbox] = useState(false);
+  const [synopsis18Error, setSynopsis18Error] = useState(false);
 
   const [isAddingNpc, setIsAddingNpc] = useState(false);
   const [newNpcName, setNewNpcName] = useState('');
@@ -209,6 +237,11 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     });
     setEditedSynopsis(character.synopsis || '');
     setEditedTagline(character.tagline || '');
+    setEditedSynopsis18Plus(Boolean(character.isSynopsis18Plus));
+    setEditedSynopsis18Warning(character.synopsis18WarningNote || '');
+    setIsSynopsis18Unlocked(!character.isSynopsis18Plus);
+    setIsAgeConfirmedCheckbox(false);
+    setSynopsis18Error(false);
     setGgaiForm({
       roleplayLink: character.roleplayLink || '',
       isRoleplayLocked: Boolean(character.isRoleplayLocked),
@@ -232,9 +265,30 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       setComments(fetchedComments);
     });
     return () => unsubscribe();
-  }, [character?.id, character?.isRoleplayLocked]);
+  }, [character?.id, character?.isRoleplayLocked, character?.isSynopsis18Plus]);
 
   if (!character) {
+    if (characters.length === 0) {
+      return (
+        <div className="min-h-screen bg-[#FAF9F6] text-[#141416] flex flex-col">
+          <Navbar
+            settings={settings}
+            isAdmin={isAdmin}
+            onOpenAdmin={onOpenAdmin || (() => navigate('/admin'))}
+            isAudioPlaying={isAudioPlaying}
+            onToggleAudio={onToggleAudio}
+            onReplayIntro={onReplayIntro}
+          />
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
+            <div className="w-8 h-8 rounded-full border-2 border-black/15 border-t-black animate-spin" />
+            <p className="font-editorial italic text-sm text-[#141416]">
+              Đang tải dữ liệu hồ sơ nhân vật...
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#141416] flex flex-col">
         <Navbar
@@ -441,18 +495,65 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       const updated: Character = {
         ...character,
         synopsis: editedSynopsis,
-        tagline: editedTagline
+        tagline: editedTagline,
+        isSynopsis18Plus: editedSynopsis18Plus,
+        synopsis18WarningNote: editedSynopsis18Warning.trim()
       };
       await saveCharacter(updated);
       onCharacterUpdated(updated);
+      setIsSynopsis18Unlocked(!editedSynopsis18Plus);
+      setIsAgeConfirmedCheckbox(false);
+      setSynopsis18Error(false);
       setIsEditingSynopsis(false);
-      setSaveStatus('✓ Đã lưu văn án vào Cloud Firebase thành công!');
+      setSaveStatus('✓ Đã lưu văn án & chế độ khóa 18+ vào Cloud Firebase!');
       setTimeout(() => setSaveStatus(null), 4000);
     } catch (err: any) {
       console.error('Lỗi khi lưu văn án:', err);
       setSaveStatus('✕ Lỗi khi lưu văn án: ' + (err?.message || 'Không thể kết nối Firebase'));
       setTimeout(() => setSaveStatus(null), 6000);
     }
+  };
+
+  // Quick Toggle 18+ Lock on Synopsis for Admin
+  const handleQuickToggleSynopsis18 = async () => {
+    try {
+      const nextState = !character.isSynopsis18Plus;
+      setSaveStatus(
+        nextState
+          ? 'Đang bật Khóa 18+ cho văn án trên Cloud Firebase...'
+          : 'Đang tắt Khóa 18+ cho văn án trên Cloud Firebase...'
+      );
+      const updated: Character = {
+        ...character,
+        isSynopsis18Plus: nextState
+      };
+      await saveCharacter(updated);
+      onCharacterUpdated(updated);
+      setEditedSynopsis18Plus(nextState);
+      setIsSynopsis18Unlocked(!nextState);
+      setIsAgeConfirmedCheckbox(false);
+      setSynopsis18Error(false);
+      setSaveStatus(
+        nextState
+          ? '✓ Đã BẬT Khóa xác nhận 18+ cho văn án!'
+          : '✓ Đã TẮT Khóa 18+, văn án hiển thị công khai!'
+      );
+      setTimeout(() => setSaveStatus(null), 4000);
+    } catch (err: any) {
+      console.error('Lỗi khi đổi chế độ 18+:', err);
+      setSaveStatus('✕ Lỗi khi lưu chế độ 18+: ' + (err?.message || 'Không thể kết nối Firebase'));
+      setTimeout(() => setSaveStatus(null), 6000);
+    }
+  };
+
+  // Reader Unlock 18+ Synopsis after confirming age & awareness
+  const handleUnlockSynopsis18 = () => {
+    if (!isAgeConfirmedCheckbox) {
+      setSynopsis18Error(true);
+      return;
+    }
+    setSynopsis18Error(false);
+    setIsSynopsis18Unlocked(true);
   };
 
   // Save GGAI Link Config
@@ -1720,26 +1821,114 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
         </svg>
 
         <div className="relative z-10 max-w-[780px] mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <span className="text-[10px] tracking-[0.24em] uppercase text-neutral-500">
-              03 // VĂN ÁN CHÍNH THỨC
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
+            <div className="flex items-center gap-2.5">
+              <span className="text-[10px] tracking-[0.24em] uppercase text-neutral-500">
+                03 // VĂN ÁN CHÍNH THỨC
+              </span>
+              {character.isSynopsis18Plus && (
+                <span className="inline-flex items-center gap-1 text-[10px] tracking-[0.16em] uppercase font-semibold text-[#991B1B]">
+                  <Lock className="w-3 h-3 text-[#DC2626]" />
+                  <span>18+ RESTRICTED</span>
+                </span>
+              )}
+            </div>
+
             {isAdmin && (
-              <button
-                onClick={() => setIsEditingSynopsis(!isEditingSynopsis)}
-                className="px-3.5 py-1 rounded-full border border-black/20 hover:bg-[#161618] hover:text-white text-[10px] uppercase tracking-wider font-medium flex items-center gap-1.5 transition-colors"
-              >
-                <Edit3 className="w-3 h-3" />
-                <span>{isEditingSynopsis ? 'Đóng sửa văn án' : 'Chỉnh sửa Văn án'}</span>
-              </button>
+              <div className="flex items-center flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleQuickToggleSynopsis18}
+                  className={`px-3.5 py-1 rounded-full border text-[10px] uppercase tracking-wider font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    character.isSynopsis18Plus
+                      ? 'bg-[#991B1B] border-[#991B1B] text-white hover:bg-[#7F1D1D] shadow-sm'
+                      : 'bg-white border-black/20 text-[#991B1B] hover:border-[#991B1B] hover:bg-[#FEF2F2]'
+                  }`}
+                  title="Bật hoặc tắt khóa xác nhận 18+ cho phần Văn án của nhân vật này"
+                >
+                  <Lock className={`w-3 h-3 ${character.isSynopsis18Plus ? 'text-red-200' : 'text-[#DC2626]'}`} />
+                  <span>
+                    {character.isSynopsis18Plus ? 'Khóa 18+: ĐANG BẬT' : 'Bật Khóa Văn Án 18+'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsEditingSynopsis(!isEditingSynopsis)}
+                  className="px-3.5 py-1 rounded-full border border-black/20 hover:bg-[#161618] hover:text-white text-[10px] uppercase tracking-wider font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  <span>{isEditingSynopsis ? 'Đóng sửa văn án' : 'Chỉnh sửa Văn án'}</span>
+                </button>
+              </div>
             )}
           </div>
 
           {isEditingSynopsis && isAdmin ? (
             <form
               onSubmit={handleSaveSynopsis}
-              className="p-6 rounded-2xl bg-white border border-black/15 shadow-sm space-y-4"
+              className="p-6 rounded-2xl bg-white border border-black/15 shadow-sm space-y-5"
             >
+              {/* 18+ Lock Configuration Inside Synopsis Editor */}
+              <div className="p-4 rounded-xl bg-[#FFFBFB] border border-[#DC2626]/25 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-[#FEF2F2] border border-[#DC2626]/30 flex items-center justify-center shrink-0 mt-0.5">
+                      <Lock className="w-4 h-4 text-[#DC2626]" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-semibold text-[#161618] block">
+                        Chế độ Khóa Văn Án 18+ (Xác nhận độ tuổi & nhận thức)
+                      </span>
+                      <span className="text-[11px] text-neutral-500 block">
+                        Khi bật, văn án sẽ bị khóa bằng biểu tượng ổ khóa đỏ và yêu cầu người đọc xác nhận đủ 18 tuổi trước khi mở ra.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setEditedSynopsis18Plus(false)}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                        !editedSynopsis18Plus
+                          ? 'bg-[#161618] text-white'
+                          : 'bg-neutral-100 text-neutral-500 hover:text-black'
+                      }`}
+                    >
+                      Mở tự do
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditedSynopsis18Plus(true)}
+                      className={`px-3.5 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        editedSynopsis18Plus
+                          ? 'bg-[#991B1B] text-white shadow-sm'
+                          : 'bg-neutral-100 text-neutral-500 hover:text-[#991B1B]'
+                      }`}
+                    >
+                      <Lock className="w-3 h-3" />
+                      <span>Khóa 18+</span>
+                    </button>
+                  </div>
+                </div>
+
+                {editedSynopsis18Plus && (
+                  <div className="pt-2 border-t border-[#DC2626]/15">
+                    <label className="block text-[10px] uppercase tracking-wider text-[#991B1B] font-semibold mb-1">
+                      Lời nhắc / Cảnh báo riêng trước khi mở văn án (Độc giả sẽ thấy dòng này):
+                    </label>
+                    <input
+                      type="text"
+                      value={editedSynopsis18Warning}
+                      onChange={(e) => setEditedSynopsis18Warning(e.target.value)}
+                      placeholder="Mặc định: Văn án có yếu tố 18+, tâm lý nặng hoặc tình tiết nhạy cảm. Vui lòng cân nhắc kỹ trước khi đọc."
+                      className="w-full px-3.5 py-2 rounded-lg bg-white border border-[#DC2626]/30 text-xs text-[#161618]"
+                    />
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1">
                   Câu trích dẫn mở đầu (Tagline)
@@ -1766,20 +1955,31 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsEditingSynopsis(false)}
-                  className="px-4 py-1.5 rounded-lg border border-black/15 text-xs text-neutral-500"
+                  className="px-4 py-1.5 rounded-lg border border-black/15 text-xs text-neutral-500 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-1.5 rounded-lg bg-[#161618] text-white text-xs font-semibold"
+                  className="px-5 py-1.5 rounded-lg bg-[#161618] text-white text-xs font-semibold cursor-pointer"
                 >
                   Lưu Văn án
                 </button>
               </div>
             </form>
           ) : (
-            <div className="bg-white p-8 sm:p-14 border border-black/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.04)]">
+            <div
+              className={`bg-white p-8 sm:p-14 border transition-all duration-300 relative overflow-hidden ${
+                character.isSynopsis18Plus && !isSynopsis18Unlocked
+                  ? 'border-[#991B1B]/30 shadow-[0_20px_60px_rgba(153,27,27,0.07)]'
+                  : 'border-black/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.04)]'
+              }`}
+            >
+              {/* Top Crimson Archival Hairline when 18+ mode is enabled */}
+              {character.isSynopsis18Plus && (
+                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[#7F1D1D] via-[#DC2626] to-[#7F1D1D]" />
+              )}
+
               <div className="text-center mb-10">
                 <span className="text-[10px] tracking-[0.26em] uppercase text-neutral-400 block mb-2">
                   {character.originalNovelTitle || 'BLACK APPLE ARCHIVE'}
@@ -1787,12 +1987,151 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                 <h2 className="font-editorial italic text-2xl sm:text-4xl text-[#161618]">
                   “{character.tagline}”
                 </h2>
-                <div className="w-12 h-[1px] bg-neutral-400 mx-auto mt-5" />
+                <div
+                  className={`w-12 h-[1px] mx-auto mt-5 ${
+                    character.isSynopsis18Plus && !isSynopsis18Unlocked
+                      ? 'bg-[#DC2626]/60'
+                      : 'bg-neutral-400'
+                  }`}
+                />
               </div>
 
-              <div className="text-xs sm:text-[14px] text-neutral-700 leading-[2.05] whitespace-pre-line font-serif max-w-[600px] mx-auto">
-                {character.synopsis}
-              </div>
+              {character.isSynopsis18Plus && !isSynopsis18Unlocked ? (
+                /* =============================================================
+                   LOCKED 18+ SYNOPSIS CONFIRMATION VAULT (RED LOCK DESIGN)
+                ============================================================= */
+                <div className="relative py-6 sm:py-10 px-4 sm:px-8 rounded-2xl bg-[#FAF8F6] border border-[#991B1B]/20 max-w-[620px] mx-auto overflow-hidden">
+                  {/* Decorative Blurred Redacted Manuscript Lines in Background */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none select-none opacity-[0.12] blur-[3px] space-y-3 mb-4 font-serif text-xs text-neutral-700 leading-loose text-justify"
+                  >
+                    <p>
+                      Bản ghi chép lưu trữ thuộc phân khu giới hạn của vũ trụ BLACK APPLE. Mọi diễn biến tâm lý, góc khuất quá khứ và những ràng buộc định mệnh đều được niêm phong cẩn mật.
+                    </p>
+                    <p>
+                      Người đọc cần xác nhận độ tuổi trưởng thành và sự sẵn sàng về mặt nhận thức trước khi tiếp cận toàn văn hồ sơ cốt truyện này.
+                    </p>
+                  </div>
+
+                  {/* Foreground Crimson Lock & Verification Content */}
+                  <div className="relative z-10 text-center space-y-6">
+                    {/* Prominent Red Lock Seal */}
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#FEF2F2] border-2 border-[#DC2626]/40 flex items-center justify-center shadow-[0_10px_30px_rgba(220,38,38,0.16)]">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#991B1B] flex items-center justify-center text-white shadow-inner">
+                          <Lock className="w-6 h-6 sm:w-7 sm:h-7 text-white stroke-[2.2]" />
+                        </div>
+                        <span className="absolute -bottom-1.5 px-2 py-0.5 rounded bg-[#DC2626] text-white font-mono text-[10px] font-bold tracking-wider shadow-sm">
+                          18+
+                        </span>
+                      </div>
+
+                      <span className="mt-4 text-[10px] tracking-[0.26em] uppercase font-semibold text-[#991B1B]">
+                        HỒ SƠ VĂN ÁN ĐANG BỊ KHÓA // RESTRICTED
+                      </span>
+                      <h3 className="mt-1.5 font-editorial italic text-xl sm:text-2xl text-[#161618]">
+                        Xác Nhận Độ Tuổi & Ý Thức Độc Giả
+                      </h3>
+                    </div>
+
+                    {/* Warning Description */}
+                    <p className="font-serif text-xs sm:text-[13.5px] text-neutral-600 leading-[1.9] max-w-[490px] mx-auto">
+                      {character.synopsis18WarningNote?.trim() ||
+                        'Văn án của nhân vật này có chứa yếu tố trưởng thành (18+), xung đột tâm lý hoặc tình tiết nhạy cảm. Vui lòng cân nhắc kỹ và xác nhận trước khi mở khóa nội dung.'}
+                    </p>
+
+                    {/* Explicit Confirmation Checkbox */}
+                    <div className="max-w-[490px] mx-auto pt-1">
+                      <label
+                        onClick={() => {
+                          setIsAgeConfirmedCheckbox(!isAgeConfirmedCheckbox);
+                          if (synopsis18Error) setSynopsis18Error(false);
+                        }}
+                        className={`flex items-start gap-3.5 p-4 rounded-xl border text-left cursor-pointer transition-all select-none ${
+                          isAgeConfirmedCheckbox
+                            ? 'bg-[#FEF2F2]/80 border-[#DC2626] shadow-sm'
+                            : synopsis18Error
+                            ? 'bg-[#FEF2F2] border-[#DC2626] ring-2 ring-[#DC2626]/20'
+                            : 'bg-white border-black/15 hover:border-[#991B1B]/50'
+                        }`}
+                      >
+                        <div
+                          className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center border transition-colors shrink-0 ${
+                            isAgeConfirmedCheckbox
+                              ? 'bg-[#DC2626] border-[#DC2626] text-white'
+                              : 'bg-white border-neutral-400'
+                          }`}
+                        >
+                          {isAgeConfirmedCheckbox && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
+                        </div>
+                        <span className="font-serif text-xs sm:text-[13px] text-[#18181A] leading-relaxed">
+                          Tôi xác nhận bản thân <strong>đã đủ 18 tuổi</strong> và{' '}
+                          <strong>hoàn toàn ý thức được những gì mình sắp đọc</strong>, tự nguyện tiếp tục xem văn án này.
+                        </span>
+                      </label>
+
+                      {synopsis18Error && (
+                        <p className="mt-2.5 text-[11px] text-[#DC2626] font-medium flex items-center justify-center gap-1.5">
+                          <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                          <span>
+                            Vui lòng đánh dấu xác nhận đủ 18 tuổi và hoàn toàn ý thức nội dung ở trên trước khi mở khóa.
+                          </span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Confirm & Pour Out Synopsis Button */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={handleUnlockSynopsis18}
+                        className={`px-7 py-3 rounded-full text-xs uppercase tracking-[0.16em] font-semibold inline-flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                          isAgeConfirmedCheckbox
+                            ? 'bg-[#991B1B] hover:bg-[#7F1D1D] text-white shadow-[0_10px_25px_rgba(153,27,27,0.28)]'
+                            : 'bg-[#161618] hover:bg-[#991B1B] text-white/90'
+                        }`}
+                      >
+                        {isAgeConfirmedCheckbox ? (
+                          <Unlock className="w-3.5 h-3.5 text-red-200" />
+                        ) : (
+                          <Lock className="w-3.5 h-3.5 text-[#F87171]" />
+                        )}
+                        <span>Xác Nhận & Mở Văn Án</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* =============================================================
+                   UNLOCKED OR PUBLIC SYNOPSIS CONTENT
+                ============================================================= */
+                <div className="space-y-6">
+                  {character.isSynopsis18Plus && (
+                    <div className="max-w-[600px] mx-auto pb-4 mb-2 border-b border-[#991B1B]/15 flex items-center justify-between gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-[#991B1B] font-medium">
+                        <Unlock className="w-3 h-3 text-[#DC2626]" />
+                        <span>Đã xác nhận 18+ · Nội dung văn án đã mở</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSynopsis18Unlocked(false);
+                          setIsAgeConfirmedCheckbox(false);
+                        }}
+                        className="px-3 py-1 rounded-full bg-[#FEF2F2] hover:bg-[#991B1B] text-[#991B1B] hover:text-white border border-[#DC2626]/30 text-[10px] tracking-wider uppercase font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Lock className="w-3 h-3" />
+                        <span>Khóa lại văn án</span>
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="text-xs sm:text-[14px] text-neutral-700 leading-[2.05] whitespace-pre-line font-serif max-w-[600px] mx-auto">
+                    {character.synopsis}
+                  </div>
+                </div>
+              )}
 
               <div className="mt-10 pt-6 border-t border-black/[0.06] flex items-center justify-between text-[10px] tracking-[0.18em] uppercase text-neutral-400">
                 <span>ARCHIVE // {character.code}</span>

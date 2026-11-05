@@ -14,6 +14,7 @@ import { Character, CreatorProfile, WebsiteSettings } from '../types';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
+import { getCharacterPath, getCharacterSlug } from '../utils/slugify';
 
 interface CreatorPageProps {
   profile: CreatorProfile;
@@ -333,7 +334,7 @@ export function CreatorPage({
               {characters.slice(0, 3).map((char) => (
                 <Link
                   key={char.id}
-                  to={`/character/${char.id}`}
+                  to={getCharacterPath(char)}
                   className="group bg-white rounded-t-[90px] rounded-b-[24px] border border-black/[0.08] shadow-[0_16px_45px_rgba(0,0,0,0.05)] hover:shadow-[0_24px_65px_rgba(0,0,0,0.11)] transition-all duration-500 overflow-hidden flex flex-col justify-between pt-8"
                 >
                   {/* Top Micro Ornaments */}
@@ -374,8 +375,8 @@ export function CreatorPage({
                       <span className="font-editorial italic text-sm text-[#141416] block">
                         {char.name}.
                       </span>
-                      <span className="text-[9px] tracking-[0.18em] uppercase text-neutral-500">
-                        @{char.code.toLowerCase()}
+                      <span className="text-[9px] tracking-[0.18em] lowercase text-neutral-500 font-mono">
+                        @{getCharacterSlug(char) || char.code.toLowerCase()}
                       </span>
                     </div>
                   </div>

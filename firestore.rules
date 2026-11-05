@@ -43,7 +43,9 @@ service cloud.firestore {
              (!('posterUrl' in data) || (data.posterUrl is string && data.posterUrl.size() <= 500000)) &&
              (!('synopsisImageUrl' in data) || (data.synopsisImageUrl is string && data.synopsisImageUrl.size() <= 500000)) &&
              (!('posterObjectPosition' in data) || (data.posterObjectPosition is string && data.posterObjectPosition.size() <= 100)) &&
-             (!('synopsis' in data) || (data.synopsis is string && data.synopsis.size() <= 50000));
+             (!('synopsis' in data) || (data.synopsis is string && data.synopsis.size() <= 50000)) &&
+             (!('isSynopsis18Plus' in data) || data.isSynopsis18Plus is bool) &&
+             (!('synopsis18WarningNote' in data) || (data.synopsis18WarningNote is string && data.synopsis18WarningNote.size() <= 500));
     }
 
     function isValidCommissionCreate(data) {

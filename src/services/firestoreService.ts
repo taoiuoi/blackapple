@@ -13,6 +13,7 @@ import { onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestoreErrors';
 import { isSampleBuildImage } from '../components/common/ImageWithFallback';
+import { slugifyVietnamese } from '../utils/slugify';
 import {
   Character,
   CharacterNPC,
@@ -200,14 +201,20 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
   const rawGenreIds = Array.isArray(raw?.genreIds) ? raw.genreIds : [];
   const cleanGenreIds = rawGenreIds.filter((gid: string) => !LEGACY_SAMPLE_GENRE_IDS.has(gid));
 
+  const resolvedName =
+    id === 'nguy-tu-viet'
+      ? pickNonEmpty(raw?.name, initialTemplate?.name, 'Ngụy Tứ Việt')
+      : pickNonEmpty(raw?.name, initialTemplate?.name, id);
+
+  const cleanSlug = raw?.slug || (resolvedName ? slugifyVietnamese(resolvedName) : id);
+  const effectiveId = id && !id.startsWith('char-') ? id : (cleanSlug || id);
+
   return {
     ...(initialTemplate || {}),
     ...raw,
-    id,
-    name:
-      id === 'nguy-tu-viet'
-        ? pickNonEmpty(raw?.name, initialTemplate?.name, 'Ngụy Tứ Việt')
-        : pickNonEmpty(raw?.name, initialTemplate?.name, id),
+    id: effectiveId,
+    slug: cleanSlug,
+    name: resolvedName,
     code: isLegacySampleDoc ? (initialTemplate?.code || 'BA-01') : pickNonEmpty(raw?.code, initialTemplate?.code, 'BA-01'),
     originalNovelTitle: pickNonEmpty(raw?.originalNovelTitle, initialTemplate?.originalNovelTitle),
     originalChineseName: pickNonEmpty(raw?.originalChineseName, initialTemplate?.originalChineseName),
@@ -218,6 +225,8 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
     synopsisImageUrl,
     posterObjectPosition: raw?.posterObjectPosition || initialTemplate?.posterObjectPosition || '50% 25%',
     synopsis: isLegacySampleDoc ? '' : (raw?.synopsis !== undefined && raw.synopsis !== null && raw.synopsis !== '' ? raw.synopsis : (initialTemplate?.synopsis || '')),
+    isSynopsis18Plus: isLegacySampleDoc ? false : Boolean(raw?.isSynopsis18Plus ?? initialTemplate?.isSynopsis18Plus ?? false),
+    synopsis18WarningNote: isLegacySampleDoc ? '' : (typeof raw?.synopsis18WarningNote === 'string' ? raw.synopsis18WarningNote : (initialTemplate?.synopsis18WarningNote || '')),
     profileData: defaultProfileData,
     npcs: cleanNpcs,
     gallery: sanitizeGalleryList(raw?.gallery),
@@ -467,7 +476,8 @@ export async function getCharacters(): Promise<Character[]> {
     INITIAL_CHARACTERS.forEach((c) => map.set(c.id, c));
     snap.docs.forEach((d) => {
       if (!LEGACY_SAMPLE_CHAR_IDS.has(d.id)) {
-        map.set(d.id, normalizeCharacter(d.data(), d.id));
+        const charObj = normalizeCharacter(d.data(), d.id);
+        map.set(charObj.id, charObj);
       }
     });
     const list = Array.from(map.values());
@@ -503,7 +513,7 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
           snap.docs.forEach((d) => {
             if (!LEGACY_SAMPLE_CHAR_IDS.has(d.id)) {
               const charObj = normalizeCharacter(d.data(), d.id);
-              map.set(d.id, charObj);
+              map.set(charObj.id, charObj);
             }
           });
           const list = Array.from(map.values());

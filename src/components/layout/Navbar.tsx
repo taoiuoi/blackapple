@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, MoreHorizontal, Volume2, VolumeX, Sparkles, Clapperboard, Disc, Image as ImageIcon, Shield, X, User } from 'lucide-react';
+import { Search, MoreHorizontal, Volume2, VolumeX, Sparkles, Clapperboard, Disc, Shield, X, User } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { WebsiteSettings } from '../../types';
@@ -20,7 +20,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   settings,
   siteTitle,
   isAdmin = false,
-  onOpenAdmin = () => {},
   isAudioPlaying = false,
   onToggleAudio = () => {},
   onReplayIntro
