@@ -1,4 +1,14 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+@theme {
+  --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-playfair: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-editorial: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-content: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-times: 'Times New Roman', Times, Georgia, serif;
+}
 
 @layer base {
   :root {
@@ -43,22 +53,20 @@
   }
 }
 
+/* Enforce Playfair Display everywhere font-playfair, font-editorial or font-serif is used */
 .font-playfair,
-.font-editorial {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+.font-editorial,
+.font-serif {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
 }
 
 .font-times {
-  font-family: 'Times New Roman', Times, Georgia, serif;
-}
-
-.font-serif {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Times New Roman', Times, Georgia, serif !important;
 }
 
 .font-sans,
 .font-content {
-  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif !important;
 }
 
 /* 60FPS Optimization for Older Mobile Devices (iPhone 8, A11, Low-end Androids) */

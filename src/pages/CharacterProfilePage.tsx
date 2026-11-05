@@ -34,6 +34,16 @@ import {
 } from '../services/firestoreService';
 import { Navbar } from '../components/layout/Navbar';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
+import { QuickScrollScrubber } from '../components/common/QuickScrollScrubber';
+
+const profileSections = [
+  { id: 'dossier-hero', label: 'Đầu trang · Chân dung' },
+  { id: 'canon-section', label: '01. Hồ sơ căn bản đã Canon' },
+  { id: 'dossier-details-section', label: '02–07. Chuyên khảo chi tiết' },
+  { id: 'synopsis-section', label: 'Văn án tác phẩm' },
+  { id: 'ggai-section', label: 'Link GGAI Roleplay' },
+  { id: 'comments-section', label: 'Lưu bút bình luận' }
+];
 
 interface CharacterProfilePageProps {
   characters: Character[];
@@ -521,11 +531,14 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
         onReplayIntro={onReplayIntro}
       />
 
+      {/* Sleek Vertical Fast-Scroll Scrubber on Right Edge (Thanh cuộn nhanh kéo trượt) */}
+      <QuickScrollScrubber sectionLabels={profileSections} />
+
       {/* =====================================================================
           HERO STAGE: ORGANIC THREAD LINES & MONOCHROME ARTWORK
           (Inspired by Reference Image 1: IMG_0458_5c217639.jpeg)
       ===================================================================== */}
-      <section className="relative w-full py-12 sm:py-20 px-4 sm:px-8 overflow-hidden bg-[#FAF9F6]">
+      <section id="dossier-hero" className="relative w-full py-12 sm:py-20 px-4 sm:px-8 overflow-hidden bg-[#FAF9F6]">
         {/* Continuous Flowing Calligraphic SVG Thread Lines in Background */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none opacity-45"
