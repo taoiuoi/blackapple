@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, X, Tag, ChevronDown, Check, SlidersHorizontal, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, X, ChevronDown, Check, SlidersHorizontal, Image as ImageIcon } from 'lucide-react';
 import { Character, Genre, WebsiteSettings } from '../types';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';

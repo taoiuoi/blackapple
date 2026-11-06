@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Send, MessageCircleHeart, CheckCircle, Shield, Trash2, Check, RefreshCw } from 'lucide-react';
+import { MessageCircleHeart, CheckCircle, Trash2 } from 'lucide-react';
 import { Confession, WebsiteSettings } from '../types';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
@@ -31,8 +31,6 @@ export function ConfessionsPage({
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [replyInput, setReplyInput] = useState<Record<string, string>>({});
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = subscribeConfessions((list) => {
@@ -70,12 +68,7 @@ export function ConfessionsPage({
     }
   };
 
-  const handleSaveReply = async (id: string) => {
-    const text = replyInput[id];
-    if (text === undefined) return;
-    await updateConfession(id, { reply: text.trim() });
-    setActiveReplyId(null);
-  };
+
 
   const displayList = isAdmin ? confessions : confessions.filter((c) => c.approved);
 

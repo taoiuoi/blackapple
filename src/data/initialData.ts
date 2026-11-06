@@ -2,71 +2,7 @@ import { Character, Genre, Quote, CreatorProfile, WebsiteSettings, MusicTrack, C
 
 export const INITIAL_GENRES: Genre[] = [];
 
-function createEmptyCharacter(id: string, name: string, code: string, order: number): Character {
-  return {
-    id,
-    name,
-    code,
-    originalNovelTitle: '',
-    originalChineseName: '',
-    isPublished: true,
-    tagline: '',
-    genreIds: [],
-    avatarUrl: '',
-    coverUrl: '',
-    posterUrl: '',
-    posterObjectPosition: '50% 25%',
-    synopsis: '',
-    synopsisImageUrl: '',
-    profileData: {
-      alias: '',
-      role: '',
-      age: '',
-      gender: '',
-      birthday: '',
-      height: '',
-      weight: '',
-      school: '',
-      grade: '',
-      reputation: '',
-      affiliation: '',
-      weapon: '',
-      status: '',
-      quote: '',
-      notes: '',
-      appearance: '',
-      personality: '',
-      hobbies: '',
-      dislikes: '',
-      allergies: '',
-      habits: [],
-      specialNote: '',
-      family: '',
-      relationshipStatus: '',
-      relationshipWithUser: '',
-      about: '',
-      aliasLabel: 'Biệt danh / Danh xưng',
-      ageLabel: 'Tuổi / Ngày sinh',
-      heightLabel: 'Chiều cao / Ngoại hình',
-      affiliationLabel: 'Xuất thân / Bối cảnh',
-      weaponLabel: 'Đặc điểm / Sở thích',
-      statusLabel: 'Tính cách / Khí chất',
-      roleLabel: 'Thân phận & Thể loại'
-    },
-    npcs: [],
-    roleplayLink: '',
-    isRoleplayLocked: false,
-    roleplayUnlockQuestion: '',
-    roleplayUnlockAnswer: '',
-    gallery: [],
-    views: 0,
-    likes: 0,
-    featured: true,
-    order,
-    createdAt: '2026-10-30T10:00:00.000Z',
-    updatedAt: '2026-10-30T10:00:00.000Z'
-  };
-}
+
 
 export const INITIAL_CHARACTERS: Character[] = [
   {

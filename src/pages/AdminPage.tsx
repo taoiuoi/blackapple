@@ -15,7 +15,6 @@ import {
   Edit2,
   Save,
   CheckCircle,
-  AlertCircle,
   ExternalLink,
   Image as ImageIcon,
   LogIn,
@@ -24,10 +23,6 @@ import {
   Lock,
   Unlock,
   Check,
-  Clipboard,
-  MessageSquare,
-  Clock,
-  Filter,
   X
 } from 'lucide-react';
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';

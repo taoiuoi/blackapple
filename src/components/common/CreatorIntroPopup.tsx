@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, X, Sparkles, QrCode } from 'lucide-react';
+import { Heart, Sparkles } from 'lucide-react';
 import { CreatorProfile } from '../../types';
 import { ImageWithFallback } from './ImageWithFallback';
 

@@ -14,7 +14,7 @@ import { Character, WebsiteSettings } from '../types';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
-import { preloadCharacterAssets, preloadImage } from '../utils/imageOptimizer';
+import { preloadImage } from '../utils/imageOptimizer';
 import { HotCharacterSpotlight } from '../components/home/HotCharacterSpotlight';
 import { incrementRoleplayClicks } from '../services/firestoreService';
 import { getCharacterPath } from '../utils/slugify';
@@ -66,6 +66,8 @@ export function HomePage({
 
   const total = characters.length;
   const currentHero = characters[activeIndex] || characters[0];
+
+
 
   // Preload immediate adjacent slides (next and prev) after current slide is stable
   useEffect(() => {

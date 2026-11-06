@@ -601,7 +601,6 @@ export async function updateCharacterImageUrl(
 
 // Increment Character Views counter atomically in Firestore (Publicly callable)
 export async function incrementCharacterViews(characterId: string): Promise<void> {
-  const path = `characters/${characterId}`;
   try {
     const docRef = doc(db, 'characters', characterId);
     await updateDoc(docRef, {
@@ -615,7 +614,6 @@ export async function incrementCharacterViews(characterId: string): Promise<void
 
 // Increment Roleplay link clicks counter atomically in Firestore (Publicly callable)
 export async function incrementRoleplayClicks(characterId: string): Promise<void> {
-  const path = `characters/${characterId}`;
   try {
     const docRef = doc(db, 'characters', characterId);
     await updateDoc(docRef, {

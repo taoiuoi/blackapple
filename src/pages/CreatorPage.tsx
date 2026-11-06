@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Heart,
@@ -6,8 +6,6 @@ import {
   Image as ImageIcon,
   ArrowUpRight,
   Sparkles,
-  Globe,
-  Mail,
   MessageSquare
 } from 'lucide-react';
 import { Character, CreatorProfile, WebsiteSettings } from '../types';
@@ -361,6 +359,20 @@ export function CreatorPage({
 
                   {/* Bottom Feathered Monochrome Portrait */}
                   <div className="relative mt-6 aspect-[4/5] w-full overflow-hidden bg-[#F5F4F0]">
+                    {isAdmin && onRequestChangeCharacterImage && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onRequestChangeCharacterImage(char, 'posterUrl');
+                        }}
+                        className="absolute top-2 right-2 z-20 px-2.5 py-1 rounded-full bg-black/75 hover:bg-black text-white text-[10px] border border-white/20 flex items-center gap-1 backdrop-blur-md shadow-sm"
+                      >
+                        <ImageIcon className="w-3 h-3" />
+                        <span>Đổi Poster</span>
+                      </button>
+                    )}
                     <ImageWithFallback
                       src={char.posterUrl || char.avatarUrl || char.coverUrl}
                       alt={char.name}

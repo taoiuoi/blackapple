@@ -2,12 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import {
   X,
   Check,
-  AlertCircle,
   RefreshCw,
   Link as LinkIcon,
   Upload,
-  Image as ImageIcon,
-  Sparkles
+  Image as ImageIcon
 } from 'lucide-react';
 import { resolveDirectImageUrl } from './ImageWithFallback';
 
@@ -177,17 +175,7 @@ export function DirectImageUrlModal({
     }
   };
 
-  const handleClearImage = async () => {
-    try {
-      setIsSaving(true);
-      await onSave('', positionInput);
-      setIsSaving(false);
-      onClose();
-    } catch (err: any) {
-      setIsSaving(false);
-      setErrorMessage('Không thể xóa ảnh: ' + (err?.message || 'Lỗi không xác định'));
-    }
-  };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">

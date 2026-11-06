@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Lock,
   Unlock,
@@ -12,7 +12,8 @@ import {
   ShieldAlert,
   ExternalLink,
   Tag,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react';
 import {
   Character,
@@ -109,6 +110,15 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [id]);
+
+  // Back Navigation: returns user directly to the previous location via browser history
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/characters');
+    }
+  };
 
   // Comments State
   const [comments, setComments] = useState<Comment[]>([]);
@@ -306,12 +316,14 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
           <h1 className="font-editorial text-2xl sm:text-4xl text-[#141416] mb-4">
             Không tìm thấy dữ liệu nhân vật
           </h1>
-          <Link
-            to="/characters"
-            className="px-6 py-2.5 rounded-full bg-[#141416] text-white text-xs font-medium tracking-wider uppercase hover:bg-neutral-800 transition-all"
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#141416] text-white text-xs font-medium tracking-wider uppercase hover:bg-neutral-800 transition-all cursor-pointer"
           >
-            Quay về Danh sách Nhân vật
-          </Link>
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Quay lại trang trước</span>
+          </button>
         </div>
       </div>
     );
@@ -608,6 +620,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     }
   };
 
+
+
   const mainPortrait =
     character.posterUrl || character.avatarUrl || character.coverUrl;
   const secondaryPortrait =
@@ -631,6 +645,27 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
         onToggleAudio={onToggleAudio}
         onReplayIntro={onReplayIntro}
       />
+
+      {/* Sleek Sub-Header with Instant Back Button & Breadcrumb */}
+      <div className="sticky top-13 sm:top-14 z-30 bg-[#FAF9F6]/95 backdrop-blur-md border-b border-black/[0.06] py-2.5 px-4 sm:px-8 transition-all">
+        <div className="max-w-[1280px] mx-auto flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-[#161618] text-[#161618] hover:text-white border border-black/15 text-xs font-medium tracking-wide transition-all shadow-xs cursor-pointer select-none"
+            title="Quay lại nơi vừa bấm vào xem hồ sơ"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+            <span>Quay lại</span>
+          </button>
+
+          <div className="flex items-center gap-2 text-[11px] text-neutral-500 font-serif select-none">
+            <span className="font-sans font-semibold text-[#161618] uppercase tracking-wider">{character.code}</span>
+            <span>·</span>
+            <span className="font-editorial italic text-neutral-700 text-xs sm:text-sm">{character.name}</span>
+          </div>
+        </div>
+      </div>
 
       {/* Sleek Vertical Fast-Scroll Scrubber on Right Edge (Thanh cuộn nhanh kéo trượt) */}
       <QuickScrollScrubber sectionLabels={profileSections} />
@@ -2488,6 +2523,18 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Bottom Back Button & Return Banner */}
+      <div className="max-w-[780px] mx-auto px-4 sm:px-8 pt-10 pb-6 text-center">
+        <button
+          type="button"
+          onClick={handleGoBack}
+          className="group inline-flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-full bg-white hover:bg-[#161618] text-[#161618] hover:text-white border border-black/15 text-xs font-medium tracking-wider uppercase transition-all shadow-sm cursor-pointer select-none"
+        >
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+          <span>Quay lại nơi vừa xem hồ sơ</span>
+        </button>
+      </div>
 
       {/* Floating Save Status Toast Notification */}
       {saveStatus && (
