@@ -78,7 +78,12 @@ const GENERIC_DEFAULT_LABELS = new Set([
   'Trường học / Khối lớp',
   'Nghề nghiệp / Sở trường',
   'Tính cách / Khí chất',
-  'Thân phận & Thể loại'
+  'Thân phận & Thể loại',
+  'Biệt danh / Danh xưng',
+  'Tuổi / Ngày sinh',
+  'Chiều cao / Ngoại hình',
+  'Xuất thân / Bối cảnh',
+  'Đặc điểm / Sở thích'
 ]);
 
 export function sanitizeImageUrl(url?: string): string {
@@ -120,7 +125,6 @@ function pickLabel(rawLabel?: string, initLabel?: string, fallback = ''): string
     return rawLabel;
   }
   if (initLabel && initLabel.trim() !== '') return initLabel;
-  if (rawLabel && rawLabel.trim() !== '') return rawLabel;
   return fallback;
 }
 
@@ -135,6 +139,21 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
     (typeof raw?.synopsis === 'string' && raw.synopsis.startsWith('Đêm Nam Thành mưa như trút nước'));
 
   const initProfile = initialTemplate?.profileData || ({} as any);
+
+  const nameLower = String(raw?.name || initialTemplate?.name || '').toLowerCase();
+  const slugCandidate = raw?.slug || (nameLower ? slugifyVietnamese(nameLower) : id);
+  const combinedContext = `${rawProfile.alias || ''} ${rawProfile.role || ''} ${rawProfile.affiliation || ''} ${rawProfile.weapon || ''}`.toLowerCase();
+
+  // Detect Đông Kỷ or ancient/royal (Cổ trang / Hoàng cung) characters to assign fitting classical titles
+  const isAncientOrDongKy =
+    id === 'dong-ky' ||
+    slugCandidate === 'dong-ky' ||
+    nameLower.includes('đông kỷ') ||
+    combinedContext.includes('hoàng tộc') ||
+    combinedContext.includes('đông cung') ||
+    combinedContext.includes('thái tử') ||
+    combinedContext.includes('cổ trang');
+
   const defaultProfileData: CharacterProfileData = {
     role: isLegacySampleDoc ? (initProfile.role || '') : pickNonEmpty(rawProfile.role, initProfile.role),
     alias: isLegacySampleDoc ? (initProfile.alias || '') : pickNonEmpty(rawProfile.alias, initProfile.alias),
@@ -162,13 +181,41 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
     relationshipStatus: pickNonEmpty(rawProfile.relationshipStatus, initProfile.relationshipStatus),
     relationshipWithUser: pickNonEmpty(rawProfile.relationshipWithUser, initProfile.relationshipWithUser),
     about: pickNonEmpty(rawProfile.about, initProfile.about),
-    aliasLabel: pickLabel(rawProfile.aliasLabel, initProfile.aliasLabel, 'Danh tiếng / Biệt danh'),
-    ageLabel: pickLabel(rawProfile.ageLabel, initProfile.ageLabel, 'Tuổi / Giới tính'),
-    heightLabel: pickLabel(rawProfile.heightLabel, initProfile.heightLabel, 'Chiều cao / Cân nặng'),
-    affiliationLabel: pickLabel(rawProfile.affiliationLabel, initProfile.affiliationLabel, 'Trường học / Khối lớp'),
-    weaponLabel: pickLabel(rawProfile.weaponLabel, initProfile.weaponLabel, 'Nghề nghiệp / Sở trường'),
-    statusLabel: pickLabel(rawProfile.statusLabel, initProfile.statusLabel, 'Tính cách / Khí chất'),
-    roleLabel: pickLabel(rawProfile.roleLabel, initProfile.roleLabel, 'Thân phận & Thể loại')
+    aliasLabel: pickLabel(
+      rawProfile.aliasLabel,
+      initProfile.aliasLabel,
+      isAncientOrDongKy ? 'Tước vị / Danh xưng' : 'Biệt danh / Danh xưng'
+    ),
+    ageLabel: pickLabel(
+      rawProfile.ageLabel,
+      initProfile.ageLabel,
+      isAncientOrDongKy ? 'Niên tuổi' : 'Tuổi / Ngày sinh'
+    ),
+    heightLabel: pickLabel(
+      rawProfile.heightLabel,
+      initProfile.heightLabel,
+      isAncientOrDongKy ? 'Thân hình / Chiều cao' : 'Chiều cao / Ngoại hình'
+    ),
+    affiliationLabel: pickLabel(
+      rawProfile.affiliationLabel,
+      initProfile.affiliationLabel,
+      isAncientOrDongKy ? 'Gia thế / Cung điện' : 'Xuất thân / Bối cảnh'
+    ),
+    weaponLabel: pickLabel(
+      rawProfile.weaponLabel,
+      initProfile.weaponLabel,
+      isAncientOrDongKy ? 'Đặc trưng / Phục sức' : 'Đặc điểm / Sở thích'
+    ),
+    statusLabel: pickLabel(
+      rawProfile.statusLabel,
+      initProfile.statusLabel,
+      isAncientOrDongKy ? 'Bản tính / Khí chất' : 'Tính cách / Khí chất'
+    ),
+    roleLabel: pickLabel(
+      rawProfile.roleLabel,
+      initProfile.roleLabel,
+      isAncientOrDongKy ? 'Địa vị & Thể loại' : 'Thân phận & Thể loại'
+    )
   };
 
   const avatarUrl = sanitizeImageUrl(raw?.avatarUrl);
@@ -192,10 +239,10 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
       )
       .map((n: any) => ({
         ...n,
-        avatarUrl: sanitizeImageUrl(n.avatarUrl)
+        avatarUrl: ''
       }));
   } else if (Array.isArray(initialTemplate?.npcs)) {
-    cleanNpcs = initialTemplate.npcs;
+    cleanNpcs = initialTemplate.npcs.map((n) => ({ ...n, avatarUrl: '' }));
   }
 
   const rawGenreIds = Array.isArray(raw?.genreIds) ? raw.genreIds : [];
@@ -493,7 +540,7 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
   cleanLocalStorageSampleImages();
 
   // Instant 0ms cache-first delivery to eliminate loading delay
-  const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v3');
+  const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v5');
   if (cached && Array.isArray(cached) && cached.length > 0) {
     callback(cached);
   }
@@ -519,7 +566,7 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
           const list = Array.from(map.values());
           list.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
           // Persist to local cache so future visits/reloads require 0 reads
-          setCachedFirestoreData('ba_cache_characters_v3', list);
+          setCachedFirestoreData('ba_cache_characters_v5', list);
           callback(list);
         }
       },

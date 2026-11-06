@@ -141,7 +141,6 @@ export function AdminPage({
   const [adminNewNpcName, setAdminNewNpcName] = useState('');
   const [adminNewNpcRole, setAdminNewNpcRole] = useState('');
   const [adminNewNpcDesc, setAdminNewNpcDesc] = useState('');
-  const [adminNewNpcAvatar, setAdminNewNpcAvatar] = useState('');
   const [charFormNewGenre, setCharFormNewGenre] = useState('');
 
   // Editable Profile & Settings copies
@@ -317,6 +316,11 @@ export function AdminPage({
       if (!finalChar.id) {
         finalChar.id = generateCharacterSlug(finalChar.name || `nhan-vat-${Date.now()}`, characters);
         finalChar.slug = finalChar.id;
+      }
+
+      // Ensure NPCs have no avatarUrl (strictly typography cards as requested)
+      if (Array.isArray(finalChar.npcs)) {
+        finalChar.npcs = finalChar.npcs.map((n) => ({ ...n, avatarUrl: '' }));
       }
 
       await saveCharacter(finalChar);
@@ -1448,9 +1452,6 @@ export function AdminPage({
                               <p className="text-[11px] text-neutral-400 line-clamp-2 leading-relaxed font-serif">
                                 {npc.description}
                               </p>
-                              <span className="text-[11px] text-neutral-400 font-sans block">
-                                {npc.avatarUrl ? 'Có ảnh đại diện' : 'Không dùng ảnh (Typography)'}
-                              </span>
                             </div>
                             <button
                               type="button"
@@ -1477,14 +1478,14 @@ export function AdminPage({
                     {/* Quick Add NPC Box */}
                     <div className="p-3 bg-black/30 border border-dashed border-white/[0.1] rounded-lg space-y-3">
                       <span className="text-[11px] text-neutral-300 font-semibold block">
-                        + Thêm NPC mới vào nhân vật này:
+                        + Thêm NPC mới vào nhân vật này (Typography / Không dùng ảnh):
                       </span>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                         <input
                           type="text"
                           value={adminNewNpcName}
                           onChange={(e) => setAdminNewNpcName(e.target.value)}
-                          placeholder="Tên NPC (VD: Tần Thước, Chu Tấn...)"
+                          placeholder="Tên NPC (VD: Đông Lăng, Thanh Liên...)"
                           className="bg-[#121217] border border-white/[0.1] rounded px-2.5 py-1.5 text-white"
                           style={{ fontSize: '14px' }}
                         />
@@ -1492,7 +1493,7 @@ export function AdminPage({
                           type="text"
                           value={adminNewNpcRole}
                           onChange={(e) => setAdminNewNpcRole(e.target.value)}
-                          placeholder="Vai trò / Mối quan hệ (VD: Bạn thân...)"
+                          placeholder="Vai trò / Mối quan hệ (VD: Tam hoàng tử, Bạn thân...)"
                           className="bg-[#121217] border border-white/[0.1] rounded px-2.5 py-1.5 text-white"
                           style={{ fontSize: '14px' }}
                         />
@@ -1505,16 +1506,7 @@ export function AdminPage({
                         className="w-full bg-[#121217] border border-white/[0.1] rounded p-2 text-xs text-white"
                         style={{ fontSize: '14px' }}
                       />
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="flex-1">
-                          <input
-                            type="text"
-                            value={adminNewNpcAvatar}
-                            onChange={(e) => setAdminNewNpcAvatar(e.target.value)}
-                            placeholder="URL Ảnh NPC (Để trống nếu không muốn thêm ảnh)"
-                            className="w-full bg-[#121217] border border-white/[0.1] rounded px-2.5 py-1 text-[11px] text-neutral-300"
-                          />
-                        </div>
+                      <div className="flex justify-end">
                         <button
                           type="button"
                           onClick={() => {
@@ -1522,9 +1514,9 @@ export function AdminPage({
                             const newNpc: CharacterNPC = {
                               id: `npc-${Date.now()}`,
                               name: adminNewNpcName.trim(),
-                              role: adminNewNpcRole.trim(),
+                              role: adminNewNpcRole.trim() || 'Nhân vật liên quan',
                               description: adminNewNpcDesc.trim(),
-                              avatarUrl: adminNewNpcAvatar.trim()
+                              avatarUrl: ''
                             };
                             setEditingChar({
                               ...editingChar,
@@ -1533,9 +1525,8 @@ export function AdminPage({
                             setAdminNewNpcName('');
                             setAdminNewNpcRole('');
                             setAdminNewNpcDesc('');
-                            setAdminNewNpcAvatar('');
                           }}
-                          className="px-3 py-1.5 bg-white/10 hover:bg-white text-white hover:text-neutral-900 rounded text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                          className="px-3.5 py-1.5 bg-white/10 hover:bg-white text-white hover:text-neutral-900 rounded text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Gắn NPC vào nhân vật</span>

@@ -176,7 +176,6 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   const [newNpcName, setNewNpcName] = useState('');
   const [newNpcRole, setNewNpcRole] = useState('');
   const [newNpcDesc, setNewNpcDesc] = useState('');
-  const [newNpcAvatar, setNewNpcAvatar] = useState('');
 
   const [isEditingGgai, setIsEditingGgai] = useState(false);
   const [ggaiForm, setGgaiForm] = useState({
@@ -448,6 +447,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   };
 
   // Add Important NPC
+  // Add Important NPC (strictly without image as requested)
   const handleAddNpc = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNpcName.trim()) return;
@@ -458,7 +458,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
         name: newNpcName.trim(),
         role: newNpcRole.trim() || 'Nhân vật liên quan',
         description: newNpcDesc.trim(),
-        avatarUrl: newNpcAvatar.trim() || character.avatarUrl
+        avatarUrl: ''
       };
       const updated: Character = {
         ...character,
@@ -469,7 +469,6 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       setNewNpcName('');
       setNewNpcRole('');
       setNewNpcDesc('');
-      setNewNpcAvatar('');
       setIsAddingNpc(false);
       setSaveStatus('✓ Đã thêm NPC vào Cloud Firebase thành công!');
       setTimeout(() => setSaveStatus(null), 4000);
@@ -479,6 +478,52 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       setTimeout(() => setSaveStatus(null), 6000);
     }
   };
+
+  // Auto-clean any legacy NPC avatarUrl & sync Đông Kỷ's cổ trang labels in Cloud Firestore
+  useEffect(() => {
+    if (!isAdmin || !character) return;
+
+    const hasNpcAvatar = Array.isArray(character.npcs) && character.npcs.some((n) => n.avatarUrl);
+    const isDongKy =
+      character.id === 'dong-ky' ||
+      character.slug === 'dong-ky' ||
+      character.name.toLowerCase().includes('đông kỷ');
+    const syncKey = `ba_synced_cotrang_v2_${character.id}`;
+    const needsDongKySync =
+      isDongKy && typeof window !== 'undefined' && sessionStorage.getItem(syncKey) !== 'true';
+
+    if (hasNpcAvatar || needsDongKySync) {
+      if (needsDongKySync && typeof window !== 'undefined') {
+        sessionStorage.setItem(syncKey, 'true');
+      }
+      const cleanedNpcs = Array.isArray(character.npcs)
+        ? character.npcs.map((n) => ({ ...n, avatarUrl: '' }))
+        : [];
+      const updated: Character = {
+        ...character,
+        npcs: cleanedNpcs,
+        profileData: isDongKy
+          ? {
+              ...character.profileData,
+              aliasLabel: 'Tước vị / Danh xưng',
+              ageLabel: 'Niên tuổi',
+              heightLabel: 'Thân hình / Chiều cao',
+              affiliationLabel: 'Gia thế / Cung điện',
+              weaponLabel: 'Đặc trưng / Phục sức',
+              statusLabel: 'Bản tính / Khí chất',
+              roleLabel: 'Địa vị & Thể loại'
+            }
+          : character.profileData
+      };
+      saveCharacter(updated)
+        .then(() => {
+          onCharacterUpdated(updated);
+        })
+        .catch((err) => {
+          console.warn('Could not auto-sync character profile to Firestore:', err);
+        });
+    }
+  }, [isAdmin, character, onCharacterUpdated]);
 
   // Delete NPC
   const handleDeleteNpc = async (npcId: string) => {
@@ -1726,27 +1771,20 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
               onSubmit={handleAddNpc}
               className="mt-6 p-6 rounded-2xl bg-white border border-black/15 shadow-sm space-y-4"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <input
                   type="text"
                   required
                   value={newNpcName}
                   onChange={(e) => setNewNpcName(e.target.value)}
-                  placeholder="Tên NPC"
+                  placeholder="Tên NPC *"
                   className="px-3.5 py-2 rounded-lg bg-[#FAF9F6] border border-black/15 text-[#161618]"
                 />
                 <input
                   type="text"
                   value={newNpcRole}
                   onChange={(e) => setNewNpcRole(e.target.value)}
-                  placeholder="Mối quan hệ / Vai trò với Character"
-                  className="px-3.5 py-2 rounded-lg bg-[#FAF9F6] border border-black/15 text-[#161618]"
-                />
-                <input
-                  type="url"
-                  value={newNpcAvatar}
-                  onChange={(e) => setNewNpcAvatar(e.target.value)}
-                  placeholder="URL Ảnh NPC (tùy chọn)"
+                  placeholder="Mối quan hệ / Vai trò (VD: Tam hoàng tử, Bạn thân...)"
                   className="px-3.5 py-2 rounded-lg bg-[#FAF9F6] border border-black/15 text-[#161618]"
                 />
               </div>
@@ -1776,7 +1814,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
             </form>
           )}
 
-          {/* NPCs Editorial Cards Grid */}
+          {/* NPCs Editorial Cards Grid (Without Image - Clean Editorial Typography) */}
           {(character.npcs || []).length === 0 ? (
             <div className="mt-8 py-12 text-center border border-dashed border-black/15 bg-white/50">
               <p className="text-xs text-neutral-500 font-serif italic">
@@ -1788,27 +1826,18 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
               {(character.npcs || []).map((npc, idx) => (
                 <div
                   key={npc.id}
-                  className="bg-[#E6E5E1] text-[#18181A] p-6 sm:p-8 flex items-start gap-5 border border-black/[0.08] shadow-sm relative group"
+                  className="bg-[#E6E5E1] text-[#18181A] p-6 sm:p-7 border border-black/[0.08] shadow-sm relative group flex flex-col justify-between"
                 >
-                  {npc.avatarUrl ? (
-                    <div className="w-16 h-20 sm:w-20 sm:h-24 bg-neutral-300 shrink-0 overflow-hidden border border-black/15">
-                      <ImageWithFallback
-                        src={npc.avatarUrl}
-                        alt={npc.name}
-                        className="w-full h-full object-cover grayscale contrast-110"
-                      />
-                    </div>
-                  ) : null}
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[9px] tracking-[0.2em] uppercase text-neutral-500">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 pb-2 mb-2.5 border-b border-black/[0.08]">
+                      <span className="text-[9px] tracking-[0.22em] uppercase text-neutral-500 font-mono">
                         NPC // 0{idx + 1}
                       </span>
                       {isAdmin && (
                         <button
+                          type="button"
                           onClick={() => handleDeleteNpc(npc.id)}
-                          className="text-neutral-400 hover:text-red-600 transition-colors cursor-pointer"
+                          className="text-neutral-400 hover:text-red-600 transition-colors cursor-pointer p-0.5"
                           title="Xóa NPC này"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1816,13 +1845,13 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                       )}
                     </div>
 
-                    <h3 className="font-editorial italic text-xl text-[#18181A] mt-0.5">
+                    <h3 className="font-editorial italic text-xl sm:text-2xl text-[#18181A] leading-snug">
                       {npc.name}
                     </h3>
-                    <p className="text-[10px] uppercase tracking-wider text-[#7F1D1D] font-semibold mt-0.5 mb-2">
+                    <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#7F1D1D] font-semibold mt-1 mb-2.5 font-sans">
                       {npc.role}
                     </p>
-                    <p className="text-xs text-neutral-700 leading-relaxed font-serif">
+                    <p className="text-xs sm:text-[13px] text-neutral-700 leading-relaxed font-serif whitespace-pre-line">
                       {npc.description}
                     </p>
                   </div>

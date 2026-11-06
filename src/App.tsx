@@ -53,7 +53,7 @@ import { DirectImageUrlModal } from './components/common/DirectImageUrlModal';
 export default function App() {
   // Main Data States (Initialize from 0ms Local Cache to eliminate network delay)
   const [characters, setCharacters] = useState<Character[]>(() => {
-    const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v3');
+    const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v5');
     if (cached && Array.isArray(cached) && cached.length > 0) {
       return cached.map((c) => normalizeCharacter(c, c.id));
     }
