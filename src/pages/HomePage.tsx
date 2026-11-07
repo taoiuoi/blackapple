@@ -69,26 +69,14 @@ export function HomePage({
 
 
 
-  // Preload immediate adjacent slides (next and prev) after current slide is stable
+  // Preload all character portraits immediately so slide transitions are 0ms
   useEffect(() => {
-    if (total <= 1) return;
-    const timer = setTimeout(() => {
-      const nextChar = characters[(activeIndex + 1) % total];
-      const prevChar = characters[(activeIndex - 1 + total) % total];
-
-      if (nextChar) {
-        const nextImg = nextChar.coverUrl || nextChar.posterUrl || nextChar.avatarUrl;
-        if (nextImg) preloadImage(nextImg);
-        if (nextChar.avatarUrl) preloadImage(nextChar.avatarUrl);
-      }
-      if (prevChar) {
-        const prevImg = prevChar.coverUrl || prevChar.posterUrl || prevChar.avatarUrl;
-        if (prevImg) preloadImage(prevImg);
-      }
-    }, 600);
-
-    return () => clearTimeout(timer);
-  }, [activeIndex, characters, total]);
+    characters.forEach((c) => {
+      const img = c.coverUrl || c.posterUrl || c.avatarUrl;
+      if (img) preloadImage(img);
+      if (c.posterUrl) preloadImage(c.posterUrl);
+    });
+  }, [characters]);
 
   const triggerSlideToIndex = useCallback(
     (nextIndex: number, direction: 'right' | 'left' = 'right') => {
@@ -99,8 +87,8 @@ export function HomePage({
         setActiveIndex((nextIndex + total) % total);
         setTimeout(() => {
           setIsAnimating(false);
-        }, 50);
-      }, 280);
+        }, 40);
+      }, 240);
     },
     [total, isAnimating]
   );
@@ -117,7 +105,6 @@ export function HomePage({
   useEffect(() => {
     if (total <= 1 || isPaused) return;
     const timer = setInterval(() => {
-      // Don't auto-slide if user is in background tab or reading
       if (typeof document !== 'undefined' && document.hidden) return;
       handleNext();
     }, 8000);
@@ -173,8 +160,6 @@ export function HomePage({
 
   const homeImage =
     currentHero.coverUrl || currentHero.avatarUrl || currentHero.posterUrl;
-  const topFrameImage = homeImage;
-  const bottomStageImage = homeImage;
 
   return (
     <div className="min-h-screen bg-[#020203] text-[#f4f4f6] font-content selection:bg-white selection:text-black flex flex-col relative overflow-x-hidden">
@@ -190,41 +175,41 @@ export function HomePage({
         onReplayIntro={onReplayIntro}
       />
 
-      {/* Main Centered Editorial Column (Inspired by IMG_0456_6b853090.jpeg Vibe) */}
-      <main className="flex-1 w-full max-w-[560px] mx-auto px-4 sm:px-6 pt-8 sm:pt-12 pb-28">
+      {/* Compact Centered Editorial Column with generous mobile & desktop breathing space */}
+      <main className="flex-1 w-full max-w-[315px] sm:max-w-[375px] mx-auto px-5 sm:px-0 pt-5 sm:pt-9 pb-14">
         {/* Top Micro Controls & Auto-Slide Indicator (When > 1 Character) */}
         {total > 1 && (
-          <div className="mb-4 flex items-center justify-between text-[10px] tracking-[0.2em] uppercase text-neutral-400">
-            <div className="flex items-center gap-2">
+          <div className="mb-2.5 flex items-center justify-between text-[8.5px] sm:text-[9px] tracking-[0.16em] uppercase text-neutral-400">
+            <div className="flex items-center gap-1.5 min-w-0">
               <button
                 onClick={() => setIsPaused(!isPaused)}
-                className="w-6 h-6 rounded-full border border-white/15 hover:border-white/40 flex items-center justify-center text-white transition-colors"
+                className="w-5 h-5 rounded-full border border-white/15 hover:border-white/40 flex items-center justify-center text-white transition-colors shrink-0"
                 title={isPaused ? 'Tiếp tục tự động chuyển' : 'Tạm dừng tự động chuyển'}
               >
                 {isPaused ? (
-                  <Play className="w-2.5 h-2.5 fill-white" />
+                  <Play className="w-2 h-2 fill-white" />
                 ) : (
-                  <Pause className="w-2.5 h-2.5 fill-white" />
+                  <Pause className="w-2 h-2 fill-white" />
                 )}
               </button>
-              <span>
+              <span className="truncate">
                 {activeIndex + 1} / {total} · {currentHero.name}
               </span>
             </div>
 
             {/* Dots & Next/Prev Arrows */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 mr-1">
+            <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1 mr-0.5">
                 {characters.map((c, idx) => (
                   <button
                     key={c.id}
                     onClick={() =>
                       triggerSlideToIndex(idx, idx >= activeIndex ? 'right' : 'left')
                     }
-                    className={`h-1.5 rounded-full transition-all duration-500 ${
+                    className={`h-1 rounded-full transition-all duration-500 ${
                       idx === activeIndex
-                        ? 'w-6 bg-white'
-                        : 'w-1.5 bg-white/25 hover:bg-white/50'
+                        ? 'w-4 bg-white'
+                        : 'w-1 bg-white/25 hover:bg-white/50'
                     }`}
                     title={c.name}
                   />
@@ -232,17 +217,17 @@ export function HomePage({
               </div>
               <button
                 onClick={handlePrev}
-                className="p-1 text-neutral-400 hover:text-white transition-colors"
+                className="p-0.5 text-neutral-400 hover:text-white transition-colors"
                 aria-label="Nhân vật trước"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={handleNext}
-                className="p-1 text-neutral-400 hover:text-white transition-colors"
+                className="p-0.5 text-neutral-400 hover:text-white transition-colors"
                 aria-label="Nhân vật kế tiếp"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -255,25 +240,24 @@ export function HomePage({
           className={`transition-all duration-500 ease-out transform ${
             isAnimating
               ? slideDirection === 'right'
-                ? 'translate-x-10 opacity-0 scale-[0.985]'
-                : '-translate-x-10 opacity-0 scale-[0.985]'
+                ? 'translate-x-8 opacity-0 scale-[0.985]'
+                : '-translate-x-8 opacity-0 scale-[0.985]'
               : 'translate-x-0 opacity-100 scale-100'
           }`}
         >
           {/* =========================================================
-              THE NOIR EDITORIAL MONOLITH (SINGLE COMPLETE MASTERPIECE)
-              Preserving original Noir Editorial serif vibe & zero repetition
+              THE NOIR EDITORIAL MONOLITH (COMPACT GALLERY PROPORTION)
           ========================================================= */}
-          <section className="bg-[#FAF9F6] text-[#141416] rounded-[8px] overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.65)] border border-black/10 flex flex-col">
+          <section className="bg-[#FAF9F6] text-[#141416] rounded-[6px] overflow-hidden shadow-[0_20px_55px_rgba(0,0,0,0.65)] border border-black/10 flex flex-col">
             {/* 1. TOP UTILITY & ROLEPLAY BAR */}
-            <div className="px-5 sm:px-7 py-3.5 border-b border-black/10 flex items-center justify-between gap-3 text-xs">
+            <div className="px-3.5 sm:px-4 py-2 border-b border-black/10 flex items-center justify-between gap-2">
               {/* Left: Code & Novel title (all lowercase) */}
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[10px] tracking-[0.2em] font-mono text-neutral-400 uppercase">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[8.5px] tracking-[0.16em] font-mono text-neutral-400 uppercase shrink-0">
                   {currentHero.code}
                 </span>
-                <span className="text-neutral-300 font-serif">•</span>
-                <span className="text-[11px] font-serif italic text-neutral-600 truncate lowercase">
+                <span className="text-neutral-300 font-serif text-[10px]">•</span>
+                <span className="text-[9.5px] sm:text-[10px] font-serif italic text-neutral-600 truncate lowercase">
                   {novelTitle}
                 </span>
               </div>
@@ -282,7 +266,7 @@ export function HomePage({
               <button
                 type="button"
                 onClick={handleRoleplayClick}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#141416] hover:bg-neutral-800 text-white text-[10px] tracking-[0.14em] font-sans font-medium transition-all shadow-sm cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#141416] hover:bg-neutral-800 text-white text-[8.5px] sm:text-[9px] tracking-[0.1em] font-sans font-medium transition-all shadow-sm cursor-pointer shrink-0"
                 title={currentHero.roleplayLink ? 'Nhấn để mở Roleplay AI' : 'Xem hồ sơ Roleplay'}
               >
                 {currentHero.roleplayLink && (
@@ -294,23 +278,23 @@ export function HomePage({
                     }`}
                   />
                 )}
-                {currentHero.isRoleplayLocked && <Lock className="w-2.5 h-2.5 text-amber-400" />}
+                {currentHero.isRoleplayLocked && <Lock className="w-2 h-2 text-amber-400" />}
                 <span>[roleplay] AI</span>
-                <ArrowUpRight className="w-2.5 h-2.5 opacity-70" />
+                <ArrowUpRight className="w-2 h-2 opacity-70" />
               </button>
             </div>
 
-            {/* 2. THE SINGLE MASTER ARTWORK FRAME (Spotlight thị giác) */}
-            <div className="p-3.5 sm:p-5 pb-0">
+            {/* 2. THE SINGLE MASTER ARTWORK FRAME */}
+            <div className="p-2.5 sm:p-3.5 pb-0">
               <div
                 onClick={() => navigate(getCharacterPath(currentHero))}
-                className="relative aspect-[4/5] sm:aspect-[3/3.8] w-full rounded-[6px] overflow-hidden bg-[#141416] cursor-pointer group shadow-inner"
+                className="relative aspect-[4/4.3] sm:aspect-[4/4.5] w-full rounded-[4px] overflow-hidden bg-[#141416] cursor-pointer group shadow-inner"
               >
                 <ImageWithFallback
                   src={homeImage}
                   alt={currentHero.name}
                   priority={true}
-                  targetWidth={1200}
+                  targetWidth={1000}
                   objectPosition={currentHero.posterObjectPosition || '50% 25%'}
                   className="w-full h-full object-cover grayscale contrast-[1.08] brightness-95 group-hover:scale-105 transition-transform duration-1000"
                 />
@@ -324,9 +308,9 @@ export function HomePage({
                       e.stopPropagation();
                       onRequestChangeCharacterImage(currentHero, 'coverUrl');
                     }}
-                    className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full bg-black/75 hover:bg-black text-white text-[10px] border border-white/20 flex items-center gap-1 backdrop-blur-md cursor-pointer"
+                    className="absolute top-2.5 right-2.5 z-20 px-2 py-0.5 rounded-full bg-black/75 hover:bg-black text-white text-[8.5px] border border-white/20 flex items-center gap-1 backdrop-blur-md cursor-pointer"
                   >
-                    <ImageIcon className="w-3 h-3" />
+                    <ImageIcon className="w-2.5 h-2.5" />
                     <span>Đổi Ảnh Home</span>
                   </button>
                 )}
@@ -334,24 +318,24 @@ export function HomePage({
             </div>
 
             {/* 3. LOWER EDITORIAL TYPOGRAPHY & SIGNATURE QUOTE */}
-            <div className="px-6 sm:px-9 pt-5 pb-6 sm:pb-8 space-y-4">
+            <div className="px-3.5 sm:px-5 pt-3 pb-3.5 sm:pb-4 space-y-2.5">
               {/* Character Name + Chinese Sub-title */}
               <div
                 onClick={() => navigate(getCharacterPath(currentHero))}
-                className="flex items-baseline justify-between gap-3 cursor-pointer group"
+                className="flex items-baseline justify-between gap-2 cursor-pointer group"
               >
-                <div className="flex items-baseline gap-2.5 min-w-0">
-                  <h1 className="font-serif text-2xl sm:text-3xl text-[#141416] font-medium tracking-tight leading-tight group-hover:text-[#7F1D1D] transition-colors">
+                <div className="flex items-baseline gap-1.5 min-w-0">
+                  <h1 className="font-serif text-base sm:text-lg text-[#141416] font-medium tracking-tight leading-snug group-hover:text-[#7F1D1D] transition-colors truncate">
                     {currentHero.name}
                   </h1>
                   {chineseDisplay && (
-                    <span className="font-serif text-sm sm:text-base text-neutral-400 italic">
+                    <span className="font-serif text-[10px] sm:text-xs text-neutral-400 italic shrink-0">
                       ({chineseDisplay})
                     </span>
                   )}
                 </div>
 
-                <span className="text-[10px] tracking-[0.2em] uppercase font-serif text-neutral-400 shrink-0">
+                <span className="text-[7.5px] sm:text-[8px] tracking-[0.18em] uppercase font-serif text-neutral-400 shrink-0">
                   ARCHIVE // 0{activeIndex + 1}
                 </span>
               </div>
@@ -365,15 +349,15 @@ export function HomePage({
                 className="cursor-pointer group/quote"
                 title="Nhấn để xem chi tiết hồ sơ nhân vật"
               >
-                <p className="font-editorial italic text-base sm:text-lg text-[#2A2A2D] font-normal leading-relaxed tracking-wide group-hover/quote:text-[#7F1D1D] transition-colors">
+                <p className="font-editorial italic text-[11.5px] sm:text-[12.5px] text-[#2A2A2D] font-normal leading-relaxed tracking-wide group-hover/quote:text-[#7F1D1D] transition-colors">
                   {formattedQuote}
                 </p>
               </div>
 
               {/* Footer Row: Metrics & Navigate to Profile */}
-              <div className="pt-3 border-t border-black/[0.08] flex items-center justify-between text-xs">
+              <div className="pt-2 border-t border-black/[0.08] flex items-center justify-between text-[9px]">
                 {/* Public Metrics */}
-                <div className="flex items-center gap-3 text-[10px] text-neutral-500 font-sans tracking-wide">
+                <div className="flex items-center gap-2 text-[8.5px] sm:text-[9px] text-neutral-500 font-sans tracking-wide">
                   <span className="flex items-center gap-1" title="Số lượt xem">
                     <span className="font-serif text-neutral-600">— 閱覽</span>
                     <strong className="text-[#141416] font-semibold">{(currentHero.views || 0).toLocaleString()}</strong>
@@ -388,10 +372,10 @@ export function HomePage({
                 {/* Primary CTA: Xem hồ sơ */}
                 <Link
                   to={getCharacterPath(currentHero)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#141416] hover:bg-neutral-800 text-white text-[10px] tracking-[0.14em] uppercase font-medium transition-all shadow-sm cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#141416] hover:bg-neutral-800 text-white text-[8.5px] tracking-[0.12em] uppercase font-medium transition-all shadow-sm cursor-pointer"
                 >
                   <span>Xem hồ sơ</span>
-                  <ArrowUpRight className="w-3 h-3" />
+                  <ArrowUpRight className="w-2.5 h-2.5" />
                 </Link>
               </div>
             </div>

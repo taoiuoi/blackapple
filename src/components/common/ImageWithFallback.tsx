@@ -5,7 +5,8 @@ import {
   getOptimizedImageUrl,
   CACHED_IMAGE_SET,
   preloadImage,
-  isAnimatedGif
+  isAnimatedGif,
+  isLocalAsset
 } from '../../utils/imageOptimizer';
 
 export { isSampleBuildImage, resolveDirectImageUrl, preloadImage, isAnimatedGif };
@@ -39,15 +40,17 @@ export function ImageWithFallback({
   });
 
   const isGif = Boolean(forcedIsGif || detectedIsGif || isAnimatedGif(src));
+  const isLocal = isLocalAsset(src) || isLocalAsset(directUrl);
 
   const [currentUrl, setCurrentUrl] = useState<string>(optimizedUrl || directUrl);
   const [hasTriedFallback, setHasTriedFallback] = useState(false);
   const [hasError, setHasError] = useState(false);
 
-  // Instant check: If the URL is already decoded in memory or browser cache, instant 0ms display
+  // Instant check: If local asset or already decoded in memory/browser cache, instant 0ms display
   const isPrecached =
-    Boolean(currentUrl) &&
-    (CACHED_IMAGE_SET.has(currentUrl) || CACHED_IMAGE_SET.has(directUrl));
+    isLocal ||
+    (Boolean(currentUrl) &&
+      (CACHED_IMAGE_SET.has(currentUrl) || CACHED_IMAGE_SET.has(directUrl)));
 
   const [isLoading, setIsLoading] = useState(!isPrecached);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -56,14 +59,16 @@ export function ImageWithFallback({
   useEffect(() => {
     const next = getOptimizedImageUrl(src, { width: targetWidth, forceRaw: forcedIsGif });
     const target = next.optimizedUrl || next.directUrl;
+    const localCheck = isLocalAsset(src) || isLocalAsset(target);
 
     setHasError(false);
     setHasTriedFallback(false);
     setCurrentUrl(target);
 
     const alreadyCached =
-      Boolean(target) &&
-      (CACHED_IMAGE_SET.has(target) || CACHED_IMAGE_SET.has(next.directUrl));
+      localCheck ||
+      (Boolean(target) &&
+        (CACHED_IMAGE_SET.has(target) || CACHED_IMAGE_SET.has(next.directUrl)));
 
     if (alreadyCached) {
       setIsLoading(false);
@@ -166,20 +171,16 @@ export function ImageWithFallback({
         ref={imgRef}
         src={currentUrl}
         alt={alt}
-        loading={priority ? 'eager' : 'lazy'}
-        // For animated GIFs on Safari iOS, 'auto' decoding prevents animation freezing
-        decoding={isGif ? 'auto' : 'async'}
-        // Modern fetchpriority hint for browser LCP optimization
-        {...({ fetchPriority: priority ? 'high' : 'auto' } as Record<string, unknown>)}
+        loading={priority || isLocal ? 'eager' : 'lazy'}
+        decoding={isGif || isLocal ? 'auto' : 'async'}
+        {...({ fetchPriority: priority || isLocal ? 'high' : 'auto' } as Record<string, unknown>)}
         onLoad={handleImageLoad}
         onError={handleImageError}
         style={{ objectPosition }}
         className={`w-full h-full object-cover ${
-          isGif
-            ? // Animated GIFs: render directly without blur/scale filter so Safari loops smoothly
-              'opacity-100'
-            : // Static images: smooth fade-in once loaded
-              `transition-opacity duration-300 ease-out ${
+          isGif || isLocal
+            ? 'opacity-100'
+            : `transition-opacity duration-200 ease-out ${
                 isLoading ? 'opacity-0' : 'opacity-100'
               }`
         }`}

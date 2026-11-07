@@ -586,7 +586,7 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
   cleanLocalStorageSampleImages();
 
   // Instant 0ms cache-first delivery to eliminate loading delay
-  const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v7');
+  const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v8');
   if (cached && Array.isArray(cached) && cached.length > 0) {
     callback(cached);
   } else {
@@ -614,7 +614,7 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
           const list = Array.from(map.values());
           list.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
           // Persist to local cache so future visits/reloads require 0 reads
-          setCachedFirestoreData('ba_cache_characters_v7', list);
+          setCachedFirestoreData('ba_cache_characters_v8', list);
           callback(list);
         }
       },

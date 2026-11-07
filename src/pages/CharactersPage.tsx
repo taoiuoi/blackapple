@@ -405,7 +405,7 @@ export function CharactersPage({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10">
-            {filtered.map((char, index) => {
+            {filtered.map((char) => {
               const charGenres = genres.filter((g) => char.genreIds?.includes(g.id));
               return (
                 <Link
@@ -529,7 +529,7 @@ export function CharactersPage({
                     <ImageWithFallback
                       src={char.posterUrl || char.avatarUrl || char.coverUrl}
                       alt={char.name}
-                      priority={index < 2}
+                      priority={true}
                       targetWidth={800}
                       objectPosition={char.posterObjectPosition || '50% 20%'}
                       className="w-full h-full object-cover grayscale contrast-[1.02] brightness-105 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
