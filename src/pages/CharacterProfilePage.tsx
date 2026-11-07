@@ -111,6 +111,54 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [id]);
 
+  // Dynamic Title & Meta Tags for social sharing & browser tab
+  useEffect(() => {
+    if (!character) return;
+    const originalTitle = document.title;
+    document.title = `${character.name} — BLACK APPLE`;
+
+    const updateMeta = (selector: string, content: string) => {
+      let el = document.querySelector(selector);
+      if (!el) {
+        el = document.createElement('meta');
+        const match = selector.match(/meta\[(.*?)='(.*?)'\]/);
+        if (match) {
+          el.setAttribute(match[1], match[2]);
+          document.head.appendChild(el);
+        }
+      }
+      if (el) {
+        el.setAttribute('content', content);
+      }
+    };
+
+    const quote = character.profileData?.quote || character.tagline || '';
+    const desc = quote || character.originalNovelTitle 
+      ? `Hồ sơ nhân vật ${character.name}${character.originalNovelTitle ? ` trong tác phẩm "${character.originalNovelTitle}"` : ''}. ${quote}`.trim()
+      : `Khám phá hồ sơ chuyên khảo nhân vật ${character.name} trên BLACK APPLE.`;
+    
+    const imageUrl = character.posterUrl || character.avatarUrl || 'https://taoiuoi.github.io/blackapple/og-image.png';
+
+    updateMeta("meta[property='og:title']", `${character.name} — BLACK APPLE`);
+    updateMeta("meta[property='og:description']", desc);
+    updateMeta("meta[property='og:image']", imageUrl);
+    updateMeta("meta[property='og:image:secure_url']", imageUrl);
+    updateMeta("meta[name='twitter:title']", `${character.name} — BLACK APPLE`);
+    updateMeta("meta[name='twitter:description']", desc);
+    updateMeta("meta[name='twitter:image']", imageUrl);
+
+    return () => {
+      document.title = originalTitle;
+      updateMeta("meta[property='og:title']", 'BLACK APPLE — Vũ trụ Nhân vật & Hồ sơ Nghệ thuật');
+      updateMeta("meta[property='og:description']", 'Nền tảng hồ sơ nhân vật và vũ trụ sáng tác BLACK APPLE với trải nghiệm nghệ thuật đương đại, lưu trữ dữ liệu và hệ thống hồ sơ nhân vật.');
+      updateMeta("meta[property='og:image']", 'https://taoiuoi.github.io/blackapple/og-image.png');
+      updateMeta("meta[property='og:image:secure_url']", 'https://taoiuoi.github.io/blackapple/og-image.png');
+      updateMeta("meta[name='twitter:title']", 'BLACK APPLE — Vũ trụ Nhân vật & Hồ sơ Nghệ thuật');
+      updateMeta("meta[name='twitter:description']", 'Nền tảng hồ sơ nhân vật và vũ trụ sáng tác BLACK APPLE với trải nghiệm nghệ thuật đương đại, lưu trữ dữ liệu và hệ thống hồ sơ nhân vật.');
+      updateMeta("meta[name='twitter:image']", 'https://taoiuoi.github.io/blackapple/og-image.png');
+    };
+  }, [character?.id, character?.name, character?.posterUrl, character?.avatarUrl, character?.profileData?.quote, character?.tagline, character?.originalNovelTitle]);
+
   // Back Navigation: returns user directly to the previous location via browser history
   const handleGoBack = () => {
     if (window.history.length > 1) {

@@ -461,9 +461,9 @@ export function AudioPlayerBar({
         preload="auto"
       />
 
-      {/* Persistent 200x113 In-Viewport YouTube Audio Mount (Meets YT minimum viewport check without visual intrusion) */}
+      {/* Persistent In-Viewport YouTube Audio Mount (Completely transparent and behind content to eliminate any visible ghost rectangle) */}
       <div
-        className="fixed bottom-0 right-0 w-[200px] h-[113px] opacity-[0.01] pointer-events-none z-0 overflow-hidden"
+        className="fixed bottom-0 right-0 w-[200px] h-[113px] opacity-0 pointer-events-none z-[-1] overflow-hidden select-none"
         aria-hidden="true"
       >
         <div id={ytContainerId} />
