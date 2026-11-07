@@ -641,12 +641,13 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   // Unlock Private GGAI Link
   const handleUnlockGgai = (e: React.FormEvent) => {
     e.preventDefault();
-    const expected = (character.roleplayUnlockAnswer || '').trim().toLowerCase();
-    const entered = passwordInput.trim().toLowerCase();
-    if (entered === expected || entered === 'blackapple') {
+    const cleanStr = (s: string) => s.trim().toLowerCase().replace(/[.,!?:;'"“”]/g, '');
+    const expected = cleanStr(character?.roleplayUnlockAnswer || '');
+    const entered = cleanStr(passwordInput);
+    if (entered === expected || entered === 'blackapple' || !expected) {
       setIsGgaiUnlocked(true);
       setPasswordError(false);
-      incrementRoleplayClicks(character.id);
+      incrementRoleplayClicks(character?.id || '');
     } else {
       setPasswordError(true);
     }
@@ -667,10 +668,11 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
 
 
 
+  // Tối ưu cấu trúc 2 ảnh: Ảnh từ trang danh sách (posterUrl) tự động làm Poster Profile & chân dung Mục 01
   const mainPortrait =
-    character.posterUrl || character.avatarUrl || character.coverUrl;
+    character.posterUrl || character.coverUrl || character.avatarUrl;
   const secondaryPortrait =
-    character.synopsisImageUrl || character.avatarUrl || character.posterUrl;
+    character.posterUrl || character.synopsisImageUrl || character.coverUrl || character.avatarUrl;
 
   const portraitQuote = character.profileData?.quote || character.tagline || '';
   const formattedPortraitQuote = portraitQuote
@@ -745,24 +747,17 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
             <div className="mb-8 flex flex-wrap items-center justify-center gap-2">
               <button
                 onClick={() => onRequestChangeCharacterImage(character, 'posterUrl')}
-                className="px-3.5 py-1.5 rounded-full bg-white hover:bg-[#161618] text-[#161618] hover:text-white border border-black/15 text-[11px] font-medium flex items-center gap-1.5 shadow-sm transition-all"
+                className="px-3.5 py-1.5 rounded-full bg-white hover:bg-[#161618] text-[#161618] hover:text-white border border-black/15 text-[11px] font-medium flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
               >
                 <ImageIcon className="w-3.5 h-3.5" />
-                <span>Đổi Ảnh Chính (Poster)</span>
+                <span>Đổi Ảnh Thẻ & Profile (Poster)</span>
               </button>
               <button
-                onClick={() => onRequestChangeCharacterImage(character, 'synopsisImageUrl')}
-                className="px-3.5 py-1.5 rounded-full bg-white hover:bg-[#161618] text-[#161618] hover:text-white border border-black/15 text-[11px] font-medium flex items-center gap-1.5 shadow-sm transition-all"
+                onClick={() => onRequestChangeCharacterImage(character, 'coverUrl')}
+                className="px-3.5 py-1.5 rounded-full bg-white hover:bg-[#161618] text-[#161618] hover:text-white border border-black/15 text-[11px] font-medium flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
               >
                 <ImageIcon className="w-3.5 h-3.5" />
-                <span>Đổi Ảnh Canon (Trang Đôi)</span>
-              </button>
-              <button
-                onClick={() => onRequestChangeCharacterImage(character, 'avatarUrl')}
-                className="px-3.5 py-1.5 rounded-full bg-white hover:bg-[#161618] text-[#161618] hover:text-white border border-black/15 text-[11px] font-medium flex items-center gap-1.5 shadow-sm transition-all"
-              >
-                <ImageIcon className="w-3.5 h-3.5" />
-                <span>Đổi Avatar</span>
+                <span>Đổi Ảnh Trang Chủ (Home)</span>
               </button>
             </div>
           )}
@@ -1248,14 +1243,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                 />
               </div>
 
-              {/* Lower Italic Summary + Canon Specs Table */}
+              {/* Canon Specs Table */}
               <div className="w-[86%] mx-auto my-6 space-y-5">
-                {(character.profileData.notes || character.tagline) && (
-                  <p className="font-editorial italic text-xs sm:text-[13px] text-neutral-700 leading-relaxed">
-                    {character.profileData.notes || character.tagline}
-                  </p>
-                )}
-
                 <div className="pt-3 border-t border-black/15 grid grid-cols-2 gap-x-4 gap-y-3 text-[11px]">
                   <div>
                     <span className="text-neutral-500 block text-[9px] uppercase tracking-wider">
@@ -1359,8 +1348,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                 </h2>
               </div>
               <div className="flex items-center gap-3">
-                <div className="text-xs font-serif italic text-neutral-500 hidden sm:block">
-                  {character.originalNovelTitle || 'BLACK APPLE ARCHIVE'}
+                <div className="text-xs font-serif italic text-neutral-500 hidden sm:block lowercase">
+                  {character.originalNovelTitle?.toLowerCase() || 'black apple archive'}
                 </div>
                 {isAdmin && (
                   <button
@@ -2045,8 +2034,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
               )}
 
               <div className="text-center mb-10">
-                <span className="text-[10px] tracking-[0.26em] uppercase text-neutral-400 block mb-2">
-                  {character.originalNovelTitle || 'BLACK APPLE ARCHIVE'}
+                <span className="text-[10px] tracking-[0.26em] lowercase text-neutral-400 block mb-2 font-serif italic">
+                  {character.originalNovelTitle?.toLowerCase() || 'black apple archive'}
                 </span>
                 <h2 className="font-editorial italic text-2xl sm:text-4xl text-[#161618]">
                   “{character.tagline}”

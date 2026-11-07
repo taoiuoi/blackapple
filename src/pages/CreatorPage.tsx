@@ -388,7 +388,7 @@ export function CreatorPage({
                         {char.name}.
                       </span>
                       <span className="text-[9px] tracking-[0.18em] lowercase text-neutral-500 font-mono">
-                        @{getCharacterSlug(char) || char.code.toLowerCase()}
+                        {getCharacterSlug(char) || char.code.toLowerCase()}
                       </span>
                     </div>
                   </div>

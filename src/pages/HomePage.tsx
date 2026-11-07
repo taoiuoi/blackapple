@@ -146,8 +146,9 @@ export function HomePage({
 
   const handleUnlockRoleplay = (e: React.FormEvent) => {
     e.preventDefault();
-    const expected = (currentHero.roleplayUnlockAnswer || '').trim().toLowerCase();
-    const entered = roleplayPasswordInput.trim().toLowerCase();
+    const cleanStr = (s: string) => s.trim().toLowerCase().replace(/[.,!?:;'"“”]/g, '');
+    const expected = cleanStr(currentHero.roleplayUnlockAnswer || '');
+    const entered = cleanStr(roleplayPasswordInput);
     if (entered === expected || entered === 'blackapple' || !expected) {
       setShowRoleplayModal(false);
       setRoleplayPasswordError(false);
@@ -167,13 +168,13 @@ export function HomePage({
       ? heroQuote
       : `“${heroQuote}”`;
   const novelTitle = currentHero.originalNovelTitle
-    ? currentHero.originalNovelTitle.toUpperCase()
-    : 'BLACK APPLE ARCHIVE';
+    ? currentHero.originalNovelTitle.toLowerCase()
+    : 'black apple archive';
 
-  const topFrameImage =
-    currentHero.coverUrl || currentHero.posterUrl || currentHero.avatarUrl;
-  const bottomStageImage =
-    currentHero.posterUrl || currentHero.avatarUrl || currentHero.coverUrl;
+  const homeImage =
+    currentHero.coverUrl || currentHero.avatarUrl || currentHero.posterUrl;
+  const topFrameImage = homeImage;
+  const bottomStageImage = homeImage;
 
   return (
     <div className="min-h-screen bg-[#020203] text-[#f4f4f6] font-content selection:bg-white selection:text-black flex flex-col relative overflow-x-hidden">
@@ -260,151 +261,29 @@ export function HomePage({
           }`}
         >
           {/* =========================================================
-              PART 1: TOP WHITE EDITORIAL GALLERY CARD
+              THE NOIR EDITORIAL MONOLITH (SINGLE COMPLETE MASTERPIECE)
+              Preserving original Noir Editorial serif vibe & zero repetition
           ========================================================= */}
-          <section className="bg-[#FAF9F6] text-[#141416] rounded-[6px] overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.65)]">
-            {/* Upper Framed Monochrome Photo */}
-            <div className="p-3.5 sm:p-5 pb-0">
-              <div
-                onClick={() => navigate(getCharacterPath(currentHero))}
-                className="relative aspect-[4/3] sm:aspect-[16/11] w-full rounded-[8px] overflow-hidden bg-[#141416] cursor-pointer group"
-              >
-                <ImageWithFallback
-                  src={topFrameImage}
-                  alt={currentHero.name}
-                  priority={true}
-                  targetWidth={1200}
-                  objectPosition={currentHero.posterObjectPosition || '50% 25%'}
-                  className="w-full h-full object-cover grayscale contrast-[1.08] brightness-95 group-hover:scale-105 transition-transform duration-1000"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10 pointer-events-none" />
-
-                {/* Admin Quick Change Top Photo */}
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRequestChangeCharacterImage(currentHero, 'coverUrl');
-                    }}
-                    className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full bg-black/75 hover:bg-black text-white text-[10px] border border-white/20 flex items-center gap-1 backdrop-blur-md"
-                  >
-                    <ImageIcon className="w-3 h-3" />
-                    <span>Đổi Ảnh trên</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Middle Minimalist Medallion Row (Left Note | Center Avatar Circle | Right Credit) */}
-            <div className="px-6 sm:px-9 py-6 sm:py-8 flex items-center justify-between gap-4">
-              {/* Left Micro Note */}
-              <div className="text-[9px] sm:text-[10px] leading-[1.25] text-neutral-500 font-serif">
-                <div>Hồ sơ</div>
-                <div>{currentHero.code}</div>
-              </div>
-
-              {/* Center Circular Avatar Medallion + Sub-caption */}
-              <div className="flex flex-col items-center text-center">
-                <div
-                  onClick={() =>
-                    isAdmin
-                      ? onRequestChangeCharacterImage(currentHero, 'avatarUrl')
-                      : navigate(getCharacterPath(currentHero))
-                  }
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border border-black/15 bg-neutral-200 shadow-sm cursor-pointer group"
-                  title={isAdmin ? 'Nhấn để đổi Avatar' : currentHero.name}
-                >
-                  <ImageWithFallback
-                    src={currentHero.avatarUrl}
-                    alt={currentHero.name}
-                    priority={true}
-                    targetWidth={240}
-                    className="w-full h-full object-cover grayscale contrast-110 group-hover:scale-110 transition-transform duration-500"
-                  />
-                </div>
-                <div className="mt-2 leading-tight">
-                  <span className="block text-[9px] sm:text-[10px] font-semibold text-[#141416] tracking-tight">
-                    {currentHero.originalNovelTitle || 'Black Apple.'}
-                  </span>
-                  <span className="block text-[8px] sm:text-[9px] text-neutral-400">
-                    {currentHero.profileData?.role || 'nhân vật trung tâm:'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Right Micro Credit */}
-              <div className="text-[9px] sm:text-[10px] leading-[1.25] text-neutral-400 text-right font-serif">
-                <div>Archive</div>
-                <div>TAOIUOI</div>
-              </div>
-            </div>
-
-            {/* Full-Width Crisp Hairline Divider */}
-            <div className="border-t border-black/25" />
-
-            {/* Lower Asymmetric Name & Calligraphic Title Row */}
-            {/* Lower Asymmetric Name Row (Right side left completely empty as requested) */}
-            <div
-              onClick={() => navigate(getCharacterPath(currentHero))}
-              className="px-6 sm:px-9 py-5 sm:py-7 flex items-center justify-between gap-4 cursor-pointer group"
-            >
-              {/* Left: Tiny Triangle Arrow + Character Name & Subtitle */}
-              <div className="flex items-center gap-3.5 min-w-0">
-                <span className="text-[10px] text-[#141416] group-hover:translate-x-1 transition-transform">
-                  ▸
+          <section className="bg-[#FAF9F6] text-[#141416] rounded-[8px] overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.65)] border border-black/10 flex flex-col">
+            {/* 1. TOP UTILITY & ROLEPLAY BAR */}
+            <div className="px-5 sm:px-7 py-3.5 border-b border-black/10 flex items-center justify-between gap-3 text-xs">
+              {/* Left: Code & Novel title (all lowercase) */}
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[10px] tracking-[0.2em] font-mono text-neutral-400 uppercase">
+                  {currentHero.code}
                 </span>
-                <div className="min-w-0">
-                  <h1 className="font-serif text-lg sm:text-2xl text-[#141416] font-medium tracking-tight leading-tight">
-                    {currentHero.name}
-                  </h1>
-                  {currentHero.originalChineseName && (
-                    <p className="text-[9px] sm:text-[10px] italic text-neutral-400 font-serif truncate mt-0.5">
-                      {currentHero.originalChineseName}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Right side left completely empty as requested */}
-              <div />
-            </div>
-          </section>
-
-          {/* =========================================================
-              NEW INTERMEZZO CARD: ARCHIVE (CHINESE) & ROLEPLAY AI & QUOTE
-              (Concept Noir Editorial Inspired by Reference 2)
-          ========================================================= */}
-          <div className="my-3.5 sm:my-4 rounded-[10px] bg-[#0E0E12]/95 border border-white/[0.09] hover:border-white/20 p-5 sm:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-md relative overflow-hidden transition-all duration-300 group">
-            {/* Ambient Background Sheen */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/[0.02] rounded-full blur-2xl pointer-events-none" />
-
-            {/* Line 1: archive (CHINESE) */}
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-baseline gap-1.5 min-w-0">
-                <span className="font-editorial italic text-2xl sm:text-[27px] text-neutral-100 font-normal tracking-tight">
-                  archive
+                <span className="text-neutral-300 font-serif">•</span>
+                <span className="text-[11px] font-serif italic text-neutral-600 truncate lowercase">
+                  {novelTitle}
                 </span>
-                {chineseDisplay && (
-                  <span className="font-serif text-lg sm:text-xl text-neutral-300 font-normal tracking-wider">
-                    ({chineseDisplay})
-                  </span>
-                )}
               </div>
 
-              {/* Discreet Editorial Badge */}
-              <span className="text-[10px] text-neutral-500 font-serif tracking-[0.25em] uppercase select-none group-hover:text-neutral-300 transition-colors">
-                — NOIR
-              </span>
-            </div>
-
-            {/* Line 2: [roleplay] AI — • NOVEL TITLE */}
-            <div className="mt-2.5 flex items-center flex-wrap gap-2 text-xs text-neutral-400">
+              {/* Right: Instant [roleplay] AI 1-Touch Button */}
               <button
                 type="button"
                 onClick={handleRoleplayClick}
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.06] hover:bg-white/[0.14] border border-white/10 hover:border-white/25 text-[10px] sm:text-[11px] text-neutral-200 hover:text-white transition-all cursor-pointer font-sans"
-                title={currentHero.roleplayLink ? 'Mở Roleplay AI' : 'Xem hồ sơ Roleplay'}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#141416] hover:bg-neutral-800 text-white text-[10px] tracking-[0.14em] font-sans font-medium transition-all shadow-sm cursor-pointer shrink-0"
+                title={currentHero.roleplayLink ? 'Nhấn để mở Roleplay AI' : 'Xem hồ sơ Roleplay'}
               >
                 {currentHero.roleplayLink && (
                   <span
@@ -417,132 +296,104 @@ export function HomePage({
                 )}
                 {currentHero.isRoleplayLocked && <Lock className="w-2.5 h-2.5 text-amber-400" />}
                 <span>[roleplay] AI</span>
-                <ArrowUpRight className="w-2.5 h-2.5 opacity-60" />
+                <ArrowUpRight className="w-2.5 h-2.5 opacity-70" />
               </button>
-
-              <span className="text-neutral-600 font-serif select-none">— •</span>
-
-              <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.2em] font-medium text-neutral-300 truncate max-w-[280px]">
-                {novelTitle}
-              </span>
             </div>
 
-            {/* Hairline Divider */}
-            <div className="w-full h-[1px] bg-white/[0.08] my-3.5 sm:my-4" />
+            {/* 2. THE SINGLE MASTER ARTWORK FRAME (Spotlight thị giác) */}
+            <div className="p-3.5 sm:p-5 pb-0">
+              <div
+                onClick={() => navigate(getCharacterPath(currentHero))}
+                className="relative aspect-[4/5] sm:aspect-[3/3.8] w-full rounded-[6px] overflow-hidden bg-[#141416] cursor-pointer group shadow-inner"
+              >
+                <ImageWithFallback
+                  src={homeImage}
+                  alt={currentHero.name}
+                  priority={true}
+                  targetWidth={1200}
+                  objectPosition={currentHero.posterObjectPosition || '50% 25%'}
+                  className="w-full h-full object-cover grayscale contrast-[1.08] brightness-95 group-hover:scale-105 transition-transform duration-1000"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 pointer-events-none" />
 
-            {/* Line 3: Signature Quote */}
-            <div
-              onClick={() => navigate(getCharacterPath(currentHero))}
-              className="cursor-pointer group/quote"
-              title="Nhấn để xem chi tiết hồ sơ nhân vật"
-            >
-              <p className="font-editorial italic text-sm sm:text-[15px] text-neutral-200/95 font-light leading-relaxed tracking-wide group-hover/quote:text-white transition-colors">
-                {formattedQuote}
-              </p>
-            </div>
-
-            {/* Public Character Metrics: Views & Roleplay Link clicks (No eye icon, synchronized editorial font) */}
-            <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-[10px] text-neutral-400 font-sans tracking-wider">
-              <span className="flex items-center gap-1.5" title="Số lượt xem hồ sơ nhân vật">
-                <span className="font-serif text-neutral-300">— 閱覽</span>
-                <span className="text-white font-medium">{(currentHero.views || 0).toLocaleString()}</span>
-                <span className="text-neutral-500">lượt</span>
-              </span>
-              <span className="flex items-center gap-1.5" title="Số lượt nhấp nhận link Roleplay">
-                <span className="text-neutral-300 font-serif">—</span>
-                <span className="text-neutral-300">ROLEPLAY:</span>
-                <span className="text-white font-medium">{(currentHero.roleplayClicks || 0).toLocaleString()}</span>
-                <span className="text-neutral-500">lượt</span>
-              </span>
-            </div>
-          </div>
-
-          {/* =========================================================
-              PART 2: BOTTOM DARK CINEMATIC PORTRAIT STAGE
-          ========================================================= */}
-          <section className="relative rounded-[6px] overflow-hidden aspect-[4/5] bg-[#070709] border border-white/[0.08] shadow-[0_25px_70px_rgba(0,0,0,0.85)] flex flex-col justify-between group">
-            {/* Full-Bleed High-Contrast Monochrome Character Portrait */}
-            <ImageWithFallback
-              src={bottomStageImage}
-              alt={currentHero.name}
-              priority={true}
-              targetWidth={1200}
-              objectPosition={currentHero.posterObjectPosition || '50% 20%'}
-              className="absolute inset-0 w-full h-full object-cover grayscale contrast-[1.12] brightness-95 group-hover:scale-[1.03] transition-transform duration-1000"
-            />
-
-            {/* Top & Bottom Cinematic Vignette Gradients */}
-            <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/50 via-black/15 to-transparent pointer-events-none" />
-            <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none" />
-
-            {/* Top Floating Micro Navigation Bar inside Dark Portrait */}
-            <div className="relative z-20 px-5 sm:px-7 pt-5 flex items-center justify-between text-[10px] sm:text-[11px] text-white/85">
-              <span className="font-medium tracking-wide drop-shadow">
-                • {currentHero.originalNovelTitle || 'Black Apple.'}
-              </span>
-
-              <div className="flex items-center gap-3 sm:gap-5">
-                <Link
-                  to={getCharacterPath(currentHero)}
-                  className="text-white border-b border-white pb-0.5 font-medium"
-                >
-                  Hồ sơ
-                </Link>
-                <Link
-                  to="/characters"
-                  className="text-white/75 hover:text-white transition-colors"
-                >
-                  Danh sách
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent('ba:show-creator-popup'))}
-                  className="text-white/80 hover:text-white transition-colors cursor-pointer text-[10px] sm:text-[11px]"
-                  title="Mở khung giới thiệu Creator & Donate"
-                >
-                  Creator
-                </button>
-                <Link
-                  to="/creator"
-                  className="text-white/75 hover:text-white transition-colors"
-                >
-                  Info.
-                </Link>
+                {/* Admin Quick Change Photo */}
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRequestChangeCharacterImage(currentHero, 'coverUrl');
+                    }}
+                    className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full bg-black/75 hover:bg-black text-white text-[10px] border border-white/20 flex items-center gap-1 backdrop-blur-md cursor-pointer"
+                  >
+                    <ImageIcon className="w-3 h-3" />
+                    <span>Đổi Ảnh Home</span>
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Admin Quick Change Bottom Portrait Button */}
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={() => onRequestChangeCharacterImage(currentHero, 'posterUrl')}
-                className="absolute top-14 right-5 z-30 px-2.5 py-1 rounded-full bg-black/75 hover:bg-black text-white text-[10px] border border-white/20 flex items-center gap-1 backdrop-blur-md"
+            {/* 3. LOWER EDITORIAL TYPOGRAPHY & SIGNATURE QUOTE */}
+            <div className="px-6 sm:px-9 pt-5 pb-6 sm:pb-8 space-y-4">
+              {/* Character Name + Chinese Sub-title */}
+              <div
+                onClick={() => navigate(getCharacterPath(currentHero))}
+                className="flex items-baseline justify-between gap-3 cursor-pointer group"
               >
-                <ImageIcon className="w-3 h-3" />
-                <span>Đổi Poster dưới</span>
-              </button>
-            )}
+                <div className="flex items-baseline gap-2.5 min-w-0">
+                  <h1 className="font-serif text-2xl sm:text-3xl text-[#141416] font-medium tracking-tight leading-tight group-hover:text-[#7F1D1D] transition-colors">
+                    {currentHero.name}
+                  </h1>
+                  {chineseDisplay && (
+                    <span className="font-serif text-sm sm:text-base text-neutral-400 italic">
+                      ({chineseDisplay})
+                    </span>
+                  )}
+                </div>
 
-            {/* Bottom-Left Story Hook & CTA ("Into the multiverse" style) */}
-            <div className="relative z-20 px-6 sm:px-8 pb-7 sm:pb-9 mt-auto flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-              <div className="max-w-xs space-y-1.5">
-                <h2 className="font-serif text-xl sm:text-2xl text-white tracking-tight leading-snug">
-                  Into the {currentHero.name.toLowerCase()} verse
-                </h2>
-                <p className="text-[10px] sm:text-[11px] text-neutral-300/85 leading-relaxed line-clamp-2 font-light">
-                  {currentHero.tagline ||
-                    currentHero.profileData?.quote ||
-                    'Bước vào hồ sơ lưu trữ độc quyền của nhân vật trong vũ trụ Black Apple.'}
+                <span className="text-[10px] tracking-[0.2em] uppercase font-serif text-neutral-400 shrink-0">
+                  ARCHIVE // 0{activeIndex + 1}
+                </span>
+              </div>
+
+              {/* Hairline Divider */}
+              <div className="w-full h-[1px] bg-black/10" />
+
+              {/* Signature Quote in Classic Editorial Italic */}
+              <div
+                onClick={() => navigate(getCharacterPath(currentHero))}
+                className="cursor-pointer group/quote"
+                title="Nhấn để xem chi tiết hồ sơ nhân vật"
+              >
+                <p className="font-editorial italic text-base sm:text-lg text-[#2A2A2D] font-normal leading-relaxed tracking-wide group-hover/quote:text-[#7F1D1D] transition-colors">
+                  {formattedQuote}
                 </p>
               </div>
 
-              <button
-                onClick={() => navigate(getCharacterPath(currentHero))}
-                className="self-start sm:self-end px-4 py-2 rounded-full bg-white hover:bg-neutral-200 text-black text-[10px] tracking-[0.16em] uppercase font-semibold flex items-center gap-1.5 transition-all shrink-0 shadow-lg"
-              >
-                <span>Xem hồ sơ</span>
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </button>
+              {/* Footer Row: Metrics & Navigate to Profile */}
+              <div className="pt-3 border-t border-black/[0.08] flex items-center justify-between text-xs">
+                {/* Public Metrics */}
+                <div className="flex items-center gap-3 text-[10px] text-neutral-500 font-sans tracking-wide">
+                  <span className="flex items-center gap-1" title="Số lượt xem">
+                    <span className="font-serif text-neutral-600">— 閱覽</span>
+                    <strong className="text-[#141416] font-semibold">{(currentHero.views || 0).toLocaleString()}</strong>
+                  </span>
+                  <span className="text-neutral-300">•</span>
+                  <span className="flex items-center gap-1" title="Số lượt click Roleplay">
+                    <span>ROLEPLAY:</span>
+                    <strong className="text-[#141416] font-semibold">{(currentHero.roleplayClicks || 0).toLocaleString()}</strong>
+                  </span>
+                </div>
+
+                {/* Primary CTA: Xem hồ sơ */}
+                <Link
+                  to={getCharacterPath(currentHero)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#141416] hover:bg-neutral-800 text-white text-[10px] tracking-[0.14em] uppercase font-medium transition-all shadow-sm cursor-pointer"
+                >
+                  <span>Xem hồ sơ</span>
+                  <ArrowUpRight className="w-3 h-3" />
+                </Link>
+              </div>
             </div>
           </section>
         </div>

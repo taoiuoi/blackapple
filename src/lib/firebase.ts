@@ -38,10 +38,7 @@ export async function testConnection(): Promise<boolean> {
   try {
     await getDoc(doc(db, 'settings', 'general'));
     return true;
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      return false;
-    }
-    return true;
+  } catch (_error) {
+    return false;
   }
 }

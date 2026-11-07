@@ -439,15 +439,7 @@ export function CharactersPage({
                       FOR ARCHIVE
                     </div>
 
-                    {/* Two Corner Micro Subtitles */}
-                    <div className="flex items-start justify-between text-[9px] text-neutral-400 mt-4 leading-tight min-h-[14px]">
-                      <div className="text-left max-w-[110px] truncate">
-                        {char.originalNovelTitle || 'BLACK APPLE'}
-                      </div>
-                      <div className="text-right max-w-[110px] truncate">
-                        {char.profileData?.role || (charGenres[0]?.name ?? 'Hồ sơ nhân vật')}
-                      </div>
-                    </div>
+
 
                     {/* Diamond Ornament + Side Dots */}
                     <div className="flex items-center justify-between my-6 px-2">
@@ -504,12 +496,8 @@ export function CharactersPage({
                     )}
 
                     {/* Centered Poetic Excerpt */}
-                    <p className="mt-4 text-[11px] text-neutral-500 leading-[1.65] max-w-[225px] mx-auto line-clamp-3 font-serif min-h-[36px]">
-                      {char.tagline ||
-                        (char.isSynopsis18Plus
-                          ? 'Hồ sơ văn án giới hạn độ tuổi (18+).'
-                          : char.synopsis) ||
-                        'Chưa cập nhật văn án.'}
+                    <p className="mt-4 text-[11px] text-neutral-600 leading-[1.65] max-w-[235px] mx-auto line-clamp-3 font-serif min-h-[36px] italic">
+                      {char.tagline || char.profileData?.quote || 'Chưa cập nhật trích dẫn.'}
                     </p>
 
                     {/* Public Metrics: Views & Roleplay Clicks (Strictly NO eye icon, synchronous editorial font) */}
@@ -563,7 +551,7 @@ export function CharactersPage({
                         {char.name}.
                       </span>
                       <span className="text-[9px] tracking-[0.16em] text-neutral-500 font-mono">
-                        @{getCharacterSlug(char) || char.code.toLowerCase()}
+                        {getCharacterSlug(char) || char.code.toLowerCase()}
                       </span>
                     </div>
                   </div>

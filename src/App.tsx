@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, testConnection } from './lib/firebase';
+import { auth } from './lib/firebase';
 import {
   Character,
   Genre,
@@ -53,7 +53,7 @@ import { DirectImageUrlModal } from './components/common/DirectImageUrlModal';
 export default function App() {
   // Main Data States (Initialize from 0ms Local Cache to eliminate network delay)
   const [characters, setCharacters] = useState<Character[]>(() => {
-    const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v5');
+    const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v6');
     if (cached && Array.isArray(cached) && cached.length > 0) {
       return cached.map((c) => normalizeCharacter(c, c.id));
     }
@@ -153,28 +153,27 @@ export default function App() {
 
   // Initialize and Subscribe to Firestore
   useEffect(() => {
-    testConnection().then(() => {
-      initializeDatabaseIfEmpty();
-    });
+    // Purge any legacy localStorage image overrides on startup
+    try {
+      ['nguy-tu-viet', 'gian-di-ninh', 'chu-lac-thien', 'luc-tu-hien', 'phan-quy-man', 'dong-ky'].forEach((cid) => {
+        localStorage.removeItem(`ba_char_${cid}_avatarUrl`);
+        localStorage.removeItem(`ba_char_${cid}_coverUrl`);
+        localStorage.removeItem(`ba_char_${cid}_posterUrl`);
+        localStorage.removeItem(`ba_char_${cid}_synopsisImageUrl`);
+        localStorage.removeItem(`ba_char_data_${cid}`);
+      });
+      localStorage.removeItem('ba_creator_avatarUrl');
+      localStorage.removeItem('ba_creator_coverUrl');
+      localStorage.removeItem('ba_creator_introImageUrl');
+    } catch (_) {}
 
     const unsubChars = subscribeCharacters((chars) => {
-      // Merge with any client-side localStorage image overrides (excluding sample build images)
       const merged = chars.map((c) => {
         try {
-          localStorage.removeItem(`ba_char_data_${c.id}`);
-          const localAvatar = sanitizeImageUrl(localStorage.getItem(`ba_char_${c.id}_avatarUrl`) || '');
-          const localCover = sanitizeImageUrl(localStorage.getItem(`ba_char_${c.id}_coverUrl`) || '');
-          const localPoster = sanitizeImageUrl(localStorage.getItem(`ba_char_${c.id}_posterUrl`) || '');
-          const localSynopsisImg = sanitizeImageUrl(localStorage.getItem(`ba_char_${c.id}_synopsisImageUrl`) || '');
           const localPos = localStorage.getItem(`ba_char_${c.id}_pos`);
           const normalized = normalizeCharacter(c, c.id);
-
           return {
             ...normalized,
-            avatarUrl: localAvatar || normalized.avatarUrl,
-            coverUrl: localCover || normalized.coverUrl,
-            posterUrl: localPoster || normalized.posterUrl,
-            synopsisImageUrl: localSynopsisImg || normalized.synopsisImageUrl,
             posterObjectPosition: localPos || normalized.posterObjectPosition
           };
         } catch (_) {
@@ -192,21 +191,7 @@ export default function App() {
     const unsubGenres = subscribeGenres(setGenres);
     const unsubQuotes = subscribeQuotes(setQuotes);
     const unsubCreator = subscribeCreatorProfile((prof) => {
-      try {
-        const localAvatar = sanitizeImageUrl(localStorage.getItem('ba_creator_avatarUrl') || '');
-        const localCover = sanitizeImageUrl(localStorage.getItem('ba_creator_coverUrl') || '');
-        const localIntro = sanitizeImageUrl(localStorage.getItem('ba_creator_introImageUrl') || '');
-        const localQr = localStorage.getItem('ba_creator_donateQrUrl');
-        setCreatorProfile({
-          ...prof,
-          avatarUrl: localAvatar || prof.avatarUrl,
-          coverUrl: localCover || prof.coverUrl,
-          introImageUrl: localIntro || prof.introImageUrl,
-          donateQrUrl: localQr || prof.donateQrUrl
-        });
-      } catch (_) {
-        setCreatorProfile(prof);
-      }
+      setCreatorProfile(prof);
     });
 
     const unsubSettings = subscribeSettings(setSettings);
@@ -246,10 +231,10 @@ export default function App() {
   ) => {
     if (!isAdmin) return;
     const titles: Record<string, string> = {
+      coverUrl: `Thay URL Ảnh Trang Chủ (Home): ${char.name}`,
+      posterUrl: `Thay URL Ảnh Thẻ & Profile Poster: ${char.name}`,
       avatarUrl: `Thay URL Avatar nhân vật: ${char.name}`,
-      coverUrl: `Thay URL Ảnh bìa nhân vật: ${char.name}`,
-      posterUrl: `Thay URL Poster chính (Editorial): ${char.name}`,
-      synopsisImageUrl: `Thay URL Ảnh minh họa văn án: ${char.name}`
+      synopsisImageUrl: `Thay URL Ảnh minh họa: ${char.name}`
     };
 
     setDirectImageModal({

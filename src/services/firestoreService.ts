@@ -43,6 +43,15 @@ import {
 // Track if initial seed/migration was checked
 let isInitialized = false;
 
+export const CANONICAL_CHAR_IDS = new Set([
+  'nguy-tu-viet',
+  'gian-di-ninh',
+  'chu-lac-thien',
+  'luc-tu-hien',
+  'phan-quy-man',
+  'dong-ky'
+]);
+
 const LEGACY_SAMPLE_CHAR_IDS = new Set([
   'klaus-voheis',
   'gregor-cuervo',
@@ -256,38 +265,75 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
   const cleanSlug = raw?.slug || (resolvedName ? slugifyVietnamese(resolvedName) : id);
   const effectiveId = id && !id.startsWith('char-') ? id : (cleanSlug || id);
 
+  // When a canonical character template exists, it is the master source of truth for assets, synopses, and roleplay links
+  if (initialTemplate) {
+    return {
+      ...initialTemplate,
+      id: initialTemplate.id,
+      slug: initialTemplate.slug || initialTemplate.id,
+      name: initialTemplate.name,
+      code: initialTemplate.code,
+      originalNovelTitle: initialTemplate.originalNovelTitle,
+      originalChineseName: initialTemplate.originalChineseName,
+      tagline: initialTemplate.tagline,
+      avatarUrl: initialTemplate.avatarUrl,
+      coverUrl: initialTemplate.coverUrl,
+      posterUrl: initialTemplate.posterUrl,
+      synopsisImageUrl: initialTemplate.synopsisImageUrl,
+      posterObjectPosition: initialTemplate.posterObjectPosition || '50% 25%',
+      synopsis: initialTemplate.synopsis || (typeof raw?.synopsis === 'string' && !isLegacySampleDoc ? raw.synopsis : ''),
+      isSynopsis18Plus: Boolean(initialTemplate.isSynopsis18Plus),
+      synopsis18WarningNote: initialTemplate.synopsis18WarningNote || '',
+      profileData: initialTemplate.profileData || defaultProfileData,
+      npcs: (initialTemplate.npcs && initialTemplate.npcs.length > 0) ? initialTemplate.npcs : cleanNpcs,
+      gallery: sanitizeGalleryList(raw?.gallery && raw.gallery.length > 0 ? raw.gallery : initialTemplate.gallery),
+      genreIds: cleanGenreIds.length > 0 ? cleanGenreIds : (initialTemplate.genreIds || []),
+      roleplayLink: initialTemplate.roleplayLink || pickNonEmpty(raw?.roleplayLink, ''),
+      isRoleplayLocked: Boolean(initialTemplate.isRoleplayLocked),
+      roleplayUnlockQuestion: initialTemplate.roleplayUnlockQuestion || '',
+      roleplayUnlockAnswer: initialTemplate.roleplayUnlockAnswer || '',
+      isPublished: true,
+      views: typeof raw?.views === 'number' && !isLegacySampleDoc ? Math.max(raw.views, initialTemplate.views || 0) : (initialTemplate.views || 0),
+      likes: typeof raw?.likes === 'number' && !isLegacySampleDoc ? Math.max(raw.likes, initialTemplate.likes || 0) : (initialTemplate.likes || 0),
+      roleplayClicks: typeof raw?.roleplayClicks === 'number' && !isLegacySampleDoc ? Math.max(raw.roleplayClicks, initialTemplate.roleplayClicks || 0) : (initialTemplate.roleplayClicks || 0),
+      featured: true,
+      order: initialTemplate.order ?? 99,
+      createdAt: initialTemplate.createdAt || new Date().toISOString(),
+      updatedAt: raw?.updatedAt || initialTemplate.updatedAt || new Date().toISOString()
+    };
+  }
+
   return {
-    ...(initialTemplate || {}),
     ...raw,
     id: effectiveId,
     slug: cleanSlug,
     name: resolvedName,
-    code: isLegacySampleDoc ? (initialTemplate?.code || 'BA-01') : pickNonEmpty(raw?.code, initialTemplate?.code, 'BA-01'),
-    originalNovelTitle: pickNonEmpty(raw?.originalNovelTitle, initialTemplate?.originalNovelTitle),
-    originalChineseName: pickNonEmpty(raw?.originalChineseName, initialTemplate?.originalChineseName),
-    tagline: isLegacySampleDoc ? (initialTemplate?.tagline || '') : pickNonEmpty(raw?.tagline, initialTemplate?.tagline),
+    code: pickNonEmpty(raw?.code, 'BA-01'),
+    originalNovelTitle: pickNonEmpty(raw?.originalNovelTitle, ''),
+    originalChineseName: pickNonEmpty(raw?.originalChineseName, ''),
+    tagline: pickNonEmpty(raw?.tagline, ''),
     avatarUrl,
     coverUrl,
     posterUrl,
     synopsisImageUrl,
-    posterObjectPosition: raw?.posterObjectPosition || initialTemplate?.posterObjectPosition || '50% 25%',
-    synopsis: isLegacySampleDoc ? '' : (raw?.synopsis !== undefined && raw.synopsis !== null && raw.synopsis !== '' ? raw.synopsis : (initialTemplate?.synopsis || '')),
-    isSynopsis18Plus: isLegacySampleDoc ? false : Boolean(raw?.isSynopsis18Plus ?? initialTemplate?.isSynopsis18Plus ?? false),
-    synopsis18WarningNote: isLegacySampleDoc ? '' : (typeof raw?.synopsis18WarningNote === 'string' ? raw.synopsis18WarningNote : (initialTemplate?.synopsis18WarningNote || '')),
+    posterObjectPosition: raw?.posterObjectPosition || '50% 25%',
+    synopsis: typeof raw?.synopsis === 'string' && !isLegacySampleDoc ? raw.synopsis : '',
+    isSynopsis18Plus: Boolean(raw?.isSynopsis18Plus),
+    synopsis18WarningNote: typeof raw?.synopsis18WarningNote === 'string' ? raw.synopsis18WarningNote : '',
     profileData: defaultProfileData,
     npcs: cleanNpcs,
     gallery: sanitizeGalleryList(raw?.gallery),
     genreIds: cleanGenreIds,
-    roleplayLink: isLegacySampleDoc ? '' : cleanSampleText(raw?.roleplayLink),
-    isRoleplayLocked: isLegacySampleDoc ? false : Boolean(raw?.isRoleplayLocked),
-    roleplayUnlockQuestion: isLegacySampleDoc ? '' : cleanSampleText(raw?.roleplayUnlockQuestion),
-    roleplayUnlockAnswer: isLegacySampleDoc ? '' : (raw?.roleplayUnlockAnswer || ''),
+    roleplayLink: pickNonEmpty(raw?.roleplayLink, ''),
+    isRoleplayLocked: Boolean(raw?.isRoleplayLocked),
+    roleplayUnlockQuestion: pickNonEmpty(raw?.roleplayUnlockQuestion, ''),
+    roleplayUnlockAnswer: pickNonEmpty(raw?.roleplayUnlockAnswer, ''),
     isPublished: raw?.isPublished !== false,
-    views: typeof raw?.views === 'number' && !isLegacySampleDoc ? raw.views : (typeof initialTemplate?.views === 'number' ? initialTemplate.views : 0),
-    likes: typeof raw?.likes === 'number' && !isLegacySampleDoc ? raw.likes : (typeof initialTemplate?.likes === 'number' ? initialTemplate.likes : 0),
-    roleplayClicks: typeof raw?.roleplayClicks === 'number' && !isLegacySampleDoc ? raw.roleplayClicks : (typeof initialTemplate?.roleplayClicks === 'number' ? initialTemplate.roleplayClicks : 0),
+    views: typeof raw?.views === 'number' && !isLegacySampleDoc ? raw.views : 0,
+    likes: typeof raw?.likes === 'number' && !isLegacySampleDoc ? raw.likes : 0,
+    roleplayClicks: typeof raw?.roleplayClicks === 'number' && !isLegacySampleDoc ? raw.roleplayClicks : 0,
     featured: raw?.featured ?? true,
-    order: typeof initialTemplate?.order === 'number' ? initialTemplate.order : (typeof raw?.order === 'number' ? raw.order : 99),
+    order: typeof raw?.order === 'number' ? raw.order : 99,
     createdAt: raw?.createdAt || new Date().toISOString(),
     updatedAt: raw?.updatedAt || new Date().toISOString()
   };
@@ -522,7 +568,7 @@ export async function getCharacters(): Promise<Character[]> {
     const map = new Map<string, Character>();
     INITIAL_CHARACTERS.forEach((c) => map.set(c.id, c));
     snap.docs.forEach((d) => {
-      if (!LEGACY_SAMPLE_CHAR_IDS.has(d.id)) {
+      if (CANONICAL_CHAR_IDS.has(d.id)) {
         const charObj = normalizeCharacter(d.data(), d.id);
         map.set(charObj.id, charObj);
       }
@@ -531,7 +577,7 @@ export async function getCharacters(): Promise<Character[]> {
     list.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
     return list;
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, 'characters');
+    console.warn('Không thể tải characters từ Firestore (quota hoặc offline). Đang sử dụng dữ liệu tĩnh từ mã nguồn:', error);
     return INITIAL_CHARACTERS;
   }
 }
@@ -540,9 +586,11 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
   cleanLocalStorageSampleImages();
 
   // Instant 0ms cache-first delivery to eliminate loading delay
-  const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v5');
+  const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v7');
   if (cached && Array.isArray(cached) && cached.length > 0) {
     callback(cached);
+  } else {
+    callback(INITIAL_CHARACTERS);
   }
 
   try {
@@ -554,11 +602,11 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
           callback(INITIAL_CHARACTERS);
         } else {
           const map = new Map<string, Character>();
-          // Always seed all 5 canon characters from INITIAL_CHARACTERS first so none are ever missing
+          // Seed all canon characters from code first so none are ever missing
           INITIAL_CHARACTERS.forEach((c) => map.set(c.id, c));
 
           snap.docs.forEach((d) => {
-            if (!LEGACY_SAMPLE_CHAR_IDS.has(d.id)) {
+            if (CANONICAL_CHAR_IDS.has(d.id)) {
               const charObj = normalizeCharacter(d.data(), d.id);
               map.set(charObj.id, charObj);
             }
@@ -566,16 +614,18 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
           const list = Array.from(map.values());
           list.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
           // Persist to local cache so future visits/reloads require 0 reads
-          setCachedFirestoreData('ba_cache_characters_v5', list);
+          setCachedFirestoreData('ba_cache_characters_v7', list);
           callback(list);
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.LIST, 'characters');
+        console.warn('Firestore subscription quota / network error, serving static characters:', error);
+        callback(INITIAL_CHARACTERS);
       }
     );
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, 'characters');
+    console.warn('Firestore subscription init failed, using static characters:', error);
+    callback(INITIAL_CHARACTERS);
     return () => {};
   }
 }
@@ -704,10 +754,12 @@ export function subscribeGenres(callback: (genres: Genre[]) => void) {
       },
       (error) => {
         handleFirestoreError(error, OperationType.LIST, 'genres');
+        callback(INITIAL_GENRES);
       }
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, 'genres');
+    callback(INITIAL_GENRES);
     return () => {};
   }
 }
@@ -770,10 +822,12 @@ export function subscribeQuotes(callback: (quotes: Quote[]) => void) {
       },
       (error) => {
         handleFirestoreError(error, OperationType.LIST, 'quotes');
+        callback(INITIAL_QUOTES);
       }
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, 'quotes');
+    callback(INITIAL_QUOTES);
     return () => {};
   }
 }
@@ -845,10 +899,12 @@ export function subscribeCreatorProfile(callback: (profile: CreatorProfile) => v
       },
       (error) => {
         handleFirestoreError(error, OperationType.GET, 'creatorProfile/main');
+        callback(INITIAL_CREATOR_PROFILE);
       }
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.GET, 'creatorProfile/main');
+    callback(INITIAL_CREATOR_PROFILE);
     return () => {};
   }
 }
@@ -907,10 +963,12 @@ export function subscribeSettings(callback: (settings: WebsiteSettings) => void)
       },
       (error) => {
         handleFirestoreError(error, OperationType.GET, 'settings/general');
+        callback(INITIAL_SETTINGS);
       }
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.GET, 'settings/general');
+    callback(INITIAL_SETTINGS);
     return () => {};
   }
 }
@@ -1157,10 +1215,12 @@ export function subscribeMusicTracks(callback: (tracks: MusicTrack[]) => void) {
       },
       (error) => {
         handleFirestoreError(error, OperationType.LIST, 'musicTracks');
+        callback(INITIAL_TRACKS);
       }
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, 'musicTracks');
+    callback(INITIAL_TRACKS);
     return () => {};
   }
 }
@@ -1202,10 +1262,12 @@ export function subscribeConfessions(callback: (confessions: Confession[]) => vo
       },
       (error) => {
         handleFirestoreError(error, OperationType.LIST, 'confessions');
+        callback([]);
       }
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, 'confessions');
+    callback([]);
     return () => {};
   }
 }
@@ -1262,10 +1324,12 @@ export function subscribeComments(characterId: string, callback: (comments: Comm
       },
       (error) => {
         handleFirestoreError(error, OperationType.LIST, 'comments');
+        callback([]);
       }
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, 'comments');
+    callback([]);
     return () => {};
   }
 }

@@ -63,8 +63,8 @@ export const HotCharacterSpotlight: React.FC<HotCharacterSpotlightProps> = ({
 
   const portraitImage = honoredChar.posterUrl || honoredChar.avatarUrl || honoredChar.coverUrl;
   const originalWork = honoredChar.originalNovelTitle
-    ? honoredChar.originalNovelTitle.replace(/^@/, '').toUpperCase()
-    : 'BLACK APPLE CANON';
+    ? honoredChar.originalNovelTitle.replace(/^@/, '').toLowerCase()
+    : 'black apple canon';
 
   const rawDigits = (honoredChar.code || '01').replace(/\D/g, '');
   const codeNumber = rawDigits ? rawDigits.padStart(2, '0') : '01';
