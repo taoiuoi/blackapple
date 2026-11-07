@@ -3,12 +3,19 @@ import { Character } from '../../types';
 export const lucTuHien: Character = {
   id: 'luc-tu-hien',
   name: 'Lục Từ Hiên',
-  code: 'BA-04',
+  code: 'T-04',
   originalNovelTitle: 'tử cục tình sinh',
   originalChineseName: '陆辞轩',
   isPublished: true,
   tagline: '“Tiểu thư à, em chơi đủ chưa?”',
-  genreIds: [],
+  genreIds: [
+  "nguoc-tam",
+  "sat-thu-ngam",
+  "r18",
+  "nsforw",
+  "noi-gian",
+  "plot-an"
+],
   avatarUrl: '/assets/aistudio/IMG_0273_37791aae.JPG',
   coverUrl: '/assets/aistudio/IMG_0273_37791aae.JPG',
   posterUrl: '/assets/aistudio/IMG_4291_21601d3b.JPG',

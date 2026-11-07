@@ -149,6 +149,8 @@ export function HomePage({
   };
 
   const chineseDisplay = getChineseDisplay(currentHero);
+  const isRedTag = currentHero.id === 'dong-ky' || currentHero.id === 'gian-di-ninh';
+  const redLabel = currentHero.id === 'dong-ky' ? '21+ · H NẶNG' : '18+ · NẶNG ĐÔ';
   const heroQuote = currentHero.profileData?.quote || currentHero.tagline || 'Ván này, anh chưa nhận thua.';
   const formattedQuote =
     heroQuote.startsWith('“') || heroQuote.startsWith('"')
@@ -252,7 +254,7 @@ export function HomePage({
             {/* 1. TOP UTILITY & ROLEPLAY BAR */}
             <div className="px-4 sm:px-5 py-2.5 border-b border-black/10 flex items-center justify-between gap-2">
               {/* Left: Code & Novel title (all lowercase) */}
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0 flex-wrap">
                 <span className="text-[9.5px] sm:text-[10px] tracking-[0.16em] font-mono text-neutral-400 uppercase shrink-0">
                   {currentHero.code}
                 </span>
@@ -260,6 +262,12 @@ export function HomePage({
                 <span className="text-[11px] sm:text-xs font-serif italic text-neutral-600 truncate lowercase">
                   {novelTitle}
                 </span>
+                {isRedTag && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#991B1B] text-white text-[9px] font-sans font-bold tracking-wide shrink-0">
+                    <span className="w-1 h-1 rounded-full bg-rose-200 animate-pulse" />
+                    <span>{redLabel}</span>
+                  </span>
+                )}
               </div>
 
               {/* Right: Instant [roleplay] AI 1-Touch Button */}

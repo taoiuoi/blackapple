@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, X, ChevronDown, Check, SlidersHorizontal, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, X, ChevronDown, Check, SlidersHorizontal, Image as ImageIcon, ArrowUpDown } from 'lucide-react';
 import { Character, Genre, WebsiteSettings } from '../types';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
@@ -32,18 +32,25 @@ export function CharactersPage({
   onToggleAudio,
   onRequestChangeCharacterImage
 }: CharactersPageProps) {
+  type SortOption = 'latest' | 'code' | 'views' | 'roleplay';
   const [selectedGenre, setSelectedGenre] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('latest');
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [isGenreMenuOpen, setIsGenreMenuOpen] = useState(false);
   const [genreFilterSearch, setGenreFilterSearch] = useState('');
   const [isAddingGenreQuick, setIsAddingGenreQuick] = useState(false);
   const [quickGenreName, setQuickGenreName] = useState('');
   const genreDropdownRef = useRef<HTMLDivElement>(null);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (genreDropdownRef.current && !genreDropdownRef.current.contains(e.target as Node)) {
         setIsGenreMenuOpen(false);
+      }
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(e.target as Node)) {
+        setIsSortMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -93,6 +100,27 @@ export function CharactersPage({
       (char.tagline && char.tagline.toLowerCase().includes(query)) ||
       (char.originalNovelTitle && char.originalNovelTitle.toLowerCase().includes(query));
     return matchesGenre && matchesSearch;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === 'latest') {
+      const orderA = a.order ?? 0;
+      const orderB = b.order ?? 0;
+      if (orderA !== orderB) return orderB - orderA;
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
+    }
+    if (sortBy === 'code') {
+      return (a.order ?? 99) - (b.order ?? 99);
+    }
+    if (sortBy === 'views') {
+      return (b.views || 0) - (a.views || 0);
+    }
+    if (sortBy === 'roleplay') {
+      return (b.roleplayClicks || 0) - (a.roleplayClicks || 0);
+    }
+    return 0;
   });
 
   return (
@@ -320,6 +348,146 @@ export function CharactersPage({
                   )}
                 </div>
 
+                {/* Sleek Sort Dropdown */}
+                <div className="relative" ref={sortDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
+                    className={`px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 border transition-all cursor-pointer ${
+                      sortBy !== 'latest'
+                        ? 'bg-[#141416] text-white border-[#141416] shadow-sm'
+                        : 'bg-[#F3F2EE] hover:bg-[#eae8e2] text-[#141416] border-black/[0.08]'
+                    }`}
+                  >
+                    <ArrowUpDown className="w-3.5 h-3.5 text-neutral-400" />
+                    <span>
+                      {sortBy === 'latest' && 'Xếp: Mới nhất trước'}
+                      {sortBy === 'code' && 'Xếp: Mã số (T-01 →)'}
+                      {sortBy === 'views' && 'Xếp: Lượt xem nhiều'}
+                      {sortBy === 'roleplay' && 'Xếp: Lượt Roleplay'}
+                    </span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                        isSortMenuOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {isSortMenuOpen && (
+                    <div className="absolute left-0 top-full mt-2 w-64 rounded-2xl bg-white border border-black/15 shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-2.5 z-50 animate-fadeIn">
+                      <div className="flex items-center justify-between px-2 pb-2 mb-1.5 border-b border-black/[0.06]">
+                        <span className="text-[10px] tracking-[0.2em] uppercase font-semibold text-neutral-400">
+                          THỨ TỰ HIỂN THỊ
+                        </span>
+                        <span className="text-[9px] text-neutral-400 font-serif italic">
+                          Tự động cập nhật
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortBy('latest');
+                            setIsSortMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer ${
+                            sortBy === 'latest'
+                              ? 'bg-[#141416] text-white font-medium'
+                              : 'hover:bg-[#F3F2EE] text-neutral-700'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            {sortBy === 'latest' && <Check className="w-3.5 h-3.5 text-white" />}
+                            <span>Mới ra mắt trước</span>
+                          </span>
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-serif ${
+                              sortBy === 'latest' ? 'bg-white/20 text-white' : 'bg-[#EAE8E2] text-neutral-600'
+                            }`}
+                          >
+                            Ưu tiên
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortBy('code');
+                            setIsSortMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer ${
+                            sortBy === 'code'
+                              ? 'bg-[#141416] text-white font-medium'
+                              : 'hover:bg-[#F3F2EE] text-neutral-700'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            {sortBy === 'code' && <Check className="w-3.5 h-3.5 text-white" />}
+                            <span>Theo mã số (T-01 → T-06)</span>
+                          </span>
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-serif ${
+                              sortBy === 'code' ? 'bg-white/20 text-white' : 'bg-[#EAE8E2] text-neutral-600'
+                            }`}
+                          >
+                            Mã số
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortBy('views');
+                            setIsSortMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer ${
+                            sortBy === 'views'
+                              ? 'bg-[#141416] text-white font-medium'
+                              : 'hover:bg-[#F3F2EE] text-neutral-700'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            {sortBy === 'views' && <Check className="w-3.5 h-3.5 text-white" />}
+                            <span>Nhiều lượt xem nhất</span>
+                          </span>
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-serif ${
+                              sortBy === 'views' ? 'bg-white/20 text-white' : 'bg-[#EAE8E2] text-neutral-600'
+                            }`}
+                          >
+                            Lượt xem
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortBy('roleplay');
+                            setIsSortMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer ${
+                            sortBy === 'roleplay'
+                              ? 'bg-[#141416] text-white font-medium'
+                              : 'hover:bg-[#F3F2EE] text-neutral-700'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            {sortBy === 'roleplay' && <Check className="w-3.5 h-3.5 text-white" />}
+                            <span>Nhiều lượt nhận Roleplay</span>
+                          </span>
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-serif ${
+                              sortBy === 'roleplay' ? 'bg-white/20 text-white' : 'bg-[#EAE8E2] text-neutral-600'
+                            }`}
+                          >
+                            Roleplay
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* If a genre is selected, display quick remove pill */}
                 {selectedGenre !== 'all' && (
                   <button
@@ -368,17 +536,22 @@ export function CharactersPage({
               </div>
             </div>
 
-            {/* Micro Filter Status Strip when filtering */}
-            {(selectedGenre !== 'all' || searchQuery) && (
+            {/* Micro Filter Status Strip when filtering or sorting */}
+            {(selectedGenre !== 'all' || searchQuery || sortBy !== 'latest') && (
               <div className="flex items-center justify-between text-xs text-neutral-500 pt-1 px-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span>Kết quả:</span>
                   <strong className="text-[#141416] font-semibold">{filtered.length} nhân vật</strong>
                   {selectedGenre !== 'all' && (
-                    <span>thuộc thể loại &ldquo;{selectedGenreObj?.name}&rdquo;</span>
+                    <span>• Thể loại &ldquo;{selectedGenreObj?.name}&rdquo;</span>
                   )}
                   {searchQuery && (
-                    <span>khớp với từ khóa &ldquo;{searchQuery}&rdquo;</span>
+                    <span>• Từ khóa &ldquo;{searchQuery}&rdquo;</span>
+                  )}
+                  {sortBy !== 'latest' && (
+                    <span className="font-serif italic text-neutral-600">
+                      • {sortBy === 'code' ? 'Theo mã số T-01 →' : sortBy === 'views' ? 'Lượt xem nhiều' : 'Lượt Roleplay'}
+                    </span>
                   )}
                 </div>
                 <button
@@ -386,10 +559,11 @@ export function CharactersPage({
                   onClick={() => {
                     setSelectedGenre('all');
                     setSearchQuery('');
+                    setSortBy('latest');
                   }}
-                  className="text-[11px] underline text-neutral-600 hover:text-black cursor-pointer"
+                  className="text-[11px] underline text-neutral-600 hover:text-black cursor-pointer shrink-0"
                 >
-                  Xem lại tất cả
+                  Mặc định
                 </button>
               </div>
             )}
@@ -397,37 +571,73 @@ export function CharactersPage({
         </header>
 
         {/* 2. BESPOKE WHITE EDITORIAL ARCH / MONOLITH CHARACTER CARDS */}
-        {filtered.length === 0 ? (
+        {sorted.length === 0 ? (
           <div className="py-24 text-center bg-white border border-black/[0.08] rounded-[28px]">
             <p className="text-xs text-neutral-500 font-serif">
               Không tìm thấy hồ sơ nhân vật phù hợp với bộ lọc hiện tại.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10">
-            {filtered.map((char) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 pt-4">
+            {sorted.map((char) => {
               const charGenres = genres.filter((g) => char.genreIds?.includes(g.id));
+              // Red Tag: Strictly only Dong Ky and Gian Di Ninh as requested
+              const isRedTag = char.id === 'dong-ky' || char.id === 'gian-di-ninh';
+              const redLabel = char.id === 'dong-ky' ? '21+ · H NẶNG' : '18+ · NẶNG ĐÔ';
+              // New Tag: Strictly only Phan Quy Man and Dong Ky as requested
+              const isNew = char.id === 'phan-quy-man' || char.id === 'dong-ky';
+
               return (
-                <Link
-                  key={char.id}
-                  to={getCharacterPath(char)}
-                  className="group relative bg-white rounded-t-[120px] rounded-b-[26px] border border-black/[0.08] shadow-[0_22px_60px_rgba(0,0,0,0.06)] hover:shadow-[0_30px_80px_rgba(0,0,0,0.13)] transition-all duration-500 overflow-hidden flex flex-col justify-between pt-9"
-                >
-                  {/* Admin Quick Change Poster Button */}
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onRequestChangeCharacterImage(char, 'posterUrl');
-                      }}
-                      className="absolute top-5 right-6 z-30 p-2 rounded-full bg-white/90 hover:bg-[#141416] text-[#141416] hover:text-white border border-black/15 shadow-sm transition-colors"
-                      title="Đổi ảnh nhân vật"
-                    >
-                      <ImageIcon className="w-3.5 h-3.5" />
-                    </button>
+                <div key={char.id} className="relative group flex flex-col pt-3">
+                  {/* Floating Badges OUTSIDE the card frame so they are never clipped by the arch curve */}
+                  {(isRedTag || isNew) && (
+                    <div className="absolute -top-1.5 left-5 z-20 flex items-center gap-1.5 flex-wrap pointer-events-none">
+                      {isRedTag && (
+                        <div
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#991B1B] text-white border border-rose-400/40 shadow-[0_4px_14px_rgba(153,27,27,0.38)] select-none pointer-events-auto"
+                          title="Cảnh báo: Nhân vật có nội dung 18+/21+ nặng đô"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-200 animate-pulse" />
+                          <span className="font-sans font-bold text-[11px] tracking-wide text-white">
+                            {redLabel}
+                          </span>
+                        </div>
+                      )}
+
+                      {isNew && (
+                        <div
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#18181B] text-[#FAF9F6] border border-black/25 shadow-[0_4px_14px_rgba(0,0,0,0.22)] select-none pointer-events-auto"
+                          title="Nhân vật mới ra mắt trong Archive"
+                        >
+                          <span className="text-amber-400 text-[10px] leading-none">✦</span>
+                          <span className="font-sans font-bold text-[11px] tracking-wide text-white">
+                            MỚI RA MẮT
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   )}
+
+                  {/* The pristine arch card (inner layout completely preserved) */}
+                  <Link
+                    to={getCharacterPath(char)}
+                    className="relative bg-white rounded-t-[120px] rounded-b-[26px] border border-black/[0.08] shadow-[0_22px_60px_rgba(0,0,0,0.06)] group-hover:shadow-[0_30px_80px_rgba(0,0,0,0.13)] transition-all duration-500 overflow-hidden flex flex-col justify-between pt-9 flex-1"
+                  >
+                    {/* Admin Quick Change Poster Button */}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onRequestChangeCharacterImage(char, 'posterUrl');
+                        }}
+                        className="p-1.5 rounded-full bg-white/90 hover:bg-[#141416] text-[#141416] hover:text-white border border-black/15 shadow-sm transition-colors pointer-events-auto absolute top-5 right-6 z-30"
+                        title="Đổi ảnh nhân vật"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5" />
+                      </button>
+                    )}
 
                   {/* TOP & MIDDLE POETIC EDITORIAL SECTION */}
                   <div className="px-7 sm:px-9 text-center relative">
@@ -556,8 +766,9 @@ export function CharactersPage({
                     </div>
                   </div>
                 </Link>
-              );
-            })}
+              </div>
+            );
+          })}
           </div>
         )}
       </main>

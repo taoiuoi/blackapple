@@ -444,23 +444,34 @@ export async function initializeDatabaseIfEmpty(forceAsAdmin = false) {
       }
     }
 
-    // Ensure all 5 requested characters exist in Firestore ONLY IF MISSING
-    // CRITICAL: If a document already exists in Firestore, NEVER overwrite it!
-    // The user's edits in Firestore are permanent and authoritative.
+    // Ensure all canonical characters exist in Firestore ONLY IF MISSING (recording views & clicks)
     for (const templateChar of INITIAL_CHARACTERS) {
       const existing = existingMap.get(templateChar.id);
       if (!existing) {
-        await setDoc(doc(db, 'characters', templateChar.id), templateChar);
+        await setDoc(doc(db, 'characters', templateChar.id), {
+          id: templateChar.id,
+          name: templateChar.name,
+          views: 0,
+          roleplayClicks: 0,
+          genreIds: templateChar.genreIds || [],
+          updatedAt: new Date().toISOString()
+        });
       }
     }
 
-    // 2. Clean up legacy sample genres so unrelated sample tags are gone
+    // 2. Ensure genres exist in Firestore & clean up sample tags
     const genreSnap = await getDocs(collection(db, 'genres'));
-    for (const gDoc of genreSnap.docs) {
-      if (LEGACY_SAMPLE_GENRE_IDS.has(gDoc.id)) {
-        try {
-          await deleteDoc(doc(db, 'genres', gDoc.id));
-        } catch (_) {}
+    if (genreSnap.empty) {
+      for (const g of INITIAL_GENRES) {
+        await setDoc(doc(db, 'genres', g.id), g);
+      }
+    } else {
+      for (const gDoc of genreSnap.docs) {
+        if (LEGACY_SAMPLE_GENRE_IDS.has(gDoc.id)) {
+          try {
+            await deleteDoc(doc(db, 'genres', gDoc.id));
+          } catch (_) {}
+        }
       }
     }
 
@@ -632,16 +643,23 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
 
 export async function saveCharacter(character: Character): Promise<void> {
   const path = `characters/${character.id}`;
-  const normalized = normalizeCharacter(character, character.id);
   try {
     localStorage.removeItem(`ba_char_data_${character.id}`);
   } catch (_) {}
 
   try {
-    await setDoc(doc(db, 'characters', character.id), {
-      ...normalized,
-      updatedAt: new Date().toISOString()
-    });
+    await setDoc(
+      doc(db, 'characters', character.id),
+      {
+        id: character.id,
+        name: character.name,
+        genreIds: character.genreIds || [],
+        views: character.views || 0,
+        roleplayClicks: character.roleplayClicks || 0,
+        updatedAt: new Date().toISOString()
+      },
+      { merge: true }
+    );
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
