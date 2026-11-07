@@ -689,10 +689,20 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   // Unlock Private GGAI Link
   const handleUnlockGgai = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanStr = (s: string) => s.trim().toLowerCase().replace(/[.,!?:;'"“”]/g, '');
+    const cleanStr = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[.,!?:;'"“”]/g, '');
+    const stripDiacritics = (s: string) =>
+      s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd');
+
     const expected = cleanStr(character?.roleplayUnlockAnswer || '');
     const entered = cleanStr(passwordInput);
-    if (entered === expected || entered === 'blackapple' || !expected) {
+
+    const isMatch =
+      !expected ||
+      entered === expected ||
+      stripDiacritics(entered) === stripDiacritics(expected) ||
+      entered === 'blackapple';
+
+    if (isMatch) {
       setIsGgaiUnlocked(true);
       setPasswordError(false);
       incrementRoleplayClicks(character?.id || '');

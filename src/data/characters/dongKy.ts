@@ -97,10 +97,10 @@ export const dongKy: Character = {
       avatarUrl: ''
     }
   ],
-  roleplayLink: '',
-  isRoleplayLocked: false,
-  roleplayUnlockQuestion: '',
-  roleplayUnlockAnswer: '',
+  roleplayLink: 'https://aistudio.google.com/app/prompts?state=%7B%22ids%22:%5B%221j8FdSe6B7iGUleJSikULgR96FWIx0F-g%22%5D,%22action%22:%22open%22,%22userId%22:%22113380072787049388556%22,%22resourceKeys%22:%7B%7D%7D',
+  isRoleplayLocked: true,
+  roleplayUnlockQuestion: 'Dù triều thần nhiều lần dâng tấu gây sức ép nạp thiếp và cung nữ trăm phương ngàn kế trèo lên giường, hậu viện của Đông Kỷ vĩnh viễn chỉ có một bóng hình Thái tử phi. Cụm từ Hán Việt nào thể hiện đặc quyền “chỉ cưng chiều và sủng ái duy nhất một người” mà Đông Kỷ dành trọn cho nàng?\n\n(Gợi ý: Từ gồm 2 chữ, viết có dấu bình thường: đ _ _ s _ _ _)',
+  roleplayUnlockAnswer: 'độc sủng',
   gallery: [],
   views: 0,
   likes: 0,

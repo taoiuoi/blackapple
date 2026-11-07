@@ -133,10 +133,20 @@ export function HomePage({
 
   const handleUnlockRoleplay = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanStr = (s: string) => s.trim().toLowerCase().replace(/[.,!?:;'"“”]/g, '');
+    const cleanStr = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[.,!?:;'"“”]/g, '');
+    const stripDiacritics = (s: string) =>
+      s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd');
+
     const expected = cleanStr(currentHero.roleplayUnlockAnswer || '');
     const entered = cleanStr(roleplayPasswordInput);
-    if (entered === expected || entered === 'blackapple' || !expected) {
+
+    const isMatch =
+      !expected ||
+      entered === expected ||
+      stripDiacritics(entered) === stripDiacritics(expected) ||
+      entered === 'blackapple';
+
+    if (isMatch) {
       setShowRoleplayModal(false);
       setRoleplayPasswordError(false);
       if (currentHero.roleplayLink) {
