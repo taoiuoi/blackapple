@@ -52,8 +52,95 @@ export function isAnimatedGif(url?: string): boolean {
   return false;
 }
 
+// Canonical mapping between /assets/characters/ aliases and AI Studio tracked /assets/aistudio/ files
+const CHARACTER_TO_AISTUDIO_MAP: Record<string, string> = {
+  'assets/characters/nguy-tu-viet-home.jpg': 'assets/aistudio/IMG_9490_85860973.PNG',
+  'assets/characters/nguy-tu-viet-home.png': 'assets/aistudio/IMG_9490_85860973.PNG',
+  'assets/characters/nguy-tu-viet-card.jpg': 'assets/aistudio/IMG_9489_fa08fe9d.JPG',
+  'assets/characters/gian-di-ninh-home.jpg': 'assets/aistudio/IMG_9678_10c56f28.PNG',
+  'assets/characters/gian-di-ninh-home.png': 'assets/aistudio/IMG_9678_10c56f28.PNG',
+  'assets/characters/gian-di-ninh-card.jpg': 'assets/aistudio/IMG_9664_f2105986.JPG',
+  'assets/characters/chu-lac-thien-home.jpg': 'assets/aistudio/IMG_0091_c963c2ad.JPG',
+  'assets/characters/chu-lac-thien-card.jpg': 'assets/aistudio/copy_5262B8A7-5064-48A8-BC10-3A246C344352_98fcb1e0.jpg',
+  'assets/characters/luc-tu-hien-home.jpg': 'assets/aistudio/IMG_0273_37791aae.JPG',
+  'assets/characters/luc-tu-hien-card.jpg': 'assets/aistudio/IMG_4291_21601d3b.JPG',
+  'assets/characters/phan-quy-man-home.jpg': 'assets/aistudio/IMG_0393_dff41631.JPG',
+  'assets/characters/phan-quy-man-card.jpg': 'assets/aistudio/IMG_0390_14d41415.JPG',
+  'assets/characters/dong-ky-home.jpg': 'assets/aistudio/IMG_0719_04f7275f.JPG',
+  'assets/characters/dong-ky-card.jpg': 'assets/aistudio/IMG_0718_e8699520.JPG',
+  'assets/creator-avatar.jpg': 'assets/aistudio/IMG_0423_f2e4f4d6.JPG',
+  'assets/creator-cover.jpg': 'assets/aistudio/IMG_9890_e03c9d51.JPG',
+  'assets/creator-donate-qr.jpg': 'assets/aistudio/IMG_0713_ed13a933.JPG'
+};
+
+const AISTUDIO_TO_CHARACTER_MAP: Record<string, string> = Object.entries(
+  CHARACTER_TO_AISTUDIO_MAP
+).reduce((acc, [charPath, aiPath]) => {
+  if (!acc[aiPath]) {
+    acc[aiPath] = charPath;
+  }
+  return acc;
+}, {} as Record<string, string>);
+
+function getNormalizedBaseUrl(): string {
+  const rawBase =
+    typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL
+      ? import.meta.env.BASE_URL
+      : '/';
+  return rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+}
+
+function stripToRelativeAssetPath(url: string): string | null {
+  const trimmed = url.trim();
+  const idx = trimmed.indexOf('assets/');
+  if (idx === -1) return null;
+  if (
+    trimmed.startsWith('/assets/') ||
+    trimmed.startsWith('assets/') ||
+    trimmed.startsWith('./assets/')
+  ) {
+    return trimmed.slice(idx);
+  }
+  const base = getNormalizedBaseUrl();
+  if (base !== '/' && trimmed.startsWith(`${base}assets/`)) {
+    return trimmed.slice(base.length);
+  }
+  return null;
+}
+
+export function isLocalAsset(url?: string): boolean {
+  if (!url) return false;
+  return stripToRelativeAssetPath(url) !== null;
+}
+
+export function getLocalAssetFallbackCandidates(url?: string): string[] {
+  if (!url) return [];
+  const rel = stripToRelativeAssetPath(url);
+  if (!rel) return [];
+
+  const base = getNormalizedBaseUrl();
+  const primaryRel = CHARACTER_TO_AISTUDIO_MAP[rel] || rel;
+  const secondaryRel =
+    CHARACTER_TO_AISTUDIO_MAP[rel]
+      ? rel
+      : AISTUDIO_TO_CHARACTER_MAP[rel] || null;
+
+  const candidates = new Set<string>();
+  candidates.add(`${base}${primaryRel}`);
+  candidates.add(`/${primaryRel}`);
+  candidates.add(primaryRel);
+
+  if (secondaryRel) {
+    candidates.add(`${base}${secondaryRel}`);
+    candidates.add(`/${secondaryRel}`);
+    candidates.add(secondaryRel);
+  }
+
+  return Array.from(candidates);
+}
+
 /**
- * Convert common shared links (Google Drive, Dropbox, ImgBB, etc.) to direct image bytes.
+ * Convert common shared links (Google Drive, Dropbox, ImgBB, etc.) and local assets to direct URLs.
  */
 export function resolveDirectImageUrl(url?: string): string {
   if (!url) return '';
@@ -63,6 +150,14 @@ export function resolveDirectImageUrl(url?: string): string {
   // If already a data URL or blob, return directly
   if (trimmed.startsWith('data:image/') || trimmed.startsWith('blob:')) {
     return trimmed;
+  }
+
+  // Local static asset resolution with GitHub Pages BASE_URL support
+  const relAsset = stripToRelativeAssetPath(trimmed);
+  if (relAsset) {
+    const canonicalRel = CHARACTER_TO_AISTUDIO_MAP[relAsset] || relAsset;
+    const base = getNormalizedBaseUrl();
+    return `${base}${canonicalRel}`;
   }
 
   // Google Drive format: https://drive.google.com/file/d/{ID}/view... or /open?id={ID}
@@ -84,31 +179,7 @@ export function resolveDirectImageUrl(url?: string): string {
 }
 
 // In-memory cache of fully loaded & decoded image URLs for instantaneous 0ms display
-export const CACHED_IMAGE_SET = new Set<string>([
-  '/assets/characters/nguy-tu-viet-home.jpg',
-  '/assets/characters/nguy-tu-viet-home.png',
-  '/assets/characters/nguy-tu-viet-card.jpg',
-  '/assets/characters/gian-di-ninh-home.jpg',
-  '/assets/characters/gian-di-ninh-home.png',
-  '/assets/characters/gian-di-ninh-card.jpg',
-  '/assets/characters/chu-lac-thien-home.jpg',
-  '/assets/characters/chu-lac-thien-card.jpg',
-  '/assets/characters/luc-tu-hien-home.jpg',
-  '/assets/characters/luc-tu-hien-card.jpg',
-  '/assets/characters/phan-quy-man-home.jpg',
-  '/assets/characters/phan-quy-man-card.jpg',
-  '/assets/characters/dong-ky-home.jpg',
-  '/assets/characters/dong-ky-card.jpg',
-  '/assets/creator-avatar.jpg',
-  '/assets/creator-cover.jpg',
-  '/assets/creator-donate-qr.jpg'
-]);
-
-export function isLocalAsset(url?: string): boolean {
-  if (!url) return false;
-  const trimmed = url.trim();
-  return trimmed.startsWith('/assets/') || trimmed.startsWith('assets/');
-}
+export const CACHED_IMAGE_SET = new Set<string>();
 
 // Track requests currently downloading to prevent duplicate simultaneous fetches
 const IN_FLIGHT_REQUESTS = new Set<string>();
@@ -144,7 +215,7 @@ export function getOptimizedImageUrl(
   }
 
   // Local static assets: deliver immediately with 0ms overhead
-  if (isLocalAsset(directUrl)) {
+  if (isLocalAsset(directUrl) || isLocalAsset(url)) {
     CACHED_IMAGE_SET.add(directUrl);
     return {
       optimizedUrl: directUrl,

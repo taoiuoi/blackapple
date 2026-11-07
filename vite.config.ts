@@ -4,8 +4,10 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  const rawBase = process.env.BASE_PATH || '/';
+  const normalizedBase = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
   return {
-    base: process.env.BASE_PATH || '/',
+    base: normalizedBase,
     plugins: [react(), tailwindcss()],
     resolve: {
       dedupe: ['react', 'react-dom', 'react-router-dom'],

@@ -586,7 +586,7 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
   cleanLocalStorageSampleImages();
 
   // Instant 0ms cache-first delivery to eliminate loading delay
-  const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v8');
+  const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v9');
   if (cached && Array.isArray(cached) && cached.length > 0) {
     callback(cached);
   } else {
@@ -614,7 +614,7 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
           const list = Array.from(map.values());
           list.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
           // Persist to local cache so future visits/reloads require 0 reads
-          setCachedFirestoreData('ba_cache_characters_v8', list);
+          setCachedFirestoreData('ba_cache_characters_v9', list);
           callback(list);
         }
       },
@@ -859,8 +859,9 @@ export async function getCreatorProfile(): Promise<CreatorProfile> {
       return {
         ...INITIAL_CREATOR_PROFILE,
         ...data,
-        avatarUrl: sanitizeImageUrl(data.avatarUrl),
-        coverUrl: sanitizeImageUrl(data.coverUrl),
+        avatarUrl: INITIAL_CREATOR_PROFILE.avatarUrl || sanitizeImageUrl(data.avatarUrl),
+        coverUrl: INITIAL_CREATOR_PROFILE.coverUrl || sanitizeImageUrl(data.coverUrl),
+        donateQrUrl: INITIAL_CREATOR_PROFILE.donateQrUrl || sanitizeImageUrl(data.donateQrUrl),
         introImageUrl: sanitizeImageUrl(data.introImageUrl)
       };
     }
@@ -873,9 +874,11 @@ export async function getCreatorProfile(): Promise<CreatorProfile> {
 
 export function subscribeCreatorProfile(callback: (profile: CreatorProfile) => void) {
   // Instant cache-first delivery
-  const cached = getCachedFirestoreData<CreatorProfile>('ba_cache_creator_v3');
+  const cached = getCachedFirestoreData<CreatorProfile>('ba_cache_creator_v4');
   if (cached) {
     callback(cached);
+  } else {
+    callback(INITIAL_CREATOR_PROFILE);
   }
 
   try {
@@ -887,11 +890,12 @@ export function subscribeCreatorProfile(callback: (profile: CreatorProfile) => v
           const cleaned = {
             ...INITIAL_CREATOR_PROFILE,
             ...data,
-            avatarUrl: sanitizeImageUrl(data.avatarUrl),
-            coverUrl: sanitizeImageUrl(data.coverUrl),
+            avatarUrl: INITIAL_CREATOR_PROFILE.avatarUrl || sanitizeImageUrl(data.avatarUrl),
+            coverUrl: INITIAL_CREATOR_PROFILE.coverUrl || sanitizeImageUrl(data.coverUrl),
+            donateQrUrl: INITIAL_CREATOR_PROFILE.donateQrUrl || sanitizeImageUrl(data.donateQrUrl),
             introImageUrl: sanitizeImageUrl(data.introImageUrl)
           };
-          setCachedFirestoreData('ba_cache_creator_v3', cleaned);
+          setCachedFirestoreData('ba_cache_creator_v4', cleaned);
           callback(cleaned);
         } else {
           callback(INITIAL_CREATOR_PROFILE);

@@ -6,7 +6,8 @@ import {
   CACHED_IMAGE_SET,
   preloadImage,
   isAnimatedGif,
-  isLocalAsset
+  isLocalAsset,
+  getLocalAssetFallbackCandidates
 } from '../../utils/imageOptimizer';
 
 export { isSampleBuildImage, resolveDirectImageUrl, preloadImage, isAnimatedGif };
@@ -43,7 +44,7 @@ export function ImageWithFallback({
   const isLocal = isLocalAsset(src) || isLocalAsset(directUrl);
 
   const [currentUrl, setCurrentUrl] = useState<string>(optimizedUrl || directUrl);
-  const [hasTriedFallback, setHasTriedFallback] = useState(false);
+  const [fallbackIndex, setFallbackIndex] = useState<number>(0);
   const [hasError, setHasError] = useState(false);
 
   // Instant check: If local asset or already decoded in memory/browser cache, instant 0ms display
@@ -62,7 +63,7 @@ export function ImageWithFallback({
     const localCheck = isLocalAsset(src) || isLocalAsset(target);
 
     setHasError(false);
-    setHasTriedFallback(false);
+    setFallbackIndex(0);
     setCurrentUrl(target);
 
     const alreadyCached =
@@ -95,6 +96,8 @@ export function ImageWithFallback({
     (currentUrl.startsWith('http://') ||
       currentUrl.startsWith('https://') ||
       currentUrl.startsWith('/') ||
+      currentUrl.startsWith('assets/') ||
+      currentUrl.startsWith('./assets/') ||
       currentUrl.startsWith('data:image/') ||
       currentUrl.startsWith('blob:'));
 
@@ -138,9 +141,22 @@ export function ImageWithFallback({
   };
 
   const handleImageError = () => {
-    // If optimized CDN URL failed, immediately fallback to raw direct original URL
-    if (!hasTriedFallback && directUrl && currentUrl !== directUrl) {
-      setHasTriedFallback(true);
+    const localCandidates = getLocalAssetFallbackCandidates(src);
+    if (localCandidates.length > 0) {
+      const nextCandidate = localCandidates.find(
+        (cand, idx) => idx > fallbackIndex && cand !== currentUrl
+      );
+      if (nextCandidate) {
+        const nextIdx = localCandidates.indexOf(nextCandidate);
+        setFallbackIndex(nextIdx);
+        setCurrentUrl(nextCandidate);
+        return;
+      }
+    }
+
+    // If optimized CDN URL failed, fallback to raw direct original URL
+    if (fallbackIndex === 0 && directUrl && currentUrl !== directUrl) {
+      setFallbackIndex(1);
       setCurrentUrl(directUrl);
       setIsLoading(true);
     } else {
