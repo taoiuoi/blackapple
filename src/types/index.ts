@@ -62,6 +62,8 @@ export interface Character {
   originalNovelTitle?: string; // e.g. "@NAM THÀNH VỊ VÃN"
   originalChineseName?: string; // e.g. "Wei Si Yue · 魏肆越"
   isPublished?: boolean;
+  isUpcoming?: boolean; // Đánh dấu nhân vật sắp ra mắt
+  upcomingReleaseNote?: string; // Ghi chú thời gian hoặc lời nhắn hé lộ
   tagline: string;
   genreIds: string[];
   avatarUrl: string;
@@ -195,5 +197,16 @@ export interface CommissionSettings {
   announcementTitle: string;
   announcementContent: string;
 }
+
+export interface UpcomingSubscriber {
+  id: string;
+  characterId: string;
+  characterName: string;
+  email: string;
+  readerName?: string;
+  note?: string;
+  createdAt: string;
+}
+
 
 

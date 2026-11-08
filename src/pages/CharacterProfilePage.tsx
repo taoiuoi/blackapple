@@ -37,7 +37,14 @@ import {
   incrementCharacterViews,
   incrementRoleplayClicks
 } from '../services/firestoreService';
+import {
+  subscribeCommentsSupabase,
+  submitCommentSupabase,
+  incrementCharacterViewsSupabase,
+  incrementRoleplayClicksSupabase
+} from '../services/supabaseService';
 import { Navbar } from '../components/layout/Navbar';
+import { Footer } from '../components/layout/Footer';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { QuickScrollScrubber } from '../components/common/QuickScrollScrubber';
 import { matchesCharacter, getCharacterSlug } from '../utils/slugify';
@@ -319,10 +326,11 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       if (typeof window !== 'undefined' && sessionStorage.getItem(sessionKey) !== 'true') {
         sessionStorage.setItem(sessionKey, 'true');
         incrementCharacterViews(character.id);
+        incrementCharacterViewsSupabase(character.id);
       }
     }
 
-    const unsubscribe = subscribeComments(character.id, (fetchedComments) => {
+    const unsubscribe = subscribeCommentsSupabase(character.id, (fetchedComments) => {
       setComments(fetchedComments);
     });
     return () => unsubscribe();
@@ -376,6 +384,71 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
             <span>Quay lại trang trước</span>
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // If character is marked as Upcoming, render dedicated Teaser Screen without blank/incomplete dossier
+  if (character.isUpcoming) {
+    const teaserImg =
+      character.posterUrl || character.coverUrl || character.avatarUrl || '/assets/characters/upcoming-teaser.jpg';
+    return (
+      <div className="min-h-screen bg-[#070709] text-neutral-100 flex flex-col selection:bg-white selection:text-black">
+        <Navbar
+          settings={settings}
+          isAdmin={isAdmin}
+          onOpenAdmin={onOpenAdmin || (() => navigate('/admin'))}
+          isAudioPlaying={isAudioPlaying}
+          onToggleAudio={onToggleAudio}
+          onReplayIntro={onReplayIntro}
+        />
+        <main className="flex-1 w-[88%] max-w-[460px] mx-auto pt-8 pb-16 flex flex-col items-center justify-center text-center">
+          <div className="mb-4 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.05] border border-white/15">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+            <span className="text-[10px] tracking-[0.24em] font-serif uppercase text-rose-300 font-medium">
+              ✦ Hồ sơ niêm phong · Sắp ra mắt ✦
+            </span>
+          </div>
+
+          <div className="w-full aspect-[3/3.8] max-w-[300px] rounded-xl overflow-hidden bg-neutral-900 border border-white/20 shadow-[0_25px_60px_rgba(0,0,0,0.9)] mb-5 relative">
+            <ImageWithFallback
+              src={teaserImg}
+              alt={character.name}
+              className="w-full h-full object-cover grayscale contrast-[1.12]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute bottom-3 left-4 text-left">
+              <span className="font-editorial italic text-2xl text-white block">
+                {character.name}
+              </span>
+              {character.originalChineseName && (
+                <span className="text-xs font-serif text-neutral-300 italic">
+                  {character.originalChineseName}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 max-w-[380px] mb-4">
+            <p className="font-serif italic text-xs sm:text-sm text-neutral-200 leading-relaxed font-light">
+              {character.tagline || '“Người muốn cứu chuộc tôi chưa từng xuất hiện, cho đến khi em bước qua lằn ranh này.”'}
+            </p>
+          </div>
+
+          <p className="text-xs font-serif text-neutral-400 max-w-[360px] leading-relaxed italic mb-6">
+            Hồ sơ cá nhân và văn án chính thức đang được bảo mật hoàn thiện. Độc giả hãy theo dõi trang chủ để đón chờ ngày mở khóa chính thức!
+          </p>
+
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-serif font-semibold tracking-wider uppercase transition-all shadow-md cursor-pointer active:scale-95"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Quay lại trang trước</span>
+          </button>
+        </main>
+        <Footer settings={settings} onOpenAdmin={onOpenAdmin} />
       </div>
     );
   }
@@ -710,6 +783,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       setIsGgaiUnlocked(true);
       setPasswordError(false);
       incrementRoleplayClicks(character?.id || '');
+      incrementRoleplayClicksSupabase(character?.id || '');
     } else {
       setPasswordError(true);
     }
@@ -721,7 +795,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     if (!authorName.trim() || !commentContent.trim()) return;
     setIsSubmittingComment(true);
     try {
-      await submitComment(character.id, authorName.trim(), commentContent.trim());
+      await submitCommentSupabase(character.id, authorName.trim(), commentContent.trim());
+      submitComment(character.id, authorName.trim(), commentContent.trim()).catch(() => {});
       setCommentContent('');
     } finally {
       setIsSubmittingComment(false);
@@ -2435,7 +2510,10 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                     href={character.roleplayLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => incrementRoleplayClicks(character.id)}
+                    onClick={() => {
+                      incrementRoleplayClicks(character.id);
+                      incrementRoleplayClicksSupabase(character.id);
+                    }}
                     className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#18181A] hover:bg-neutral-800 text-white text-xs font-semibold tracking-[0.2em] uppercase transition-all shadow-lg active:scale-95"
                   >
                     <span>Truy cập Link GGAI</span>

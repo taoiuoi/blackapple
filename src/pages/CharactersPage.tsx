@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, X, ChevronDown, Check, SlidersHorizontal, Image as ImageIcon, ArrowUpDown } from 'lucide-react';
+import { Search, Plus, X, ChevronDown, Check, SlidersHorizontal, Image as ImageIcon, ArrowUpDown, Lock, Heart, CheckCircle2, Quote } from 'lucide-react';
 import { Character, Genre, WebsiteSettings } from '../types';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
@@ -41,6 +41,9 @@ export function CharactersPage({
   const [genreFilterSearch, setGenreFilterSearch] = useState('');
   const [isAddingGenreQuick, setIsAddingGenreQuick] = useState(false);
   const [quickGenreName, setQuickGenreName] = useState('');
+  const [teaserModalChar, setTeaserModalChar] = useState<Character | null>(null);
+  const [hasCheeredTeaser, setHasCheeredTeaser] = useState(false);
+  const [teaserCheerCount, setTeaserCheerCount] = useState(246);
   const genreDropdownRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -586,13 +589,27 @@ export function CharactersPage({
               const redLabel = char.id === 'dong-ky' ? '21+ · H NẶNG' : '18+ · NẶNG ĐÔ';
               // New Tag: Strictly only Phan Quy Man and Dong Ky as requested
               const isNew = char.id === 'phan-quy-man' || char.id === 'dong-ky';
+              // Upcoming Tag: For character marked as upcoming
+              const isUpcoming = Boolean(char.isUpcoming);
 
               return (
                 <div key={char.id} className="relative group flex flex-col pt-3">
                   {/* Floating Badges OUTSIDE the card frame so they are never clipped by the arch curve */}
-                  {(isRedTag || isNew) && (
+                  {(isRedTag || isNew || isUpcoming) && (
                     <div className="absolute -top-1.5 left-5 z-20 flex items-center gap-1.5 flex-wrap pointer-events-none">
-                      {isRedTag && (
+                      {isUpcoming && (
+                        <div
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0c0c0f] text-rose-300 border border-rose-500/30 shadow-[0_4px_14px_rgba(0,0,0,0.35)] select-none pointer-events-auto"
+                          title="Nhân vật sắp ra mắt trong Archive"
+                        >
+                          <span className="text-rose-400 text-[10px] leading-none">✦</span>
+                          <span className="font-sans font-bold text-[11px] tracking-wide text-rose-300">
+                            SẮP RA MẮT
+                          </span>
+                        </div>
+                      )}
+
+                      {isRedTag && !isUpcoming && (
                         <div
                           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#991B1B] text-white border border-rose-400/40 shadow-[0_4px_14px_rgba(153,27,27,0.38)] select-none pointer-events-auto"
                           title="Cảnh báo: Nhân vật có nội dung 18+/21+ nặng đô"
@@ -604,7 +621,7 @@ export function CharactersPage({
                         </div>
                       )}
 
-                      {isNew && (
+                      {isNew && !isUpcoming && (
                         <div
                           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#18181B] text-[#FAF9F6] border border-black/25 shadow-[0_4px_14px_rgba(0,0,0,0.22)] select-none pointer-events-auto"
                           title="Nhân vật mới ra mắt trong Archive"
@@ -621,6 +638,12 @@ export function CharactersPage({
                   {/* The pristine arch card (inner layout completely preserved) */}
                   <Link
                     to={getCharacterPath(char)}
+                    onClick={(e) => {
+                      if (char.isUpcoming) {
+                        e.preventDefault();
+                        setTeaserModalChar(char);
+                      }
+                    }}
                     className="relative bg-white rounded-t-[120px] rounded-b-[26px] border border-black/[0.08] shadow-[0_22px_60px_rgba(0,0,0,0.06)] group-hover:shadow-[0_30px_80px_rgba(0,0,0,0.13)] transition-all duration-500 overflow-hidden flex flex-col justify-between pt-9 flex-1"
                   >
                     {/* Admin Quick Change Poster Button */}
@@ -760,7 +783,7 @@ export function CharactersPage({
                       <span className="font-editorial italic text-base text-[#141416] block leading-tight">
                         {char.name}.
                       </span>
-                      <span className="text-[9px] tracking-[0.16em] text-neutral-500 font-mono">
+                      <span className="text-[9.5px] tracking-[0.14em] text-neutral-500 font-serif lowercase">
                         {getCharacterSlug(char) || char.code.toLowerCase()}
                       </span>
                     </div>
@@ -772,6 +795,178 @@ export function CharactersPage({
           </div>
         )}
       </main>
+
+      {/* ARTISTIC NOIR DOSSIER MODAL FOR UPCOMING CHARACTER */}
+      {teaserModalChar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-2xl animate-fadeIn">
+          <div className="relative w-full max-w-2xl rounded-2xl bg-[#09090c] border border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.98)] text-neutral-100 overflow-hidden max-h-[92vh] flex flex-col text-left">
+            {/* Ambient Glows */}
+            <div className="absolute -top-32 -right-32 w-72 h-72 bg-gradient-to-br from-rose-950/25 to-transparent rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-32 -left-32 w-72 h-72 bg-gradient-to-tr from-stone-900/30 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+            {/* Top Minimal Bar */}
+            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between z-10 bg-black/40 backdrop-blur-md">
+              <div className="flex items-center gap-2.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                <span className="text-[10px] sm:text-[11px] font-serif tracking-[0.24em] uppercase text-rose-300 font-medium">
+                  ✦ Confidential Dossier · Bản Thảo Niêm Phong ✦
+                </span>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setTeaserModalChar(null)}
+                className="w-8 h-8 rounded-full border border-white/15 hover:border-white/40 flex items-center justify-center text-neutral-400 hover:text-white transition-all cursor-pointer"
+                aria-label="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body: Magazine-Spread Artwork & Literary Editorial Layout */}
+            <div className="p-6 sm:p-8 overflow-y-auto space-y-6">
+              {/* Dual Artwork Gallery Display */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Seated Noir Portrait */}
+                <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-black border border-white/15 shadow-2xl group/img1">
+                  <ImageWithFallback
+                    src={teaserModalChar.posterUrl || teaserModalChar.avatarUrl || '/assets/aistudio/IMG_0866_692df16d.jpeg'}
+                    alt={teaserModalChar.name}
+                    className="w-full h-full object-cover contrast-[1.05] brightness-95 group-hover/img1:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute bottom-3 left-3 text-[10px] font-serif italic text-neutral-400">
+                    Portrait 01 · {teaserModalChar.originalNovelTitle ? teaserModalChar.originalNovelTitle.toLowerCase() : 'vọng niệm'}
+                  </div>
+                </div>
+
+                {/* Mirror Side Profile Portrait */}
+                <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-black border border-white/15 shadow-2xl group/img2">
+                  <ImageWithFallback
+                    src={teaserModalChar.coverUrl || teaserModalChar.avatarUrl || '/assets/aistudio/IMG_0861_1e0d66ac.jpeg'}
+                    alt={teaserModalChar.name}
+                    className="w-full h-full object-cover contrast-[1.05] brightness-95 group-hover/img2:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute bottom-3 left-3 text-[10px] font-serif italic text-neutral-400">
+                    Portrait 02 · {teaserModalChar.originalChineseName || '牛圣婴'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Core Typographic Dossier */}
+              <div className="space-y-4 pt-2">
+                {/* Character Name & Novel */}
+                <div className="border-b border-white/10 pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+                  <div>
+                    <span className="text-xs font-serif italic text-neutral-400 block mb-1 lowercase">
+                      {teaserModalChar.originalNovelTitle ? teaserModalChar.originalNovelTitle.toLowerCase() : 'vọng niệm'} · dự án {teaserModalChar.code || 'T-06'}
+                    </span>
+                    <h2 className="font-editorial italic text-3xl sm:text-4xl text-white font-normal leading-tight">
+                      {teaserModalChar.name}
+                    </h2>
+                  </div>
+
+                  {teaserModalChar.originalChineseName && (
+                    <div className="text-right">
+                      <span className="font-serif text-lg text-neutral-400 block tracking-widest">
+                        {teaserModalChar.originalChineseName}
+                      </span>
+                      <span className="text-[10px] font-serif text-neutral-400 uppercase tracking-wider">
+                        Nhị thiếu gia
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tagline Section with Literary Quote Layout */}
+                <div className="p-5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-serif tracking-[0.2em] uppercase text-neutral-400">
+                    <Quote className="w-3 h-3 text-neutral-500" />
+                    <span className="italic lowercase">tagline</span>
+                  </div>
+                  <p className="font-serif italic text-base sm:text-lg text-neutral-100 leading-relaxed font-light pl-2 select-text">
+                    {teaserModalChar.tagline || teaserModalChar.profileData?.quote || '“Nhị thiếu gia! Đại tiểu thư lại bỏ trốn rồi.”'}
+                  </p>
+                </div>
+
+                {/* Genre Tags Strip */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-serif uppercase tracking-[0.2em] text-neutral-400 block">
+                    Thể loại
+                  </span>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-serif text-neutral-300">
+                    {[
+                      'r21+',
+                      'ngụy tỷ đệ',
+                      'niên hạ',
+                      'chiếm hữu bệnh hoạn',
+                      'mèo vờn chuột',
+                      'thao túng tâm lý',
+                      'tâm lý vặn vẹo'
+                    ].map((g, idx, arr) => (
+                      <React.Fragment key={g}>
+                        <span className="text-neutral-200 hover:text-white transition-colors">
+                          {g}
+                        </span>
+                        {idx < arr.length - 1 && (
+                          <span className="text-neutral-600 select-none">·</span>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Confidential Curator Notice */}
+                <div className="pt-2 border-t border-white/10 flex items-start gap-2.5 text-neutral-400">
+                  <Lock className="w-3.5 h-3.5 text-neutral-500 shrink-0 mt-0.5" />
+                  <p className="text-xs font-serif italic leading-relaxed text-neutral-400">
+                    Hồ sơ chi tiết, thiết lập Canon và văn án chính thức đang được niêm phong bảo mật. Toàn bộ nội dung sẽ được mở khóa chính thức trên trang chủ trong thời gian tới.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Minimal Footer Action Bar */}
+            <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between gap-3 bg-black/40 backdrop-blur-md">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!hasCheeredTeaser) {
+                    setHasCheeredTeaser(true);
+                    setTeaserCheerCount((c) => c + 1);
+                  }
+                }}
+                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-sans font-semibold tracking-wide transition-all shadow-md cursor-pointer ${
+                  hasCheeredTeaser
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    : 'bg-white hover:bg-neutral-200 text-black active:scale-95'
+                }`}
+              >
+                {hasCheeredTeaser ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Đã ngóng chờ ({teaserCheerCount})</span>
+                  </>
+                ) : (
+                  <>
+                    <Heart className="w-3.5 h-3.5 text-rose-600 fill-rose-600" />
+                    <span>Ngóng chờ nhân vật ({teaserCheerCount})</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTeaserModalChar(null)}
+                className="px-4 py-2 text-xs font-serif text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer settings={settings} onOpenAdmin={onOpenAdmin} />
     </div>

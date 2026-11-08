@@ -5,6 +5,7 @@ import { chuLacThien } from './chuLacThien';
 import { lucTuHien } from './lucTuHien';
 import { phanQuyMan } from './phanQuyMan';
 import { dongKy } from './dongKy';
+import { nguuThanhAnh } from './nguuThanhAnh';
 
 export {
   nguyTuViet,
@@ -12,7 +13,8 @@ export {
   chuLacThien,
   lucTuHien,
   phanQuyMan,
-  dongKy
+  dongKy,
+  nguuThanhAnh
 };
 
 export const ALL_CHARACTERS: Character[] = [
@@ -21,5 +23,6 @@ export const ALL_CHARACTERS: Character[] = [
   chuLacThien,
   lucTuHien,
   phanQuyMan,
-  dongKy
+  dongKy,
+  nguuThanhAnh
 ];

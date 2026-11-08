@@ -28,7 +28,8 @@ import {
   GalleryImage,
   CommissionRequest,
   CommissionSettings,
-  CommissionStatus
+  CommissionStatus,
+  UpcomingSubscriber
 } from '../types';
 import {
   INITIAL_CHARACTERS,
@@ -295,6 +296,8 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
       roleplayUnlockQuestion: initialTemplate.roleplayUnlockQuestion || '',
       roleplayUnlockAnswer: initialTemplate.roleplayUnlockAnswer || '',
       isPublished: true,
+      isUpcoming: raw?.isUpcoming !== undefined ? Boolean(raw.isUpcoming) : Boolean(initialTemplate.isUpcoming),
+      upcomingReleaseNote: pickNonEmpty(raw?.upcomingReleaseNote, initialTemplate.upcomingReleaseNote || ''),
       views: typeof raw?.views === 'number' && !isLegacySampleDoc ? Math.max(raw.views, initialTemplate.views || 0) : (initialTemplate.views || 0),
       likes: typeof raw?.likes === 'number' && !isLegacySampleDoc ? Math.max(raw.likes, initialTemplate.likes || 0) : (initialTemplate.likes || 0),
       roleplayClicks: typeof raw?.roleplayClicks === 'number' && !isLegacySampleDoc ? Math.max(raw.roleplayClicks, initialTemplate.roleplayClicks || 0) : (initialTemplate.roleplayClicks || 0),
@@ -331,6 +334,8 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
     roleplayUnlockQuestion: pickNonEmpty(raw?.roleplayUnlockQuestion, ''),
     roleplayUnlockAnswer: pickNonEmpty(raw?.roleplayUnlockAnswer, ''),
     isPublished: raw?.isPublished !== false,
+    isUpcoming: Boolean(raw?.isUpcoming),
+    upcomingReleaseNote: pickNonEmpty(raw?.upcomingReleaseNote, ''),
     views: typeof raw?.views === 'number' && !isLegacySampleDoc ? raw.views : 0,
     likes: typeof raw?.likes === 'number' && !isLegacySampleDoc ? raw.likes : 0,
     roleplayClicks: typeof raw?.roleplayClicks === 'number' && !isLegacySampleDoc ? raw.roleplayClicks : 0,
@@ -1503,4 +1508,55 @@ export async function saveCommissionSettings(settings: CommissionSettings): Prom
     throw error;
   }
 }
+
+// ---------------- UPCOMING CHARACTER SUBSCRIBERS ----------------
+
+export async function saveUpcomingSubscriber(
+  characterId: string,
+  characterName: string,
+  email: string,
+  readerName?: string,
+  note?: string
+): Promise<void> {
+  const id = `sub-${Date.now()}`;
+  const subData: UpcomingSubscriber = {
+    id,
+    characterId,
+    characterName,
+    email: email.trim().toLowerCase(),
+    readerName: readerName?.trim() || 'Độc giả yêu mến',
+    note: note?.trim() || '',
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    await setDoc(doc(db, 'upcoming_subscribers', id), subData);
+  } catch (error) {
+    // Graceful fallback to avoid breaking UI if offline
+    console.warn('[Firestore] Error saving upcoming subscriber:', error);
+  }
+}
+
+export function subscribeUpcomingSubscribers(
+  callback: (subscribers: UpcomingSubscriber[]) => void
+): () => void {
+  try {
+    const q = query(collection(db, 'upcoming_subscribers'));
+    return onSnapshot(
+      q,
+      (snap) => {
+        const list = snap.docs.map((d) => d.data() as UpcomingSubscriber);
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        callback(list);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'upcoming_subscribers');
+      }
+    );
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, 'upcoming_subscribers');
+    return () => {};
+  }
+}
+
 

@@ -23,7 +23,10 @@ import {
   Lock,
   Unlock,
   Check,
-  X
+  X,
+  BellRing,
+  Mail,
+  Copy
 } from 'lucide-react';
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { auth, testConnection } from '../lib/firebase';
@@ -37,7 +40,8 @@ import {
   MusicTrack,
   CommissionRequest,
   CommissionSettings,
-  CommissionStatus
+  CommissionStatus,
+  UpcomingSubscriber
 } from '../types';
 import {
   generateCharacterSlug,
@@ -63,8 +67,10 @@ import {
   updateCommissionStatus,
   deleteCommissionRequest,
   subscribeCommissionSettings,
-  saveCommissionSettings
+  saveCommissionSettings,
+  subscribeUpcomingSubscribers
 } from '../services/firestoreService';
+import { fetchUpcomingSubscribersSupabase } from '../services/supabaseService';
 import { INITIAL_COMMISSION_SETTINGS } from '../data/initialData';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 
@@ -102,8 +108,12 @@ export function AdminPage({
   const charParam = searchParams.get('character');
 
   const [activeTab, setActiveTab] = useState<
-    'characters' | 'commissions' | 'genres' | 'quotes' | 'creator' | 'settings' | 'music' | 'backup'
+    'characters' | 'commissions' | 'subscribers' | 'genres' | 'quotes' | 'creator' | 'settings' | 'music' | 'backup'
   >(initialTab);
+
+  // VIP Upcoming Subscribers state
+  const [subscribers, setSubscribers] = useState<UpcomingSubscriber[]>([]);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Character editing state
   const [editingChar, setEditingChar] = useState<Character | null>(null);
@@ -168,16 +178,50 @@ export function AdminPage({
       if (s) setCommissionSettingsForm(s);
     });
     let unsubReqs: (() => void) | undefined;
+    let unsubSubs: (() => void) | undefined;
+
     if (isAdmin && auth.currentUser) {
       unsubReqs = subscribeCommissionRequests(setCommissionRequests);
+      unsubSubs = subscribeUpcomingSubscribers((list) => {
+        setSubscribers((prev) => {
+          const map = new Map<string, UpcomingSubscriber>();
+          [...list, ...prev].forEach((item) => map.set(item.email, item));
+          return Array.from(map.values()).sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        });
+      });
+
+      // Also hydrate from Supabase
+      fetchUpcomingSubscribersSupabase().then((sbList) => {
+        if (sbList && sbList.length > 0) {
+          setSubscribers((prev) => {
+            const map = new Map<string, UpcomingSubscriber>();
+            [...prev, ...sbList].forEach((item) => map.set(item.email, item));
+            return Array.from(map.values()).sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+          });
+        }
+      }).catch(() => {});
     } else {
       setCommissionRequests([]);
+      setSubscribers([]);
     }
     return () => {
       if (unsubReqs) unsubReqs();
+      if (unsubSubs) unsubSubs();
       unsubSettings();
     };
   }, [isAdmin]);
+
+  const handleCopyAllEmails = () => {
+    const emails = Array.from(new Set(subscribers.map((s) => s.email).filter(Boolean)));
+    if (emails.length === 0) return;
+    navigator.clipboard.writeText(emails.join(', '));
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 3000);
+  };
 
   const handleUpdateCommStatus = async (id: string, status: CommissionStatus, notes?: string) => {
     try {
@@ -670,6 +714,7 @@ export function AdminPage({
             <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/[0.08] mb-6 scrollbar-none">
           {[
             { id: 'characters', label: `Nhân vật (${characters.length})`, icon: Users },
+            { id: 'subscribers', label: `Hóng nhân vật (${subscribers.length})`, icon: BellRing },
             { id: 'commissions', label: `Commission (${commissionRequests.length})`, icon: Sparkles },
             { id: 'genres', label: `Thể loại (${genres.length})`, icon: Tag },
             { id: 'quotes', label: `Trích dẫn (${quotes.length})`, icon: QuoteIcon },
@@ -833,6 +878,43 @@ export function AdminPage({
                         Tạo từ tên
                       </button>
                     </div>
+                  </div>
+
+                  {/* CHẾ ĐỘ CHARACTER SẮP RA MẮT (UPCOMING TEASER) */}
+                  <div className="p-4 bg-white/[0.03] border border-white/[0.08] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-rose-400" />
+                        <span className="text-xs font-bold text-white uppercase tracking-wider">
+                          Chế độ "Character Sắp Ra Mắt"
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-serif">
+                          Spotlight đầu trang Home
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-neutral-400">
+                        Khi bật, nhân vật này sẽ xuất hiện ở mục Spotlight đặc biệt trên đầu Home với tag "✦ Sắp ra mắt" và kích hoạt hồ sơ Teaser niêm phong.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditingChar({ ...editingChar, isUpcoming: !editingChar.isUpcoming })}
+                      className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 self-start sm:self-auto ${
+                        editingChar.isUpcoming
+                          ? 'bg-rose-600 text-white shadow-lg'
+                          : 'bg-white/10 text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      {editingChar.isUpcoming ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-white" />
+                          <span>Đang bật: Sắp ra mắt</span>
+                        </>
+                      ) : (
+                        <span>Tắt (Nhân vật bình thường)</span>
+                      )}
+                    </button>
                   </div>
 
                   {/* GÁN THỂ LOẠI (CHỌN TỪ CÁC THỂ LOẠI ĐÃ TẠO HOẶC TẠO MỚI) */}
@@ -1700,9 +1782,13 @@ export function AdminPage({
                           <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-0.5">
                             <span>#{char.code}</span>
                             <span>·</span>
-                            <span className={char.isPublished !== false ? 'text-emerald-400' : 'text-amber-400'}>
-                              {char.isPublished !== false ? 'Đã xuất bản' : 'Bản nháp'}
-                            </span>
+                            {char.isUpcoming ? (
+                              <span className="text-rose-400 font-medium">✦ Sắp ra mắt</span>
+                            ) : (
+                              <span className={char.isPublished !== false ? 'text-emerald-400' : 'text-amber-400'}>
+                                {char.isPublished !== false ? 'Đã xuất bản' : 'Bản nháp'}
+                              </span>
+                            )}
                           </div>
                           <h3 className="text-sm font-bold text-white truncate">{char.name}</h3>
                           <p className="text-[11px] text-neutral-400 truncate mt-0.5">
@@ -1769,6 +1855,117 @@ export function AdminPage({
               </div>
             )}
 
+          </div>
+        )}
+
+        {/* TAB: VIP UPCOMING SUBSCRIBERS */}
+        {activeTab === 'subscribers' && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
+              <div>
+                <span className="text-[11px] text-rose-400 uppercase tracking-widest block mb-0.5 font-serif">
+                  ✦ Danh sách chờ VIP · Sắp khởi chiếu
+                </span>
+                <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                  <span>Độc giả đăng ký hóng nhân vật</span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-normal">
+                    {subscribers.length} lượt
+                  </span>
+                </h2>
+                <p className="text-xs text-neutral-400 mt-1">
+                  Danh sách những độc giả đã để lại email nhận thông báo khi hồ sơ nhân vật mới được mở khóa.
+                </p>
+              </div>
+
+              {subscribers.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleCopyAllEmails}
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-neutral-200 text-neutral-900 font-semibold text-xs flex items-center gap-2 transition-all shadow-md cursor-pointer shrink-0 self-start sm:self-auto"
+                >
+                  {copySuccess ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                      <span>Đã chép danh sách email!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Sao chép tất cả email</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {subscribers.length === 0 ? (
+              <div className="py-16 text-center bg-[#09090d] border border-white/[0.08] rounded-2xl p-8">
+                <BellRing className="w-8 h-8 text-neutral-600 mx-auto mb-3" />
+                <h3 className="text-sm font-semibold text-neutral-200 mb-1">
+                  Chưa có độc giả nào đăng ký
+                </h3>
+                <p className="text-xs text-neutral-400 max-w-md mx-auto">
+                  Khi độc giả bấm vào mục "Character sắp ra mắt" trên trang chủ và để lại email nhận thư mật, danh sách sẽ hiển thị đầy đủ ngay tại đây.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {subscribers.map((sub) => (
+                  <div
+                    key={sub.id}
+                    className="p-4 rounded-xl bg-[#09090d] border border-white/[0.08] hover:border-white/20 transition-all flex flex-col justify-between space-y-3"
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-serif uppercase tracking-wider text-rose-300 px-2 py-0.5 rounded bg-rose-500/15">
+                          {sub.characterName || 'Nhân vật mới'}
+                        </span>
+                        <span className="text-[10px] text-neutral-500">
+                          {new Date(sub.createdAt).toLocaleDateString('vi-VN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </span>
+                      </div>
+
+                      <div className="pt-1">
+                        <div className="flex items-center justify-between gap-1 group/email">
+                          <span className="text-xs font-semibold text-white select-all font-mono truncate" title={sub.email}>
+                            {sub.email}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(sub.email);
+                              setStatusMessage(`Đã sao chép email: ${sub.email}`);
+                            }}
+                            className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer shrink-0"
+                            title="Sao chép email"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        {sub.readerName && sub.readerName !== 'Độc giả yêu mến' && (
+                          <p className="text-[11px] text-neutral-400 mt-0.5">
+                            Người gửi: <span className="text-neutral-200">{sub.readerName}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {sub.note && (
+                        <div className="p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06] mt-2">
+                          <p className="text-[11px] text-neutral-300 italic">
+                            "{sub.note}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

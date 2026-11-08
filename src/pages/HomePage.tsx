@@ -19,7 +19,9 @@ import { Footer } from '../components/layout/Footer';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { preloadImage } from '../utils/imageOptimizer';
 import { HotCharacterSpotlight } from '../components/home/HotCharacterSpotlight';
+import { UpcomingCharacterSpotlight } from '../components/home/UpcomingCharacterSpotlight';
 import { incrementRoleplayClicks } from '../services/firestoreService';
+import { incrementRoleplayClicksSupabase } from '../services/supabaseService';
 import { getCharacterPath } from '../utils/slugify';
 import { parseQuestionAndHint } from '../utils/questionParser';
 
@@ -68,8 +70,11 @@ export function HomePage({
   const [roleplayPasswordInput, setRoleplayPasswordInput] = useState('');
   const [roleplayPasswordError, setRoleplayPasswordError] = useState(false);
 
-  const total = characters.length;
-  const currentHero = characters[activeIndex] || characters[0];
+  // Filter released characters for the active gallery diptych (upcoming character gets the top spotlight)
+  const displayCharacters = characters.filter((c) => !c.isUpcoming);
+  const heroList = displayCharacters.length > 0 ? displayCharacters : characters;
+  const total = heroList.length;
+  const currentHero = heroList[activeIndex] || heroList[0];
 
 
 
@@ -131,6 +136,7 @@ export function HomePage({
       setShowRoleplayModal(true);
     } else {
       incrementRoleplayClicks(currentHero.id);
+      incrementRoleplayClicksSupabase(currentHero.id);
       window.open(currentHero.roleplayLink, '_blank', 'noopener,noreferrer');
     }
   };
@@ -155,6 +161,7 @@ export function HomePage({
       setRoleplayPasswordError(false);
       if (currentHero.roleplayLink) {
         incrementRoleplayClicks(currentHero.id);
+        incrementRoleplayClicksSupabase(currentHero.id);
         window.open(currentHero.roleplayLink, '_blank', 'noopener,noreferrer');
       }
     } else {
@@ -192,7 +199,12 @@ export function HomePage({
       />
 
       {/* Balanced Centered Editorial Column with comfortable mobile & desktop breathing space */}
-      <main className="flex-1 w-[86%] max-w-[350px] sm:max-w-[430px] mx-auto pt-6 sm:pt-10 pb-14">
+      <main className="flex-1 w-[88%] max-w-[360px] sm:max-w-[460px] mx-auto pt-5 sm:pt-8 pb-14">
+        {/* =========================================================
+            MỤC CHARACTER SẮP RA MẮT (UPCOMING DOSSIER SPOTLIGHT)
+        ========================================================= */}
+        <UpcomingCharacterSpotlight characters={characters} isAdmin={isAdmin} />
+
         {/* Top Micro Controls & Auto-Slide Indicator (When > 1 Character) */}
         {total > 1 && (
           <div className="mb-3 flex items-center justify-between text-[9.5px] sm:text-[10px] tracking-[0.16em] uppercase text-neutral-400">
@@ -216,7 +228,7 @@ export function HomePage({
             {/* Dots & Next/Prev Arrows */}
             <div className="flex items-center gap-1.5 shrink-0">
               <div className="flex items-center gap-1 mr-1">
-                {characters.map((c, idx) => (
+                {heroList.map((c, idx) => (
                   <button
                     key={c.id}
                     onClick={() =>

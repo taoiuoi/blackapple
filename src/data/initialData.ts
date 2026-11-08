@@ -181,6 +181,36 @@ export const INITIAL_GENRES: Genre[] = [
     "order": 30,
     "name": "Văn nhã bại hoại",
     "id": "van-nha-bai-hoai"
+  },
+  {
+    "description": "",
+    "order": 31,
+    "name": "Ngụy tỷ đệ",
+    "id": "nguy-ty-de"
+  },
+  {
+    "description": "",
+    "order": 32,
+    "name": "Niên hạ",
+    "id": "nien-ha"
+  },
+  {
+    "description": "",
+    "order": 33,
+    "name": "Chiếm hữu bệnh hoạn",
+    "id": "chiem-huu-benh-hoan"
+  },
+  {
+    "description": "",
+    "order": 34,
+    "name": "Mèo vờn chuột",
+    "id": "meo-von-chuot"
+  },
+  {
+    "description": "",
+    "order": 35,
+    "name": "Tâm lý vặn vẹo",
+    "id": "tam-ly-van-veo"
   }
 ];
 

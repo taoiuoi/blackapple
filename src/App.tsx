@@ -24,6 +24,7 @@ import {
   normalizeCharacter,
   getCachedFirestoreData
 } from './services/firestoreService';
+import { fetchCharacterStatsSupabase } from './services/supabaseService';
 import { preloadCharacterAssets } from './utils/imageOptimizer';
 import {
   INITIAL_CHARACTERS,
@@ -179,6 +180,23 @@ export default function App() {
       });
       setCharacters(merged);
       preloadCharacterAssets(merged);
+
+      // Hydrate with Supabase view & roleplay click counters
+      fetchCharacterStatsSupabase().then((statsMap) => {
+        if (statsMap && Object.keys(statsMap).length > 0) {
+          setCharacters((prev) =>
+            prev.map((c) => {
+              const st = statsMap[c.id];
+              if (!st) return c;
+              return {
+                ...c,
+                views: Math.max(c.views || 0, st.views || 0),
+                roleplayClicks: Math.max(c.roleplayClicks || 0, st.roleplayClicks || 0)
+              };
+            })
+          );
+        }
+      }).catch(() => {});
     });
 
     const unsubGenres = subscribeGenres(setGenres);
