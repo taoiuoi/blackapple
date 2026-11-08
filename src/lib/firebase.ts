@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import {
   initializeFirestore,
+  getFirestore,
   doc,
   getDoc,
   setLogLevel
@@ -24,13 +25,19 @@ const app = initializeApp(firebaseConfig);
 setLogLevel('silent');
 
 // CRITICAL: Specify firestoreDatabaseId and enable auto long-polling for reliable connection
-export const db = initializeFirestore(
-  app,
-  {
-    experimentalAutoDetectLongPolling: true
-  },
-  firebaseConfig.firestoreDatabaseId
-);
+let firestoreInstance;
+try {
+  firestoreInstance = initializeFirestore(
+    app,
+    {
+      experimentalAutoDetectLongPolling: true
+    },
+    firebaseConfig.firestoreDatabaseId
+  );
+} catch (_) {
+  firestoreInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+}
+export const db = firestoreInstance;
 
 export const auth = getAuth(app);
 

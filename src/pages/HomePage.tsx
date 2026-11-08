@@ -8,7 +8,10 @@ import {
   Pause,
   Play,
   Lock,
-  X
+  X,
+  KeyRound,
+  Sparkles,
+  ShieldAlert
 } from 'lucide-react';
 import { Character, WebsiteSettings } from '../types';
 import { Navbar } from '../components/layout/Navbar';
@@ -18,6 +21,7 @@ import { preloadImage } from '../utils/imageOptimizer';
 import { HotCharacterSpotlight } from '../components/home/HotCharacterSpotlight';
 import { incrementRoleplayClicks } from '../services/firestoreService';
 import { getCharacterPath } from '../utils/slugify';
+import { parseQuestionAndHint } from '../utils/questionParser';
 
 // Helper to extract or display Chinese Name for the archive header
 function getChineseDisplay(char?: Character): string {
@@ -433,76 +437,128 @@ export function HomePage({
         onReplayIntro={onReplayIntro}
       />
 
-      {/* Password Modal for Protected Roleplay AI */}
-      {showRoleplayModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="relative w-full max-w-sm rounded-2xl bg-[#0f0f14] border border-white/15 p-6 shadow-2xl text-neutral-200">
-            <button
-              onClick={() => setShowRoleplayModal(false)}
-              className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
+      {/* Password Modal for Protected Roleplay Canon */}
+      {showRoleplayModal && (() => {
+        const parsedQA = parseQuestionAndHint(currentHero.roleplayUnlockQuestion);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fadeIn">
+            <div className="relative w-full max-w-lg rounded-3xl bg-[#0c0c0e] border border-white/15 p-6 sm:p-8 shadow-[0_25px_80px_rgba(0,0,0,0.9)] text-neutral-100 text-left overflow-hidden">
+              {/* Soft Ambient Glows */}
+              <div className="absolute -top-24 -right-24 w-60 h-60 bg-gradient-to-br from-[#d4af37]/15 to-transparent rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-gradient-to-tr from-[#881337]/15 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-            <div className="flex items-center gap-2 mb-3">
-              <Lock className="w-4 h-4 text-amber-400" />
-              <span className="text-[11px] font-mono tracking-widest text-amber-400 uppercase">
-                Roleplay AI Bảo Mật
-              </span>
-            </div>
+              {/* Close Button */}
+              <button
+                onClick={() => setShowRoleplayModal(false)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full border border-white/10 hover:border-white/30 flex items-center justify-center text-neutral-400 hover:text-white transition-all z-10"
+                aria-label="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
 
-            <h3 className="font-editorial italic text-xl text-white mb-2">
-              {currentHero.name}
-            </h3>
+              {/* Status Header */}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-pulse" />
+                <span className="text-[10px] tracking-[0.24em] text-[#d4af37] font-serif uppercase font-semibold">
+                  Hồ sơ bảo mật · Mật mã Canon
+                </span>
+              </div>
 
-            <p className="text-xs text-neutral-400 mb-4 leading-relaxed font-serif">
-              {currentHero.roleplayUnlockQuestion ||
-                'Vui lòng nhập mật khẩu hoặc câu trả lời bảo mật để truy cập phòng Roleplay AI:'}
-            </p>
+              {/* Character Identity */}
+              <div className="flex items-center gap-3.5 mb-5 pb-4 border-b border-white/10">
+                <div className="w-12 h-12 rounded-full overflow-hidden border border-[#d4af37]/40 shrink-0 shadow-lg bg-neutral-900">
+                  <ImageWithFallback
+                    src={currentHero.avatarUrl || currentHero.posterUrl || currentHero.coverUrl}
+                    alt={currentHero.name}
+                    className="w-full h-full object-cover object-top"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-editorial italic text-2xl sm:text-[26px] text-white leading-none truncate">
+                    {currentHero.name}
+                  </h3>
+                  {currentHero.originalNovelTitle && (
+                    <p className="text-[11px] font-serif text-neutral-400 italic tracking-wider mt-1 truncate">
+                      {currentHero.originalNovelTitle}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-            <form onSubmit={handleUnlockRoleplay} className="space-y-4">
-              <div>
-                <input
-                  type="text"
-                  autoFocus
-                  value={roleplayPasswordInput}
-                  onChange={(e) => {
-                    setRoleplayPasswordInput(e.target.value);
-                    setRoleplayPasswordError(false);
-                  }}
-                  placeholder="Nhập câu trả lời / mật khẩu..."
-                  className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.05] border ${
-                    roleplayPasswordError
-                      ? 'border-rose-500 text-rose-200 focus:ring-rose-500'
-                      : 'border-white/15 text-white focus:border-white/40'
-                  } text-xs outline-none transition-colors`}
-                />
-                {roleplayPasswordError && (
-                  <p className="mt-1.5 text-[11px] text-rose-400">
-                    Câu trả lời chưa chính xác. Vui lòng thử lại!
+              {/* 01. Separate Question Card */}
+              <div className="p-4 sm:p-4.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1.5 mb-3.5 shadow-inner">
+                <div className="flex items-center gap-1.5 text-[9px] tracking-[0.22em] uppercase text-neutral-400 font-serif font-semibold">
+                  <Sparkles className="w-3 h-3 text-[#d4af37]" />
+                  <span>Câu hỏi mở khóa</span>
+                </div>
+                <p className="font-serif text-xs sm:text-[13.5px] text-neutral-100 leading-relaxed italic select-text">
+                  “{parsedQA.question}”
+                </p>
+              </div>
+
+              {/* 02. Separate Hint Card (If available) */}
+              {parsedQA.hint && (
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#c5a880]/10 border border-[#c5a880]/30 space-y-1 mb-4 shadow-sm">
+                  <div className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-[#e6ca9f] font-serif font-semibold">
+                    <KeyRound className="w-3.5 h-3.5 text-[#e6ca9f]" />
+                    <span>Gợi ý mật mã</span>
+                  </div>
+                  <p className="font-serif text-xs sm:text-[13px] text-[#f4ece1] leading-relaxed select-text font-medium">
+                    {parsedQA.hint}
                   </p>
-                )}
-              </div>
+                </div>
+              )}
 
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowRoleplayModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg border border-white/10 text-xs text-neutral-400 hover:text-white transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs font-semibold transition-colors"
-                >
-                  Mở khóa Roleplay
-                </button>
-              </div>
-            </form>
+              {/* 03. Password Input Form */}
+              <form onSubmit={handleUnlockRoleplay} className="space-y-4">
+                <div>
+                  <label className="text-[10px] tracking-[0.2em] uppercase text-neutral-400 font-serif font-semibold block mb-2">
+                    Nhập câu trả lời hoặc mật khẩu:
+                  </label>
+                  <input
+                    type="text"
+                    autoFocus
+                    value={roleplayPasswordInput}
+                    onChange={(e) => {
+                      setRoleplayPasswordInput(e.target.value);
+                      setRoleplayPasswordError(false);
+                    }}
+                    placeholder="Nhập đáp án tại đây..."
+                    className={`w-full px-4 py-3 rounded-xl bg-black/60 border ${
+                      roleplayPasswordError
+                        ? 'border-rose-500/80 text-rose-200 focus:ring-1 focus:ring-rose-500/50'
+                        : 'border-white/20 text-white focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37]/40'
+                    } text-xs sm:text-sm font-serif placeholder:font-serif placeholder:italic placeholder:text-neutral-500 outline-none transition-all shadow-inner`}
+                  />
+                  {roleplayPasswordError && (
+                    <div className="mt-2.5 p-2.5 rounded-lg bg-rose-950/40 border border-rose-500/30 text-rose-300 font-serif text-xs flex items-center gap-2">
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                      <span>Mật khẩu chưa chính xác. Bạn hãy đối chiếu lại gợi ý bên trên nhé.</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowRoleplayModal(false)}
+                    className="px-5 py-2.5 rounded-full border border-white/15 text-xs font-serif text-neutral-400 hover:text-white hover:border-white/30 transition-all"
+                  >
+                    Hủy bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-full bg-neutral-100 hover:bg-white text-neutral-900 text-xs font-serif font-bold tracking-[0.16em] uppercase shadow-lg transition-all active:scale-95"
+                  >
+                    Xác nhận mở khóa
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

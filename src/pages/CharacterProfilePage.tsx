@@ -13,7 +13,9 @@ import {
   ExternalLink,
   Tag,
   X,
-  ArrowLeft
+  ArrowLeft,
+  KeyRound,
+  Sparkles
 } from 'lucide-react';
 import {
   Character,
@@ -22,6 +24,8 @@ import {
   Comment,
   WebsiteSettings
 } from '../types';
+import { INITIAL_CHARACTERS } from '../data/initialData';
+import { parseQuestionAndHint } from '../utils/questionParser';
 import {
   subscribeComments,
   submitComment,
@@ -78,15 +82,15 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Robust character lookup: matches doc ID, explicit slug, slugified name, or code
-  const rawCharacter = characters.find(
-    (c) => matchesCharacter(c, id || '')
-  );
+  // Robust character lookup: matches doc ID, explicit slug, slugified name, or code from state, fallback directly to code truth
+  const rawCharacter =
+    characters.find((c) => matchesCharacter(c, id || '')) ||
+    INITIAL_CHARACTERS.find((c) => matchesCharacter(c, id || ''));
 
   // Normalize character fields with full INITIAL_CHARACTERS fallback for all 01-07 sections & NPCs
   const character: Character | undefined = rawCharacter
     ? normalizeCharacter(rawCharacter, rawCharacter.id)
-    : undefined;
+    : INITIAL_CHARACTERS.find((c) => matchesCharacter(c, id || ''));
 
   // Canonical slug URL synchronization:
   // Only redirect once if opened via legacy timestamp ID (char-...) or raw uppercase code
@@ -2443,48 +2447,64 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                   </p>
                 )}
               </div>
-            ) : (
-              /* If PRIVATE & Locked -> Show Question + Password Input */
-              <div className="pt-8 max-w-md mx-auto space-y-5">
-                <div className="p-4 bg-white/75 border border-black/15">
-                  <span className="text-[9px] tracking-[0.2em] uppercase text-neutral-500 block mb-1">
-                    CÂU HỎI MỞ KHÓA LINK PRIVATE:
-                  </span>
-                  <p className="font-serif text-xs sm:text-sm text-[#18181A] font-medium leading-relaxed">
-                    “
-                    {character.roleplayUnlockQuestion ||
-                      'Hãy nhập mật khẩu Canon để mở khóa Link GGAI của nhân vật này.'}
-                    ”
-                  </p>
-                </div>
-
-                <form onSubmit={handleUnlockGgai} className="space-y-3">
-                  <div className="flex flex-col sm:flex-row gap-2.5">
-                    <input
-                      type="text"
-                      required
-                      value={passwordInput}
-                      onChange={(e) => setPasswordInput(e.target.value)}
-                      placeholder="Nhập mật khẩu / câu trả lời..."
-                      className="flex-1 px-4 py-2.5 bg-white border border-black/20 text-xs text-[#18181A] placeholder:text-neutral-400 focus:outline-none focus:border-black"
-                    />
-                    <button
-                      type="submit"
-                      className="px-6 py-2.5 bg-[#18181A] hover:bg-neutral-800 text-white text-[11px] font-semibold tracking-[0.18em] uppercase transition-colors shrink-0"
-                    >
-                      Mở khóa Link
-                    </button>
+            ) : (() => {
+              const parsedQA = parseQuestionAndHint(character.roleplayUnlockQuestion);
+              return (
+                /* If PRIVATE & Locked -> Show Separated Question, Hint, and Password Input */
+                <div className="pt-8 max-w-lg mx-auto space-y-4">
+                  {/* 01. Separate Question Card */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-white border border-black/15 shadow-sm space-y-2 text-left">
+                    <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-[#735a38] font-serif font-semibold">
+                      <Sparkles className="w-3.5 h-3.5 text-[#b8860b]" />
+                      <span>Câu hỏi mở khóa Canon</span>
+                    </div>
+                    <p className="font-serif text-xs sm:text-[13.5px] text-[#1c1917] leading-relaxed italic select-text">
+                      “{parsedQA.question}”
+                    </p>
                   </div>
 
-                  {passwordError && (
-                    <p className="text-xs text-[#7F1D1D] font-medium flex items-center gap-1.5">
-                      <ShieldAlert className="w-3.5 h-3.5" />
-                      <span>Mật khẩu hoặc câu trả lời chưa chính xác. Vui lòng thử lại.</span>
-                    </p>
+                  {/* 02. Separate Hint Card (If present) */}
+                  {parsedQA.hint && (
+                    <div className="p-4 rounded-2xl bg-[#f5ede1] border border-[#c5a880]/50 shadow-sm space-y-1.5 text-left">
+                      <div className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-[#8c5e28] font-serif font-semibold">
+                        <KeyRound className="w-3.5 h-3.5 text-[#8c5e28]" />
+                        <span>Gợi ý mật mã</span>
+                      </div>
+                      <p className="font-serif text-xs sm:text-[13px] text-[#3d2b1f] leading-relaxed font-medium select-text">
+                        {parsedQA.hint}
+                      </p>
+                    </div>
                   )}
-                </form>
-              </div>
-            )}
+
+                  {/* 03. Password Input Form */}
+                  <form onSubmit={handleUnlockGgai} className="space-y-3 pt-1">
+                    <div className="flex flex-col sm:flex-row gap-2.5">
+                      <input
+                        type="text"
+                        required
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        placeholder="Nhập câu trả lời hoặc mật khẩu..."
+                        className="flex-1 px-4 py-3 bg-white border border-black/20 text-xs sm:text-sm text-[#18181A] font-serif placeholder:font-serif placeholder:italic placeholder:text-neutral-400 focus:outline-none focus:border-black rounded-xl shadow-inner"
+                      />
+                      <button
+                        type="submit"
+                        className="px-7 py-3 bg-[#18181A] hover:bg-black text-white text-xs font-serif font-bold tracking-[0.18em] uppercase rounded-xl transition-all shadow-md shrink-0 active:scale-95"
+                      >
+                        Mở khóa Link
+                      </button>
+                    </div>
+
+                    {passwordError && (
+                      <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-xs font-serif text-rose-800 font-medium flex items-center gap-2 text-left">
+                        <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                        <span>Mật khẩu chưa chính xác. Bạn hãy đối chiếu lại gợi ý bên trên nhé.</span>
+                      </div>
+                    )}
+                  </form>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </section>

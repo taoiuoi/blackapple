@@ -51,14 +51,8 @@ import { AudioPlayerBar } from './components/audio/AudioPlayerBar';
 import { DirectImageUrlModal } from './components/common/DirectImageUrlModal';
 
 export default function App() {
-  // Main Data States (Initialize from 0ms Local Cache to eliminate network delay)
-  const [characters, setCharacters] = useState<Character[]>(() => {
-    const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v6');
-    if (cached && Array.isArray(cached) && cached.length > 0) {
-      return cached.map((c) => normalizeCharacter(c, c.id));
-    }
-    return INITIAL_CHARACTERS;
-  });
+  // Main Data States (Initialize from codebase truth INITIAL_CHARACTERS to guarantee zero link/field drops)
+  const [characters, setCharacters] = useState<Character[]>(INITIAL_CHARACTERS);
   const [genres, setGenres] = useState<Genre[]>(INITIAL_GENRES);
   const [quotes, setQuotes] = useState<Quote[]>(INITIAL_QUOTES);
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile>(() => {
@@ -153,8 +147,11 @@ export default function App() {
 
   // Initialize and Subscribe to Firestore
   useEffect(() => {
-    // Purge any legacy localStorage image overrides on startup
+    // Purge any legacy localStorage image overrides and stale character caches on startup
     try {
+      ['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9'].forEach((v) => {
+        localStorage.removeItem(`ba_cache_characters_${v}`);
+      });
       ['nguy-tu-viet', 'gian-di-ninh', 'chu-lac-thien', 'luc-tu-hien', 'phan-quy-man', 'dong-ky'].forEach((cid) => {
         localStorage.removeItem(`ba_char_${cid}_avatarUrl`);
         localStorage.removeItem(`ba_char_${cid}_coverUrl`);

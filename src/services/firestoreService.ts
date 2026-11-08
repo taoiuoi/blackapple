@@ -13,7 +13,7 @@ import { onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestoreErrors';
 import { isSampleBuildImage } from '../components/common/ImageWithFallback';
-import { slugifyVietnamese } from '../utils/slugify';
+import { slugifyVietnamese, matchesCharacter } from '../utils/slugify';
 import {
   Character,
   CharacterNPC,
@@ -139,7 +139,9 @@ function pickLabel(rawLabel?: string, initLabel?: string, fallback = ''): string
 
 // Helper to guarantee every Character object has clean fields without injecting fake/sample info
 export function normalizeCharacter(raw: Record<string, any>, id: string): Character {
-  const initialTemplate = INITIAL_CHARACTERS.find((c) => c.id === id);
+  const initialTemplate = INITIAL_CHARACTERS.find(
+    (c) => c.id === id || matchesCharacter(c, id) || matchesCharacter(c, raw?.slug || '') || matchesCharacter(c, raw?.name || '')
+  );
   const rawProfile = raw?.profileData || {};
 
   const isLegacySampleDoc =
@@ -596,13 +598,8 @@ export async function getCharacters(): Promise<Character[]> {
 export function subscribeCharacters(callback: (characters: Character[]) => void) {
   cleanLocalStorageSampleImages();
 
-  // Instant 0ms cache-first delivery to eliminate loading delay
-  const cached = getCachedFirestoreData<Character[]>('ba_cache_characters_v9');
-  if (cached && Array.isArray(cached) && cached.length > 0) {
-    callback(cached);
-  } else {
-    callback(INITIAL_CHARACTERS);
-  }
+  // Instant delivery with INITIAL_CHARACTERS as the rock-solid ground truth
+  callback(INITIAL_CHARACTERS);
 
   try {
     const colRef = collection(db, 'characters');
@@ -624,18 +621,15 @@ export function subscribeCharacters(callback: (characters: Character[]) => void)
           });
           const list = Array.from(map.values());
           list.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
-          // Persist to local cache so future visits/reloads require 0 reads
-          setCachedFirestoreData('ba_cache_characters_v9', list);
           callback(list);
         }
       },
       (error) => {
-        console.warn('Firestore subscription quota / network error, serving static characters:', error);
+        // Safe shield for quota limit or network disconnect
         callback(INITIAL_CHARACTERS);
       }
     );
   } catch (error) {
-    console.warn('Firestore subscription init failed, using static characters:', error);
     callback(INITIAL_CHARACTERS);
     return () => {};
   }
@@ -1333,6 +1327,14 @@ export async function deleteConfession(id: string): Promise<void> {
 
 // ---------------- COMMENTS ----------------
 export function subscribeComments(characterId: string, callback: (comments: Comment[]) => void) {
+  const cacheKey = `ba_cache_comments_${characterId}`;
+  const localCached = getCachedFirestoreData<Comment[]>(cacheKey);
+  if (localCached && Array.isArray(localCached) && localCached.length > 0) {
+    callback(localCached);
+  } else {
+    callback([]);
+  }
+
   try {
     const q = query(collection(db, 'comments'));
     return onSnapshot(
@@ -1342,16 +1344,19 @@ export function subscribeComments(characterId: string, callback: (comments: Comm
           .map((d) => ({ ...d.data(), id: d.id } as Comment))
           .filter((c) => c.characterId === characterId);
         list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setCachedFirestoreData(cacheKey, list);
         callback(list);
       },
       (error) => {
         handleFirestoreError(error, OperationType.LIST, 'comments');
-        callback([]);
+        const fallback = getCachedFirestoreData<Comment[]>(cacheKey) || [];
+        callback(fallback);
       }
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, 'comments');
-    callback([]);
+    const fallback = getCachedFirestoreData<Comment[]>(cacheKey) || [];
+    callback(fallback);
     return () => {};
   }
 }
@@ -1359,15 +1364,21 @@ export function subscribeComments(characterId: string, callback: (comments: Comm
 export async function submitComment(characterId: string, authorName: string, content: string): Promise<void> {
   const id = `comm-${Date.now()}`;
   const path = `comments/${id}`;
+  const item: Comment = {
+    id,
+    characterId,
+    authorName: authorName.trim() || 'Người đọc vô danh',
+    content: content.trim(),
+    createdAt: new Date().toISOString(),
+    likes: 0
+  };
+
+  // Optimistically save to local cache so user immediately sees their comment
+  const cacheKey = `ba_cache_comments_${characterId}`;
+  const existing = getCachedFirestoreData<Comment[]>(cacheKey) || [];
+  setCachedFirestoreData(cacheKey, [item, ...existing]);
+
   try {
-    const item: Comment = {
-      id,
-      characterId,
-      authorName: authorName.trim() || 'Người đọc vô danh',
-      content: content.trim(),
-      createdAt: new Date().toISOString(),
-      likes: 0
-    };
     await setDoc(doc(db, 'comments', id), item);
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, path);
