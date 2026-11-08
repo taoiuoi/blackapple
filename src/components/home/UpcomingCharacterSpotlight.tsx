@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, X, ArrowUpRight, Lock, Heart, CheckCircle2, Quote } from 'lucide-react';
 import { Character } from '../../types';
 import { ImageWithFallback } from '../common/ImageWithFallback';
+import {
+  hasUserCheeredUpcoming,
+  getUpcomingCheerCount,
+  incrementUpcomingCheer
+} from '../../services/firestoreService';
+import { syncUpcomingCheerSupabase } from '../../services/supabaseService';
 
 interface UpcomingCharacterSpotlightProps {
   characters: Character[];
@@ -11,15 +17,36 @@ interface UpcomingCharacterSpotlightProps {
 export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProps> = ({
   characters
 }) => {
-  const [showTeaserModal, setShowTeaserModal] = useState(false);
-  const [hasCheered, setHasCheered] = useState(false);
-  const [cheerCount, setCheerCount] = useState(246);
-
   // Find character marked as upcoming (Ngưu Thánh Anh)
   const upcomingChar =
     characters.find((c) => c.isUpcoming) ||
     characters.find((c) => c.id === 'nguu-thanh-anh') ||
     characters[0];
+
+  const charId = upcomingChar?.id || 'nguu-thanh-anh';
+
+  const [showTeaserModal, setShowTeaserModal] = useState(false);
+  const [hasCheered, setHasCheered] = useState(() => hasUserCheeredUpcoming(charId));
+  const [cheerCount, setCheerCount] = useState<number>(() => {
+    try {
+      const cached = localStorage.getItem(`ba_cheer_count_${charId}`);
+      if (cached) {
+        const val = parseInt(cached, 10);
+        if (!isNaN(val) && val > 0) return val;
+      }
+    } catch (_) {}
+    return 246;
+  });
+
+  // Keep state synchronized with persistent Cloud count
+  useEffect(() => {
+    setHasCheered(hasUserCheeredUpcoming(charId));
+    getUpcomingCheerCount(charId).then((serverCount) => {
+      if (serverCount && serverCount > 0) {
+        setCheerCount((prev) => Math.max(prev, serverCount));
+      }
+    });
+  }, [charId]);
 
   if (!upcomingChar) return null;
 
@@ -38,10 +65,17 @@ export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProp
     upcomingChar.profileData?.quote ||
     '“Nhị thiếu gia! Đại tiểu thư lại bỏ trốn rồi.”';
 
-  const handleCheer = () => {
+  const handleCheer = async () => {
     if (!hasCheered) {
       setHasCheered(true);
       setCheerCount((prev) => prev + 1);
+      try {
+        const newTotal = await incrementUpcomingCheer(charId);
+        setCheerCount(newTotal);
+        syncUpcomingCheerSupabase(charId).catch(() => {});
+      } catch (err) {
+        console.warn('Could not sync cheer:', err);
+      }
     }
   };
 

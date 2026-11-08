@@ -738,6 +738,99 @@ export async function incrementRoleplayClicks(characterId: string): Promise<void
   }
 }
 
+// ---------------- UPCOMING CHARACTER CHEERS (NGÓNG CHỜ NHÂN VẬT) ----------------
+const BASE_UPCOMING_CHEERS = 246;
+
+export function hasUserCheeredUpcoming(characterId: string = 'nguu-thanh-anh'): boolean {
+  try {
+    return localStorage.getItem(`ba_cheered_${characterId}`) === 'true';
+  } catch (_) {
+    return false;
+  }
+}
+
+export async function getUpcomingCheerCount(characterId: string = 'nguu-thanh-anh'): Promise<number> {
+  const localKey = `ba_cheer_count_${characterId}`;
+  let count = BASE_UPCOMING_CHEERS;
+  try {
+    const cached = localStorage.getItem(localKey);
+    if (cached) {
+      const parsed = parseInt(cached, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        count = Math.max(count, parsed);
+      }
+    }
+  } catch (_) {}
+
+  try {
+    const docRef = doc(db, 'upcomingCheers', characterId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      const serverCount = Number(data?.count || data?.cheerCount || 0);
+      if (serverCount > 0) {
+        count = Math.max(count, serverCount);
+        try {
+          localStorage.setItem(localKey, String(count));
+        } catch (_) {}
+      }
+    }
+  } catch (error) {
+    // Offline or network error - gracefully rely on cached local count
+    console.warn('[Firestore] Could not load upcoming cheers, using local count:', error);
+  }
+
+  return count;
+}
+
+export async function incrementUpcomingCheer(characterId: string = 'nguu-thanh-anh'): Promise<number> {
+  const localKey = `ba_cheer_count_${characterId}`;
+  const localCheeredKey = `ba_cheered_${characterId}`;
+  let current = BASE_UPCOMING_CHEERS;
+
+  try {
+    const cached = localStorage.getItem(localKey);
+    if (cached) {
+      const parsed = parseInt(cached, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        current = Math.max(current, parsed);
+      }
+    }
+  } catch (_) {}
+
+  const nextCount = current + 1;
+  try {
+    localStorage.setItem(localKey, String(nextCount));
+    localStorage.setItem(localCheeredKey, 'true');
+  } catch (_) {}
+
+  // 1. Sync atomically to Firestore 'upcomingCheers' collection
+  try {
+    const docRef = doc(db, 'upcomingCheers', characterId);
+    await setDoc(
+      docRef,
+      {
+        characterId,
+        count: increment(1),
+        updatedAt: new Date().toISOString()
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn('[Firestore] Could not increment count in upcomingCheers doc:', err);
+  }
+
+  // 2. Also try updating characters/{characterId} cheerCount if document exists
+  try {
+    const charDocRef = doc(db, 'characters', characterId);
+    await updateDoc(charDocRef, {
+      cheerCount: increment(1)
+    }).catch(() => {});
+  } catch (_) {}
+
+  return nextCount;
+}
+
 // ---------------- GENRES ----------------
 export async function getGenres(): Promise<Genre[]> {
   try {

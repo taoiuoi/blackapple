@@ -5,7 +5,8 @@ import { Character, Genre, WebsiteSettings } from '../types';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
-import { saveGenre, deleteGenre } from '../services/firestoreService';
+import { saveGenre, deleteGenre, hasUserCheeredUpcoming, getUpcomingCheerCount, incrementUpcomingCheer } from '../services/firestoreService';
+import { syncUpcomingCheerSupabase } from '../services/supabaseService';
 import { getCharacterPath, getCharacterSlug } from '../utils/slugify';
 
 interface CharactersPageProps {
@@ -46,6 +47,18 @@ export function CharactersPage({
   const [teaserCheerCount, setTeaserCheerCount] = useState(246);
   const genreDropdownRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (teaserModalChar) {
+      const charId = teaserModalChar.id || 'nguu-thanh-anh';
+      setHasCheeredTeaser(hasUserCheeredUpcoming(charId));
+      getUpcomingCheerCount(charId).then((serverCount) => {
+        if (serverCount && serverCount > 0) {
+          setTeaserCheerCount((c) => Math.max(c, serverCount));
+        }
+      });
+    }
+  }, [teaserModalChar]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -931,10 +944,16 @@ export function CharactersPage({
             <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between gap-3 bg-black/40 backdrop-blur-md">
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (!hasCheeredTeaser) {
+                    const charId = teaserModalChar.id || 'nguu-thanh-anh';
                     setHasCheeredTeaser(true);
                     setTeaserCheerCount((c) => c + 1);
+                    try {
+                      const newTotal = await incrementUpcomingCheer(charId);
+                      setTeaserCheerCount(newTotal);
+                      syncUpcomingCheerSupabase(charId).catch(() => {});
+                    } catch (_) {}
                   }
                 }}
                 className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-sans font-semibold tracking-wide transition-all shadow-md cursor-pointer ${
