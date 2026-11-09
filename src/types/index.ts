@@ -196,6 +196,7 @@ export interface CommissionSettings {
   statusBadgeText: string;
   announcementTitle: string;
   announcementContent: string;
+  updatedAt?: string;
 }
 
 export interface UpcomingSubscriber {

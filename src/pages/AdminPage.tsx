@@ -86,6 +86,7 @@ interface AdminPageProps {
   onSelectTrackIndex?: (index: number) => void;
   onPlayTrack?: () => void;
   onRequestChangeImage: (charOrField: any, fieldOrNone?: any) => void;
+  onUpdateSettings?: (newSettings: WebsiteSettings) => void;
 }
 
 export function AdminPage({
@@ -99,7 +100,8 @@ export function AdminPage({
   musicTracks,
   onSelectTrackIndex,
   onPlayTrack,
-  onRequestChangeImage
+  onRequestChangeImage,
+  onUpdateSettings
 }: AdminPageProps) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -180,7 +182,7 @@ export function AdminPage({
     let unsubReqs: (() => void) | undefined;
     let unsubSubs: (() => void) | undefined;
 
-    if (isAdmin && auth.currentUser) {
+    if (isAdmin) {
       unsubReqs = subscribeCommissionRequests(setCommissionRequests);
       unsubSubs = subscribeUpcomingSubscribers((list) => {
         setSubscribers((prev) => {
@@ -225,24 +227,36 @@ export function AdminPage({
 
   const handleUpdateCommStatus = async (id: string, status: CommissionStatus, notes?: string) => {
     try {
-      await updateCommissionStatus(id, status, notes);
-      setStatusMessage('Đã cập nhật trạng thái brief commission!');
+      setCommissionRequests((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                status,
+                updatedAt: new Date().toISOString(),
+                ...(notes !== undefined ? { adminNotes: notes } : {})
+              }
+            : item
+        )
+      );
       if (selectedCommission && selectedCommission.id === id) {
         setSelectedCommission((prev) =>
           prev ? { ...prev, status, adminNotes: notes !== undefined ? notes : prev.adminNotes } : null
         );
       }
+      await updateCommissionStatus(id, status, notes);
+      setStatusMessage('Đã cập nhật trạng thái brief commission (đồng bộ Supabase & Firebase)!');
     } catch (err: any) {
       setStatusMessage('Lỗi cập nhật: ' + err.message);
     }
   };
 
   const handleDeleteComm = async (id: string) => {
-    if (!window.confirm('Bạn có chắc muốn xóa brief commission này?')) return;
     try {
+      setCommissionRequests((prev) => prev.filter((item) => item.id !== id));
+      if (selectedCommission?.id === id) setSelectedCommission(null);
       await deleteCommissionRequest(id);
       setStatusMessage('Đã xóa brief commission.');
-      if (selectedCommission?.id === id) setSelectedCommission(null);
     } catch (err: any) {
       setStatusMessage('Lỗi xóa brief: ' + err.message);
     }
@@ -582,7 +596,10 @@ export function AdminPage({
   // Settings Save
   const handleSaveSettings = async () => {
     await saveSettings(settingsForm);
-    setStatusMessage('Đã lưu cài đặt website vào Firestore.');
+    if (onUpdateSettings) {
+      onUpdateSettings(settingsForm);
+    }
+    setStatusMessage('Đã lưu cài đặt website vào Firestore và Supabase.');
   };
 
   // Export / Backup JSON

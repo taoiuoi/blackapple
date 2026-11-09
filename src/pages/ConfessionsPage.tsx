@@ -54,7 +54,6 @@ export function ConfessionsPage({
       setTimeout(() => setSubmitSuccess(false), 5000);
     } catch (err) {
       setIsSubmitting(false);
-      alert('Không thể gửi lời nhắn.');
     }
   };
 
@@ -63,9 +62,7 @@ export function ConfessionsPage({
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Xóa lời tâm sự này?')) {
-      await deleteConfession(id);
-    }
+    await deleteConfession(id);
   };
 
 

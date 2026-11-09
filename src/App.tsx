@@ -301,6 +301,10 @@ export default function App() {
     });
   };
 
+  const handleUpdateSettings = (newSettings: WebsiteSettings) => {
+    setSettings((prev) => ({ ...prev, ...newSettings }));
+  };
+
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       {/* Cinematic Custom Black Apple Intro Screen */}
@@ -350,6 +354,7 @@ export default function App() {
               onToggleAudio={() => setIsAudioPlaying(!isAudioPlaying)}
               onRequestChangeCharacterImage={handleRequestChangeCharacterImage}
               onReplayIntro={handleReplayIntro}
+              onUpdateSettings={handleUpdateSettings}
             />
           }
         />
@@ -482,6 +487,7 @@ export default function App() {
                   handleRequestChangeCharacterImage(char, field);
                 }
               }}
+              onUpdateSettings={handleUpdateSettings}
             />
           }
         />

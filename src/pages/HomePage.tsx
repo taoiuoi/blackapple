@@ -48,6 +48,7 @@ interface HomePageProps {
     field: 'avatarUrl' | 'coverUrl' | 'posterUrl' | 'synopsisImageUrl'
   ) => void;
   onReplayIntro?: () => void;
+  onUpdateSettings?: (newSettings: WebsiteSettings) => void;
 }
 
 export function HomePage({
@@ -58,7 +59,8 @@ export function HomePage({
   isAudioPlaying,
   onToggleAudio,
   onRequestChangeCharacterImage,
-  onReplayIntro
+  onReplayIntro,
+  onUpdateSettings
 }: HomePageProps) {
   const navigate = useNavigate();
 
@@ -424,6 +426,7 @@ export function HomePage({
         characters={characters}
         settings={settings}
         isAdmin={isAdmin}
+        onSettingsUpdated={onUpdateSettings}
         onRoleplayClick={(char) => {
           if (!char.roleplayLink) {
             navigate(getCharacterPath(char));

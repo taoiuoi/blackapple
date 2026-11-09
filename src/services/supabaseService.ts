@@ -1,5 +1,13 @@
 import { supabase } from '../lib/supabase';
-import { Comment, Character, Genre, UpcomingSubscriber } from '../types';
+import {
+  Comment,
+  Character,
+  Genre,
+  UpcomingSubscriber,
+  CommissionRequest,
+  CommissionSettings,
+  CommissionStatus
+} from '../types';
 import { INITIAL_CHARACTERS, INITIAL_GENRES } from '../data/initialData';
 
 // Cache helpers for instant 0ms offline delivery
@@ -18,10 +26,61 @@ function setCache<T>(key: string, data: T): void {
   } catch (_) {}
 }
 
+function getDeletedCommentIds(): Set<string> {
+  try {
+    const list = getCache<string[]>('ba_deleted_comment_ids') || [];
+    return new Set(list);
+  } catch (_) {
+    return new Set();
+  }
+}
+
+function markCommentDeletedLocal(commentId: string, characterId?: string): void {
+  try {
+    const deletedSet = getDeletedCommentIds();
+    deletedSet.add(commentId);
+    setCache('ba_deleted_comment_ids', Array.from(deletedSet));
+
+    if (characterId) {
+      const sbKey = `ba_sb_comments_${characterId}`;
+      const sbCached = getCache<Comment[]>(sbKey);
+      if (sbCached) {
+        setCache(
+          sbKey,
+          sbCached.filter((c) => c.id !== commentId)
+        );
+      }
+      const fsKey = `ba_cache_comments_${characterId}`;
+      const fsCached = getCache<Comment[]>(fsKey);
+      if (fsCached) {
+        setCache(
+          fsKey,
+          fsCached.filter((c) => c.id !== commentId)
+        );
+      }
+    }
+
+    // Also scan all comment caches in localStorage in case characterId wasn't passed
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('ba_sb_comments_') || k.startsWith('ba_cache_comments_'))) {
+        const list = getCache<Comment[]>(k);
+        if (Array.isArray(list) && list.some((c) => c.id === commentId)) {
+          setCache(
+            k,
+            list.filter((c) => c.id !== commentId)
+          );
+        }
+      }
+    }
+  } catch (_) {}
+}
+
 // ---------------- COMMENTS (LƯU BÚT ĐỘC GIẢ) ----------------
 
 export async function getCommentsForCharacter(characterId: string): Promise<Comment[]> {
   const cacheKey = `ba_sb_comments_${characterId}`;
+  const deletedSet = getDeletedCommentIds();
   try {
     const { data, error } = await supabase
       .from('comments')
@@ -31,23 +90,25 @@ export async function getCommentsForCharacter(characterId: string): Promise<Comm
 
     if (error) {
       console.warn('[Supabase] Could not fetch comments, using cache:', error.message);
-      return getCache<Comment[]>(cacheKey) || [];
+      return (getCache<Comment[]>(cacheKey) || []).filter((c) => !deletedSet.has(c.id));
     }
 
-    const comments: Comment[] = (data || []).map((row) => ({
-      id: row.id,
-      characterId: row.character_id,
-      authorName: row.author_name,
-      content: row.content,
-      createdAt: row.created_at,
-      likes: Number(row.likes || 0)
-    }));
+    const comments: Comment[] = (data || [])
+      .filter((row) => !deletedSet.has(row.id))
+      .map((row) => ({
+        id: row.id,
+        characterId: row.character_id,
+        authorName: row.author_name,
+        content: row.content,
+        createdAt: row.created_at,
+        likes: Number(row.likes || 0)
+      }));
 
     setCache(cacheKey, comments);
     return comments;
   } catch (err) {
     console.warn('[Supabase] Network/fetch error for comments:', err);
-    return getCache<Comment[]>(cacheKey) || [];
+    return (getCache<Comment[]>(cacheKey) || []).filter((c) => !deletedSet.has(c.id));
   }
 }
 
@@ -56,17 +117,18 @@ export function subscribeCommentsSupabase(
   callback: (comments: Comment[]) => void
 ) {
   const cacheKey = `ba_sb_comments_${characterId}`;
-  const initialCache = getCache<Comment[]>(cacheKey) || [];
+  const deletedSet = getDeletedCommentIds();
+  const initialCache = (getCache<Comment[]>(cacheKey) || []).filter((c) => !deletedSet.has(c.id));
   callback(initialCache);
 
   // Fetch latest comments from Supabase
   getCommentsForCharacter(characterId).then((latest) => {
-    if (latest && latest.length > 0) {
+    if (latest) {
       callback(latest);
     }
   });
 
-  // Subscribe to real-time additions on the comments table
+  // Subscribe to real-time additions/deletions on the comments table
   const channel = supabase
     .channel(`comments-realtime-${characterId}`)
     .on(
@@ -91,10 +153,11 @@ export function subscribeCommentsSupabase(
 export async function submitCommentSupabase(
   characterId: string,
   authorName: string,
-  content: string
-): Promise<void> {
+  content: string,
+  customId?: string
+): Promise<Comment> {
   const newComment: Comment = {
-    id: `comm-${Date.now()}`,
+    id: customId || `comm-${Date.now()}`,
     characterId,
     authorName: authorName.trim() || 'Người đọc vô danh',
     content: content.trim(),
@@ -105,7 +168,7 @@ export async function submitCommentSupabase(
   // Optimistic UI update
   const cacheKey = `ba_sb_comments_${characterId}`;
   const cached = getCache<Comment[]>(cacheKey) || [];
-  setCache(cacheKey, [newComment, ...cached]);
+  setCache(cacheKey, [newComment, ...cached.filter((c) => c.id !== newComment.id)]);
 
   try {
     const { error } = await supabase.from('comments').insert({
@@ -123,6 +186,45 @@ export async function submitCommentSupabase(
   } catch (err) {
     console.warn('[Supabase] Exception during comment submission:', err);
   }
+
+  return newComment;
+}
+
+export async function deleteCommentSupabase(commentId: string, characterId?: string): Promise<void> {
+  markCommentDeletedLocal(commentId, characterId);
+  try {
+    const { error } = await supabase.from('comments').delete().eq('id', commentId);
+    if (error) {
+      console.warn('[Supabase] Error deleting comment from Supabase:', error.message);
+    }
+  } catch (err) {
+    console.warn('[Supabase] Exception during comment deletion:', err);
+  }
+}
+
+export async function fetchAllCommentsSupabase(): Promise<Comment[]> {
+  const deletedSet = getDeletedCommentIds();
+  try {
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+
+    return data
+      .filter((row) => !deletedSet.has(row.id))
+      .map((row) => ({
+        id: row.id,
+        characterId: row.character_id,
+        authorName: row.author_name,
+        content: row.content,
+        createdAt: row.created_at,
+        likes: Number(row.likes || 0)
+      }));
+  } catch (_) {
+    return [];
+  }
 }
 
 // ---------------- CHARACTER STATS (LƯỢT XEM VÀ LƯỢT NHẤP LINK) ----------------
@@ -135,6 +237,13 @@ export async function fetchCharacterStatsSupabase(): Promise<Record<string, { vi
     }
     const result: Record<string, { views: number; roleplayClicks: number }> = {};
     data.forEach((row) => {
+      if (
+        row.id.startsWith('setting_') ||
+        row.id.startsWith('commreq_') ||
+        row.id.startsWith('cheer_')
+      ) {
+        return;
+      }
       result[row.id] = {
         views: Number(row.views || 0),
         roleplayClicks: Number(row.roleplay_clicks || 0)
@@ -348,4 +457,196 @@ export async function syncUpcomingCheerSupabase(characterId: string = 'nguu-than
     console.warn('[Supabase] Could not sync cheer record:', err);
   }
 }
+
+// ---------------- HOT CHARACTER SPOTLIGHT (CHARACTER HOT TRONG TUẦN) ----------------
+export async function fetchHotCharacterSpotlightSupabase(): Promise<{ hotCharacterId: string; awardTitle?: string } | null> {
+  try {
+    const { data, error } = await supabase
+      .from('character_stats')
+      .select('name')
+      .eq('id', 'setting_hot_character')
+      .maybeSingle();
+
+    if (error || !data?.name) return null;
+
+    try {
+      const parsed = JSON.parse(data.name);
+      return {
+        hotCharacterId: parsed.hotCharacterId || parsed.id,
+        awardTitle: parsed.awardTitle || parsed.title
+      };
+    } catch (_) {
+      return { hotCharacterId: data.name };
+    }
+  } catch (err) {
+    console.warn('[Supabase] Could not fetch hot character setting:', err);
+    return null;
+  }
+}
+
+export async function saveHotCharacterSpotlightSupabase(
+  hotCharacterId: string,
+  awardTitle?: string
+): Promise<void> {
+  try {
+    await supabase.from('character_stats').upsert({
+      id: 'setting_hot_character',
+      name: JSON.stringify({
+        hotCharacterId,
+        awardTitle: awardTitle || 'HONORARY SPOTLIGHT',
+        updatedAt: new Date().toISOString()
+      }),
+      views: 0,
+      roleplay_clicks: 0,
+      updated_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('[Supabase] Could not save hot character setting:', err);
+  }
+}
+
+// ---------------- COMMISSIONS (CẤU HÌNH & ĐƠN ĐĂNG KÝ SLOT COMMISSION) ----------------
+
+export async function fetchCommissionSettingsSupabase(): Promise<CommissionSettings | null> {
+  try {
+    const { data, error } = await supabase
+      .from('character_stats')
+      .select('name')
+      .eq('id', 'setting_commission_config')
+      .maybeSingle();
+
+    if (error || !data?.name) return null;
+
+    try {
+      const parsed = JSON.parse(data.name);
+      if (parsed && typeof parsed === 'object') {
+        return parsed as CommissionSettings;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  } catch (err) {
+    console.warn('[Supabase] Could not fetch commission settings:', err);
+    return null;
+  }
+}
+
+export async function saveCommissionSettingsSupabase(
+  settings: CommissionSettings
+): Promise<void> {
+  try {
+    await supabase.from('character_stats').upsert({
+      id: 'setting_commission_config',
+      name: JSON.stringify({
+        ...settings,
+        updatedAt: new Date().toISOString()
+      }),
+      views: 0,
+      roleplay_clicks: 0,
+      updated_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('[Supabase] Could not save commission settings:', err);
+  }
+}
+
+export async function fetchCommissionRequestsSupabase(): Promise<CommissionRequest[]> {
+  try {
+    const { data, error } = await supabase
+      .from('character_stats')
+      .select('id, name, updated_at')
+      .like('id', 'commreq_%');
+
+    if (error || !data) return [];
+
+    const requests: CommissionRequest[] = [];
+    for (const row of data) {
+      if (!row.name) continue;
+      try {
+        const parsed = JSON.parse(row.name);
+        if (parsed && !parsed.deleted && parsed.id && parsed.clientName) {
+          requests.push(parsed as CommissionRequest);
+        }
+      } catch (_) {}
+    }
+
+    requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return requests;
+  } catch (err) {
+    console.warn('[Supabase] Could not fetch commission requests:', err);
+    return [];
+  }
+}
+
+export async function submitCommissionRequestSupabase(
+  item: CommissionRequest
+): Promise<void> {
+  try {
+    await supabase.from('character_stats').upsert({
+      id: `commreq_${item.id}`,
+      name: JSON.stringify(item),
+      views: 0,
+      roleplay_clicks: 0,
+      updated_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('[Supabase] Could not submit commission request:', err);
+  }
+}
+
+export async function updateCommissionStatusSupabase(
+  id: string,
+  status: CommissionStatus,
+  adminNotes?: string
+): Promise<void> {
+  try {
+    const rowId = id.startsWith('commreq_') ? id : `commreq_${id}`;
+    const { data } = await supabase
+      .from('character_stats')
+      .select('name')
+      .eq('id', rowId)
+      .maybeSingle();
+
+    if (data?.name) {
+      const parsed = JSON.parse(data.name) as CommissionRequest;
+      const updated: CommissionRequest = {
+        ...parsed,
+        status,
+        updatedAt: new Date().toISOString(),
+        ...(adminNotes !== undefined ? { adminNotes } : {})
+      };
+      await supabase.from('character_stats').upsert({
+        id: rowId,
+        name: JSON.stringify(updated),
+        views: 0,
+        roleplay_clicks: 0,
+        updated_at: new Date().toISOString()
+      });
+    }
+  } catch (err) {
+    console.warn('[Supabase] Could not update commission status:', err);
+  }
+}
+
+export async function deleteCommissionRequestSupabase(id: string): Promise<void> {
+  try {
+    const cleanId = id.replace(/^commreq_/, '');
+    const rowId = `commreq_${cleanId}`;
+    await supabase.from('character_stats').upsert({
+      id: rowId,
+      name: JSON.stringify({
+        id: cleanId,
+        deleted: true,
+        updatedAt: new Date().toISOString()
+      }),
+      views: 0,
+      roleplay_clicks: 0,
+      updated_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('[Supabase] Could not delete commission request:', err);
+  }
+}
+
 

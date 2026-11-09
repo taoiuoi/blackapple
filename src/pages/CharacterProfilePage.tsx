@@ -795,8 +795,17 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     if (!authorName.trim() || !commentContent.trim()) return;
     setIsSubmittingComment(true);
     try {
-      await submitCommentSupabase(character.id, authorName.trim(), commentContent.trim());
-      submitComment(character.id, authorName.trim(), commentContent.trim()).catch(() => {});
+      const sharedId = `comm-${Date.now()}`;
+      const newComm = await submitCommentSupabase(
+        character.id,
+        authorName.trim(),
+        commentContent.trim(),
+        sharedId
+      );
+      setComments((prev) => [newComm, ...prev.filter((item) => item.id !== newComm.id)]);
+      submitComment(character.id, authorName.trim(), commentContent.trim(), sharedId).catch(
+        () => {}
+      );
       setCommentContent('');
     } finally {
       setIsSubmittingComment(false);
@@ -2684,8 +2693,14 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
 
                   {isAdmin && (
                     <button
-                      onClick={() => deleteComment(c.id)}
-                      className="text-neutral-400 hover:text-red-600 p-1 shrink-0 transition-colors"
+                      type="button"
+                      onClick={async () => {
+                        setComments((prev) => prev.filter((item) => item.id !== c.id));
+                        await deleteComment(c.id, character.id);
+                        setSaveStatus('✓ Đã xóa bình luận thành công.');
+                        setTimeout(() => setSaveStatus(''), 2500);
+                      }}
+                      className="text-neutral-400 hover:text-red-600 p-1.5 shrink-0 transition-colors cursor-pointer"
                       title="Xóa bình luận"
                     >
                       <Trash2 className="w-3.5 h-3.5" />

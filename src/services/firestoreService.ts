@@ -40,6 +40,17 @@ import {
   INITIAL_TRACKS,
   INITIAL_COMMISSION_SETTINGS
 } from '../data/initialData';
+import {
+  fetchHotCharacterSpotlightSupabase,
+  saveHotCharacterSpotlightSupabase,
+  deleteCommentSupabase,
+  fetchCommissionSettingsSupabase,
+  saveCommissionSettingsSupabase,
+  fetchCommissionRequestsSupabase,
+  submitCommissionRequestSupabase,
+  updateCommissionStatusSupabase,
+  deleteCommissionRequestSupabase
+} from './supabaseService';
 
 // Track if initial seed/migration was checked
 let isInitialized = false;
@@ -1042,66 +1053,162 @@ export async function saveCreatorProfile(profile: CreatorProfile): Promise<void>
   }
 }
 
-// ---------------- WEBSITE SETTINGS ----------------
+// ---------------- WEBSITE SETTINGS (MULTI-TIER PERSISTENCE: LOCALSTORAGE + SUPABASE + FIRESTORE) ----------------
 export async function getSettings(): Promise<WebsiteSettings> {
+  let settings: WebsiteSettings = { ...INITIAL_SETTINGS };
+
+  // 1. LocalStorage Cache
+  const cached = getCachedFirestoreData<WebsiteSettings>('ba_cache_settings_v3');
+  if (cached) {
+    settings = { ...settings, ...cached };
+  }
+  try {
+    const localHotId = localStorage.getItem('ba_hot_character_id');
+    const localTitle = localStorage.getItem('ba_hot_character_award_title');
+    if (localHotId) settings.hotCharacterId = localHotId;
+    if (localTitle) settings.hotCharacterAwardTitle = localTitle;
+  } catch (_) {}
+
+  // 2. Supabase Check
+  try {
+    const sbHot = await fetchHotCharacterSpotlightSupabase();
+    if (sbHot?.hotCharacterId) {
+      settings.hotCharacterId = sbHot.hotCharacterId;
+      if (sbHot.awardTitle) settings.hotCharacterAwardTitle = sbHot.awardTitle;
+    }
+  } catch (_) {}
+
+  // 3. Firestore Check
   try {
     const snap = await getDoc(doc(db, 'settings', 'general'));
     if (snap.exists()) {
-      return { ...INITIAL_SETTINGS, ...(snap.data() as WebsiteSettings) };
+      settings = { ...settings, ...(snap.data() as WebsiteSettings) };
     }
-    return INITIAL_SETTINGS;
   } catch (error) {
-    handleFirestoreError(error, OperationType.GET, 'settings/general');
-    return INITIAL_SETTINGS;
+    console.warn('[Firestore] getSettings fallback to local/Supabase:', error);
   }
+
+  return settings;
 }
 
 export function subscribeSettings(callback: (settings: WebsiteSettings) => void) {
-  // Instant cache-first delivery
+  let currentSettings: WebsiteSettings = { ...INITIAL_SETTINGS };
+
+  // 1. Instant Cache delivery
   const cached = getCachedFirestoreData<WebsiteSettings>('ba_cache_settings_v3');
   if (cached) {
-    callback(cached);
+    currentSettings = { ...currentSettings, ...cached };
   }
+  try {
+    const localHotId = localStorage.getItem('ba_hot_character_id');
+    const localTitle = localStorage.getItem('ba_hot_character_award_title');
+    if (localHotId) currentSettings.hotCharacterId = localHotId;
+    if (localTitle) currentSettings.hotCharacterAwardTitle = localTitle;
+  } catch (_) {}
 
+  callback(currentSettings);
+
+  // 2. Fetch reliable hot character from Supabase (bypasses Firebase read limits)
+  fetchHotCharacterSpotlightSupabase().then((sbHot) => {
+    if (sbHot?.hotCharacterId) {
+      currentSettings = {
+        ...currentSettings,
+        hotCharacterId: sbHot.hotCharacterId,
+        ...(sbHot.awardTitle ? { hotCharacterAwardTitle: sbHot.awardTitle } : {})
+      };
+      setCachedFirestoreData('ba_cache_settings_v3', currentSettings);
+      try {
+        localStorage.setItem('ba_hot_character_id', sbHot.hotCharacterId);
+        if (sbHot.awardTitle) localStorage.setItem('ba_hot_character_award_title', sbHot.awardTitle);
+      } catch (_) {}
+      callback(currentSettings);
+    }
+  }).catch(() => {});
+
+  // 3. Listen to Firestore
   try {
     return onSnapshot(
       doc(db, 'settings', 'general'),
       (snap) => {
         if (snap.exists()) {
-          const merged = { ...INITIAL_SETTINGS, ...(snap.data() as WebsiteSettings) };
-          setCachedFirestoreData('ba_cache_settings_v3', merged);
-          callback(merged);
-        } else {
-          callback(INITIAL_SETTINGS);
+          const remote = snap.data() as WebsiteSettings;
+          currentSettings = { ...currentSettings, ...remote };
+          // Preserve local hot character if explicitly set
+          try {
+            const localHotId = localStorage.getItem('ba_hot_character_id');
+            if (localHotId) currentSettings.hotCharacterId = localHotId;
+          } catch (_) {}
+          setCachedFirestoreData('ba_cache_settings_v3', currentSettings);
+          callback(currentSettings);
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, 'settings/general');
-        callback(INITIAL_SETTINGS);
+        console.warn('[Firestore] subscribeSettings snapshot error:', error);
       }
     );
   } catch (error) {
-    handleFirestoreError(error, OperationType.GET, 'settings/general');
-    callback(INITIAL_SETTINGS);
+    console.warn('[Firestore] subscribeSettings init error:', error);
     return () => {};
   }
 }
 
 export async function saveSettings(settings: WebsiteSettings): Promise<void> {
+  // 1. Immediately cache in localStorage
+  try {
+    setCachedFirestoreData('ba_cache_settings_v3', settings);
+    if (settings.hotCharacterId) {
+      localStorage.setItem('ba_hot_character_id', settings.hotCharacterId);
+    }
+    if (settings.hotCharacterAwardTitle) {
+      localStorage.setItem('ba_hot_character_award_title', settings.hotCharacterAwardTitle);
+    }
+  } catch (_) {}
+
+  // 2. Persist to Supabase
+  if (settings.hotCharacterId) {
+    try {
+      await saveHotCharacterSpotlightSupabase(settings.hotCharacterId, settings.hotCharacterAwardTitle);
+    } catch (_) {}
+  }
+
+  // 3. Persist to Firestore
   const path = 'settings/general';
   try {
     await setDoc(doc(db, 'settings', 'general'), { ...INITIAL_SETTINGS, ...settings }, { merge: true });
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, path);
+    console.warn('[Firestore] Could not save settings to Firestore, saved to Supabase & LocalStorage:', error);
   }
 }
 
-// Update Hot Character of the Week spotlight settings (Admin only)
+// Update Hot Character of the Week spotlight settings (Multi-tier: LocalStorage + Supabase + Firestore)
 export async function saveHotCharacterSpotlight(
   hotCharacterId: string,
   awardTitle?: string,
   reason?: string
 ): Promise<void> {
+  // 1. Immediately cache in localStorage for instant 0ms persistence across reloads
+  try {
+    localStorage.setItem('ba_hot_character_id', hotCharacterId);
+    if (awardTitle) {
+      localStorage.setItem('ba_hot_character_award_title', awardTitle);
+    }
+    const cachedSettings = getCachedFirestoreData<WebsiteSettings>('ba_cache_settings_v3') || INITIAL_SETTINGS;
+    setCachedFirestoreData('ba_cache_settings_v3', {
+      ...cachedSettings,
+      hotCharacterId,
+      ...(awardTitle !== undefined ? { hotCharacterAwardTitle: awardTitle } : {}),
+      ...(reason !== undefined ? { hotCharacterReason: reason } : {})
+    });
+  } catch (_) {}
+
+  // 2. Persist to Supabase (bypasses Firebase read/write quota limits)
+  try {
+    await saveHotCharacterSpotlightSupabase(hotCharacterId, awardTitle);
+  } catch (sbErr) {
+    console.warn('[Supabase] Could not save hot character spotlight to Supabase:', sbErr);
+  }
+
+  // 3. Persist to Firestore
   const path = 'settings/general';
   try {
     await setDoc(
@@ -1114,7 +1221,7 @@ export async function saveHotCharacterSpotlight(
       { merge: true }
     );
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, path);
+    console.warn('[Firestore] Could not save settings/general to Firestore (quota or auth), saved to Supabase & LocalStorage:', error);
   }
 }
 
@@ -1459,8 +1566,13 @@ export function subscribeComments(characterId: string, callback: (comments: Comm
   }
 }
 
-export async function submitComment(characterId: string, authorName: string, content: string): Promise<void> {
-  const id = `comm-${Date.now()}`;
+export async function submitComment(
+  characterId: string,
+  authorName: string,
+  content: string,
+  customId?: string
+): Promise<void> {
+  const id = customId || `comm-${Date.now()}`;
   const path = `comments/${id}`;
   const item: Comment = {
     id,
@@ -1474,7 +1586,7 @@ export async function submitComment(characterId: string, authorName: string, con
   // Optimistically save to local cache so user immediately sees their comment
   const cacheKey = `ba_cache_comments_${characterId}`;
   const existing = getCachedFirestoreData<Comment[]>(cacheKey) || [];
-  setCachedFirestoreData(cacheKey, [item, ...existing]);
+  setCachedFirestoreData(cacheKey, [item, ...existing.filter((c) => c.id !== id)]);
 
   try {
     await setDoc(doc(db, 'comments', id), item);
@@ -1492,8 +1604,25 @@ export async function replyComment(commentId: string, adminReply: string): Promi
   }
 }
 
-export async function deleteComment(commentId: string): Promise<void> {
+export async function deleteComment(commentId: string, characterId?: string): Promise<void> {
   const path = `comments/${commentId}`;
+  // 1. Delete from Supabase & local caches first
+  try {
+    await deleteCommentSupabase(commentId, characterId);
+  } catch (e) {
+    console.warn('[Supabase] Error deleting comment:', e);
+  }
+
+  if (characterId) {
+    const cacheKey = `ba_cache_comments_${characterId}`;
+    const existing = getCachedFirestoreData<Comment[]>(cacheKey) || [];
+    setCachedFirestoreData(
+      cacheKey,
+      existing.filter((c) => c.id !== commentId)
+    );
+  }
+
+  // 2. Delete from Firestore
   try {
     await deleteDoc(doc(db, 'comments', commentId));
   } catch (error) {
@@ -1501,16 +1630,88 @@ export async function deleteComment(commentId: string): Promise<void> {
   }
 }
 
-// ---------------- COMMISSIONS ----------------
+// ---------------- COMMISSIONS (MULTI-TIER: LOCALSTORAGE + SUPABASE + FIRESTORE) ----------------
+const COMM_REQ_CACHE_KEY = 'ba_cache_comm_requests_v2';
+const COMM_SETTINGS_CACHE_KEY = 'ba_cache_comm_settings_v2';
+const COMM_DELETED_IDS_KEY = 'ba_deleted_comm_req_ids';
+
+function getDeletedCommReqIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(COMM_DELETED_IDS_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch (_) {}
+  return new Set();
+}
+
+function markCommReqDeletedLocal(id: string) {
+  try {
+    const deleted = getDeletedCommReqIds();
+    deleted.add(id);
+    localStorage.setItem(COMM_DELETED_IDS_KEY, JSON.stringify(Array.from(deleted).slice(-300)));
+  } catch (_) {}
+}
+
+function mergeCommissionRequests(lists: CommissionRequest[][]): CommissionRequest[] {
+  const deleted = getDeletedCommReqIds();
+  const map = new Map<string, CommissionRequest>();
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const item of list) {
+      if (!item || !item.id || deleted.has(item.id)) continue;
+      const existing = map.get(item.id);
+      if (!existing) {
+        map.set(item.id, item);
+      } else {
+        const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+        const itemTime = item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
+        if (itemTime >= existingTime) {
+          map.set(item.id, { ...existing, ...item });
+        }
+      }
+    }
+  }
+  const merged = Array.from(map.values());
+  merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return merged;
+}
+
 export function subscribeCommissionRequests(callback: (requests: CommissionRequest[]) => void) {
+  let firestoreList: CommissionRequest[] = [];
+  let supabaseList: CommissionRequest[] = [];
+
+  const cached = getCachedFirestoreData<CommissionRequest[]>(COMM_REQ_CACHE_KEY) || [];
+  if (cached.length > 0) {
+    callback(mergeCommissionRequests([cached]));
+  }
+
+  const refreshFromSupabase = async () => {
+    try {
+      const sbData = await fetchCommissionRequestsSupabase();
+      supabaseList = sbData || [];
+      const currentCached = getCachedFirestoreData<CommissionRequest[]>(COMM_REQ_CACHE_KEY) || [];
+      const merged = mergeCommissionRequests([currentCached, firestoreList, supabaseList]);
+      setCachedFirestoreData(COMM_REQ_CACHE_KEY, merged);
+      callback(merged);
+    } catch (_) {}
+  };
+
+  refreshFromSupabase();
+  const intervalId = setInterval(refreshFromSupabase, 15000);
+
+  let unsubFirestore = () => {};
   try {
     const q = query(collection(db, 'commissions'));
-    return onSnapshot(
+    unsubFirestore = onSnapshot(
       q,
       (snap) => {
-        const list = snap.docs.map((d) => ({ ...d.data(), id: d.id } as CommissionRequest));
-        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        callback(list);
+        firestoreList = snap.docs.map((d) => ({ ...d.data(), id: d.id } as CommissionRequest));
+        const currentCached = getCachedFirestoreData<CommissionRequest[]>(COMM_REQ_CACHE_KEY) || [];
+        const merged = mergeCommissionRequests([currentCached, firestoreList, supabaseList]);
+        setCachedFirestoreData(COMM_REQ_CACHE_KEY, merged);
+        callback(merged);
       },
       (error) => {
         handleFirestoreError(error, OperationType.LIST, 'commissions');
@@ -1518,68 +1719,162 @@ export function subscribeCommissionRequests(callback: (requests: CommissionReque
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, 'commissions');
-    return () => {};
   }
+
+  return () => {
+    clearInterval(intervalId);
+    unsubFirestore();
+  };
 }
 
-export async function submitCommissionRequest(data: Omit<CommissionRequest, 'id' | 'createdAt' | 'status'>): Promise<string> {
+export async function submitCommissionRequest(
+  data: Omit<CommissionRequest, 'id' | 'createdAt' | 'status'>
+): Promise<string> {
   const id = `comm-${Date.now()}`;
   const path = `commissions/${id}`;
+  const item: CommissionRequest = {
+    ...data,
+    id,
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+
+  // 1. Save immediately to LocalStorage cache
+  const existing = getCachedFirestoreData<CommissionRequest[]>(COMM_REQ_CACHE_KEY) || [];
+  setCachedFirestoreData(COMM_REQ_CACHE_KEY, [item, ...existing]);
+
+  // 2. Save to Supabase (primary resilient cloud store)
   try {
-    const item: CommissionRequest = {
-      ...data,
-      id,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
+    await submitCommissionRequestSupabase(item);
+  } catch (e) {
+    console.warn('[Supabase] Failed to submit commission request:', e);
+  }
+
+  // 3. Save to Firestore (best-effort dual storage)
+  try {
     await setDoc(doc(db, 'commissions', id), item);
-    return id;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, path);
-    throw error;
   }
+
+  return id;
 }
 
-export async function updateCommissionStatus(id: string, status: CommissionStatus, adminNotes?: string): Promise<void> {
+export async function updateCommissionStatus(
+  id: string,
+  status: CommissionStatus,
+  adminNotes?: string
+): Promise<void> {
   const path = `commissions/${id}`;
+  const updatedAt = new Date().toISOString();
+
+  // 1. Update LocalStorage cache immediately
+  const existing = getCachedFirestoreData<CommissionRequest[]>(COMM_REQ_CACHE_KEY) || [];
+  const nextCache = existing.map((item) =>
+    item.id === id
+      ? {
+          ...item,
+          status,
+          updatedAt,
+          ...(adminNotes !== undefined ? { adminNotes } : {})
+        }
+      : item
+  );
+  setCachedFirestoreData(COMM_REQ_CACHE_KEY, nextCache);
+
+  // 2. Update in Supabase
+  try {
+    await updateCommissionStatusSupabase(id, status, adminNotes);
+  } catch (e) {
+    console.warn('[Supabase] Failed to update commission status:', e);
+  }
+
+  // 3. Update in Firestore
   try {
     const payload: Partial<CommissionRequest> = {
       status,
-      updatedAt: new Date().toISOString()
+      updatedAt
     };
     if (adminNotes !== undefined) {
       payload.adminNotes = adminNotes;
     }
-    await updateDoc(doc(db, 'commissions', id), payload);
+    await setDoc(doc(db, 'commissions', id), payload, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
-    throw error;
   }
 }
 
 export async function deleteCommissionRequest(id: string): Promise<void> {
   const path = `commissions/${id}`;
+  markCommReqDeletedLocal(id);
+
+  // 1. Remove from LocalStorage cache immediately
+  const existing = getCachedFirestoreData<CommissionRequest[]>(COMM_REQ_CACHE_KEY) || [];
+  setCachedFirestoreData(
+    COMM_REQ_CACHE_KEY,
+    existing.filter((item) => item.id !== id)
+  );
+
+  // 2. Delete from Supabase
+  try {
+    await deleteCommissionRequestSupabase(id);
+  } catch (e) {
+    console.warn('[Supabase] Failed to delete commission request:', e);
+  }
+
+  // 3. Delete from Firestore
   try {
     await deleteDoc(doc(db, 'commissions', id));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
-    throw error;
   }
 }
 
 export function subscribeCommissionSettings(callback: (settings: CommissionSettings) => void) {
+  const cached = getCachedFirestoreData<CommissionSettings>(COMM_SETTINGS_CACHE_KEY);
+  if (cached) {
+    callback({ ...INITIAL_COMMISSION_SETTINGS, ...cached });
+  } else {
+    callback(INITIAL_COMMISSION_SETTINGS);
+  }
+
+  let latestSupabaseSettings: CommissionSettings | null = null;
+
+  fetchCommissionSettingsSupabase()
+    .then((sbSettings) => {
+      if (sbSettings) {
+        latestSupabaseSettings = { ...INITIAL_COMMISSION_SETTINGS, ...sbSettings };
+        setCachedFirestoreData(COMM_SETTINGS_CACHE_KEY, latestSupabaseSettings);
+        callback(latestSupabaseSettings);
+      }
+    })
+    .catch(() => {});
+
   try {
     const ref = doc(db, 'settings', 'commissions');
     return onSnapshot(
       ref,
       (snap) => {
         if (snap.exists()) {
-          callback({
+          const fsData = {
             ...INITIAL_COMMISSION_SETTINGS,
             ...snap.data()
-          } as CommissionSettings);
+          } as CommissionSettings;
+
+          // If Supabase has a newer updatedAt timestamp, prefer Supabase
+          const sbTime = latestSupabaseSettings?.updatedAt
+            ? new Date(latestSupabaseSettings.updatedAt).getTime()
+            : 0;
+          const fsTime = fsData.updatedAt ? new Date(fsData.updatedAt).getTime() : 0;
+
+          const resolved = sbTime > fsTime && latestSupabaseSettings ? latestSupabaseSettings : fsData;
+          setCachedFirestoreData(COMM_SETTINGS_CACHE_KEY, resolved);
+          callback(resolved);
+        } else if (latestSupabaseSettings) {
+          callback(latestSupabaseSettings);
         } else {
-          callback(INITIAL_COMMISSION_SETTINGS);
+          const localFallback = getCachedFirestoreData<CommissionSettings>(COMM_SETTINGS_CACHE_KEY);
+          callback(localFallback ? { ...INITIAL_COMMISSION_SETTINGS, ...localFallback } : INITIAL_COMMISSION_SETTINGS);
         }
       },
       (error) => {
@@ -1594,11 +1889,26 @@ export function subscribeCommissionSettings(callback: (settings: CommissionSetti
 
 export async function saveCommissionSettings(settings: CommissionSettings): Promise<void> {
   const path = 'settings/commissions';
+  const payload: CommissionSettings = {
+    ...settings,
+    updatedAt: new Date().toISOString()
+  };
+
+  // 1. Save immediately to LocalStorage cache
+  setCachedFirestoreData(COMM_SETTINGS_CACHE_KEY, payload);
+
+  // 2. Save to Supabase
   try {
-    await setDoc(doc(db, 'settings', 'commissions'), settings, { merge: true });
+    await saveCommissionSettingsSupabase(payload);
+  } catch (e) {
+    console.warn('[Supabase] Failed to save commission settings:', e);
+  }
+
+  // 3. Save to Firestore
+  try {
+    await setDoc(doc(db, 'settings', 'commissions'), payload, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
-    throw error;
   }
 }
 

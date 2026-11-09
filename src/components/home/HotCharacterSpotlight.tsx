@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings, Check, ArrowUpRight } from 'lucide-react';
 import { Character, WebsiteSettings } from '../../types';
@@ -34,6 +34,15 @@ export const HotCharacterSpotlight: React.FC<HotCharacterSpotlightProps> = ({
   );
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    if (settings.hotCharacterId) {
+      setSelectedCharId(settings.hotCharacterId);
+    }
+    if (settings.hotCharacterAwardTitle) {
+      setAwardTitleInput(settings.hotCharacterAwardTitle);
+    }
+  }, [settings.hotCharacterId, settings.hotCharacterAwardTitle]);
 
   if (!honoredChar) return null;
 
