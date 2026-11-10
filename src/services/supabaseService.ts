@@ -101,8 +101,31 @@ export async function getCommentsForCharacter(characterId: string): Promise<Comm
         authorName: row.author_name,
         content: row.content,
         createdAt: row.created_at,
-        likes: Number(row.likes || 0)
+        likes: Number(row.likes || 0),
+        adminReply: row.admin_reply || undefined
       }));
+
+    // Fetch any admin replies stored in character_stats commreply_*
+    try {
+      const { data: replyRows } = await supabase
+        .from('character_stats')
+        .select('id, name')
+        .like('id', 'commreply_%');
+
+      if (replyRows && replyRows.length > 0) {
+        const replyMap = new Map<string, string>();
+        replyRows.forEach((r) => {
+          const cId = r.id.replace(/^commreply_/, '');
+          if (r.name) replyMap.set(cId, r.name);
+        });
+
+        comments.forEach((c) => {
+          if (!c.adminReply && replyMap.has(c.id)) {
+            c.adminReply = replyMap.get(c.id);
+          }
+        });
+      }
+    } catch (_) {}
 
     setCache(cacheKey, comments);
     return comments;
@@ -190,16 +213,52 @@ export async function submitCommentSupabase(
   return newComment;
 }
 
+export async function replyCommentSupabase(
+  commentId: string,
+  adminReply: string,
+  characterId?: string
+): Promise<void> {
+  const rowId = `commreply_${commentId}`;
+  const trimmed = adminReply.trim();
+
+  // Optimistic local cache update
+  if (characterId) {
+    const cacheKey = `ba_sb_comments_${characterId}`;
+    const cached = getCache<Comment[]>(cacheKey) || [];
+    const updated = cached.map((c) =>
+      c.id === commentId ? { ...c, adminReply: trimmed || undefined } : c
+    );
+    setCache(cacheKey, updated);
+  }
+
+  try {
+    if (!trimmed) {
+      // If empty string, delete reply
+      await supabase.from('character_stats').delete().eq('id', rowId);
+    } else {
+      await supabase.from('character_stats').upsert({
+        id: rowId,
+        name: trimmed,
+        views: 0,
+        roleplay_clicks: 0,
+        updated_at: new Date().toISOString()
+      });
+    }
+  } catch (err) {
+    console.warn('[Supabase] Error updating comment reply:', err);
+  }
+}
+
 export async function deleteCommentSupabase(commentId: string, characterId?: string): Promise<void> {
   markCommentDeletedLocal(commentId, characterId);
   try {
-    const { error } = await supabase.from('comments').delete().eq('id', commentId);
-    if (error) {
-      console.warn('[Supabase] Error deleting comment from Supabase:', error.message);
-    }
+    await supabase.from('comments').delete().eq('id', commentId);
   } catch (err) {
     console.warn('[Supabase] Exception during comment deletion:', err);
   }
+  try {
+    await supabase.from('character_stats').delete().eq('id', `commreply_${commentId}`);
+  } catch (_) {}
 }
 
 export async function fetchAllCommentsSupabase(): Promise<Comment[]> {

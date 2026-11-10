@@ -15,7 +15,9 @@ import {
   X,
   ArrowLeft,
   KeyRound,
-  Sparkles
+  Sparkles,
+  MessageSquare,
+  CornerDownRight
 } from 'lucide-react';
 import {
   Character,
@@ -30,6 +32,7 @@ import {
   subscribeComments,
   submitComment,
   deleteComment,
+  replyComment,
   saveCharacter,
   saveGenre,
   deleteGenre,
@@ -184,6 +187,9 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   const [authorName, setAuthorName] = useState('');
   const [commentContent, setCommentContent] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
+  const [isSavingReply, setIsSavingReply] = useState(false);
 
   // GGAI Link Unlock State
   const [passwordInput, setPasswordInput] = useState('');
@@ -809,6 +815,25 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       setCommentContent('');
     } finally {
       setIsSubmittingComment(false);
+    }
+  };
+
+  // Admin / Creator Táo Reply to Comment
+  const handleSaveReply = async (commentId: string) => {
+    const text = (replyTextMap[commentId] ?? '').trim();
+    setIsSavingReply(true);
+    try {
+      setComments((prev) =>
+        prev.map((c) => (c.id === commentId ? { ...c, adminReply: text || undefined } : c))
+      );
+      await replyComment(commentId, text, character.id);
+      setActiveReplyId(null);
+      setSaveStatus(text ? '✓ Đã gửi phản hồi của Creator Táo.' : '✓ Đã xóa phản hồi.');
+      setTimeout(() => setSaveStatus(''), 2500);
+    } catch (err: any) {
+      console.warn('Lỗi lưu phản hồi bình luận:', err);
+    } finally {
+      setIsSavingReply(false);
     }
   };
 
@@ -2672,42 +2697,169 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                 </p>
               </div>
             ) : (
-              comments.map((c) => (
-                <div
-                  key={c.id}
-                  className="p-5 sm:p-6 bg-white border border-black/[0.08] flex items-start justify-between gap-4 shadow-sm"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-xs font-semibold text-[#161618]">
-                        {c.authorName}
-                      </span>
-                      <span className="text-[10px] text-neutral-400">
-                        {new Date(c.createdAt).toLocaleDateString('vi-VN')}
-                      </span>
-                    </div>
-                    <p className="text-xs sm:text-[13px] text-neutral-700 leading-relaxed font-serif">
-                      {c.content}
-                    </p>
-                  </div>
+              comments.map((c) => {
+                const isReplying = activeReplyId === c.id;
+                const currentDraft = replyTextMap[c.id] !== undefined ? replyTextMap[c.id] : (c.adminReply || '');
 
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setComments((prev) => prev.filter((item) => item.id !== c.id));
-                        await deleteComment(c.id, character.id);
-                        setSaveStatus('✓ Đã xóa bình luận thành công.');
-                        setTimeout(() => setSaveStatus(''), 2500);
-                      }}
-                      className="text-neutral-400 hover:text-red-600 p-1.5 shrink-0 transition-colors cursor-pointer"
-                      title="Xóa bình luận"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              ))
+                return (
+                  <div
+                    key={c.id}
+                    className="p-5 sm:p-6 bg-white border border-black/[0.08] flex flex-col gap-4 shadow-sm transition-all hover:border-black/20"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="text-xs font-semibold text-[#161618]">
+                            {c.authorName}
+                          </span>
+                          <span className="text-[10px] text-neutral-400">
+                            {new Date(c.createdAt).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                        <p className="text-xs sm:text-[13px] text-neutral-800 leading-relaxed font-serif break-words">
+                          {c.content}
+                        </p>
+                      </div>
+
+                      {isAdmin && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isReplying) {
+                                setActiveReplyId(null);
+                              } else {
+                                setActiveReplyId(c.id);
+                                if (replyTextMap[c.id] === undefined) {
+                                  setReplyTextMap((prev) => ({ ...prev, [c.id]: c.adminReply || '' }));
+                                }
+                              }
+                            }}
+                            className={`p-1.5 transition-colors cursor-pointer rounded ${
+                              isReplying || c.adminReply
+                                ? 'text-amber-800 bg-amber-50 hover:bg-amber-100'
+                                : 'text-neutral-400 hover:text-[#161618] hover:bg-neutral-100'
+                            }`}
+                            title={c.adminReply ? 'Chỉnh sửa câu trả lời của Creator Táo' : 'Creator Táo trả lời bình luận này'}
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              setComments((prev) => prev.filter((item) => item.id !== c.id));
+                              await deleteComment(c.id, character.id);
+                              setSaveStatus('✓ Đã xóa bình luận thành công.');
+                              setTimeout(() => setSaveStatus(''), 2500);
+                            }}
+                            className="text-neutral-400 hover:text-red-600 p-1.5 shrink-0 transition-colors cursor-pointer hover:bg-red-50 rounded"
+                            title="Xóa bình luận"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Display existing Creator Táo reply */}
+                    {c.adminReply && !isReplying && (
+                      <div className="ml-3 sm:ml-6 mt-1 p-3.5 sm:p-4 bg-[#FAF9F6] border-l-2 border-amber-900/60 rounded-r border border-t-0 border-r-0 border-b-0 space-y-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <CornerDownRight className="w-3.5 h-3.5 text-amber-900" />
+                            <span className="text-[11px] font-semibold tracking-wider uppercase text-amber-950 font-sans flex items-center gap-1">
+                              <span>Creator Táo</span>
+                              <span className="inline-block px-1.5 py-0.2 text-[9px] bg-amber-950 text-[#fbfaf8] font-mono tracking-normal uppercase rounded-xs">
+                                Tác giả
+                              </span>
+                            </span>
+                          </div>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveReplyId(c.id);
+                                setReplyTextMap((prev) => ({ ...prev, [c.id]: c.adminReply || '' }));
+                              }}
+                              className="text-[10px] text-neutral-400 hover:text-neutral-900 underline underline-offset-2 transition-colors cursor-pointer"
+                            >
+                              Sửa phản hồi
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-xs text-neutral-800 leading-relaxed font-serif pl-5 whitespace-pre-wrap">
+                          {c.adminReply}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Admin Reply Form Modal / Inline Box */}
+                    {isAdmin && isReplying && (
+                      <div className="ml-2 sm:ml-6 mt-2 p-3.5 sm:p-4 bg-amber-50/50 border border-amber-200/80 rounded space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-semibold tracking-wide text-amber-950 flex items-center gap-1.5">
+                            <CornerDownRight className="w-3.5 h-3.5 text-amber-900" />
+                            <span>Creator Táo trả lời độc giả {c.authorName}:</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setActiveReplyId(null)}
+                            className="text-neutral-400 hover:text-neutral-700 p-1"
+                            title="Đóng khung trả lời"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <textarea
+                          rows={3}
+                          value={currentDraft}
+                          onChange={(e) =>
+                            setReplyTextMap((prev) => ({ ...prev, [c.id]: e.target.value }))
+                          }
+                          placeholder={`Nhập câu trả lời hoặc giải đáp thắc mắc cho ${c.authorName}...`}
+                          className="w-full px-3 py-2 bg-white border border-amber-200 text-xs text-neutral-900 focus:outline-none focus:border-amber-900 rounded-sm font-serif leading-relaxed"
+                        />
+                        <div className="flex items-center justify-between gap-2 pt-1">
+                          {c.adminReply ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReplyTextMap((prev) => ({ ...prev, [c.id]: '' }));
+                                handleSaveReply(c.id);
+                              }}
+                              className="text-[10px] text-red-600 hover:underline cursor-pointer"
+                            >
+                              Xóa câu trả lời này
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-neutral-400 italic">
+                              Độc giả sẽ thấy nhãn Creator Táo phản hồi
+                            </span>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setActiveReplyId(null)}
+                              className="px-3 py-1.5 text-[10px] text-neutral-600 hover:bg-neutral-100 rounded cursor-pointer"
+                            >
+                              Hủy
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isSavingReply}
+                              onClick={() => handleSaveReply(c.id)}
+                              className="px-4 py-1.5 bg-[#161618] hover:bg-neutral-800 text-white text-[10px] font-semibold tracking-wider uppercase rounded cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Send className="w-3 h-3" />
+                              <span>{isSavingReply ? 'Đang lưu...' : 'Gửi phản hồi'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

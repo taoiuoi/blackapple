@@ -44,6 +44,7 @@ import {
   fetchHotCharacterSpotlightSupabase,
   saveHotCharacterSpotlightSupabase,
   deleteCommentSupabase,
+  replyCommentSupabase,
   fetchCommissionSettingsSupabase,
   saveCommissionSettingsSupabase,
   fetchCommissionRequestsSupabase,
@@ -1595,10 +1596,38 @@ export async function submitComment(
   }
 }
 
-export async function replyComment(commentId: string, adminReply: string): Promise<void> {
+export async function replyComment(
+  commentId: string,
+  adminReply: string,
+  characterId?: string
+): Promise<void> {
   const path = `comments/${commentId}`;
+  const trimmed = adminReply.trim();
+
+  // 1. Optimistic LocalStorage cache update
+  if (characterId) {
+    const cacheKey = `ba_cache_comments_${characterId}`;
+    const existing = getCachedFirestoreData<Comment[]>(cacheKey) || [];
+    setCachedFirestoreData(
+      cacheKey,
+      existing.map((c) => (c.id === commentId ? { ...c, adminReply: trimmed || undefined } : c))
+    );
+  }
+
+  // 2. Persist to Supabase
   try {
-    await updateDoc(doc(db, 'comments', commentId), { adminReply });
+    await replyCommentSupabase(commentId, trimmed, characterId);
+  } catch (err) {
+    console.warn('[Supabase] Error persisting comment reply:', err);
+  }
+
+  // 3. Persist to Firestore
+  try {
+    if (!trimmed) {
+      await updateDoc(doc(db, 'comments', commentId), { adminReply: '' });
+    } else {
+      await updateDoc(doc(db, 'comments', commentId), { adminReply: trimmed });
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
   }
