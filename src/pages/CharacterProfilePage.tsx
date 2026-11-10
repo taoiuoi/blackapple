@@ -2564,13 +2564,18 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
               return (
                 /* If PRIVATE & Locked -> Show Separated Question, Hint, and Password Input */
                 <div className="pt-8 max-w-lg mx-auto space-y-4">
-                  {/* 01. Separate Question Card */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-white border border-black/15 shadow-sm space-y-2 text-left">
-                    <div className="flex items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-[#735a38] font-serif font-semibold">
-                      <Sparkles className="w-3.5 h-3.5 text-[#b8860b]" />
+                  {/* 01. Separate Question Card with Custom Typographic Question Mark */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-white border border-black/15 shadow-sm space-y-2 text-left relative overflow-hidden">
+                    <div className="flex items-center gap-2 text-[10px] tracking-[0.22em] uppercase text-[#735a38] font-serif font-semibold">
+                      <span
+                        aria-hidden="true"
+                        className="w-4 h-4 rounded-full border border-[#b8860b]/60 text-[#b8860b] font-serif italic text-xs font-bold inline-flex items-center justify-center leading-none select-none bg-[#b8860b]/10"
+                      >
+                        ?
+                      </span>
                       <span>Câu hỏi mở khóa Canon</span>
                     </div>
-                    <p className="font-serif text-xs sm:text-[13.5px] text-[#1c1917] leading-relaxed italic select-text">
+                    <p className="font-serif text-xs sm:text-[13.5px] text-[#1c1917] leading-relaxed italic select-text pl-6">
                       “{parsedQA.question}”
                     </p>
                   </div>
@@ -2582,7 +2587,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                         <KeyRound className="w-3.5 h-3.5 text-[#8c5e28]" />
                         <span>Gợi ý mật mã</span>
                       </div>
-                      <p className="font-serif text-xs sm:text-[13px] text-[#3d2b1f] leading-relaxed font-medium select-text">
+                      <p className="font-serif text-xs sm:text-[13px] text-[#3d2b1f] leading-relaxed font-medium select-text pl-5">
                         {parsedQA.hint}
                       </p>
                     </div>
@@ -2597,11 +2602,11 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
                         placeholder="Nhập câu trả lời hoặc mật khẩu..."
-                        className="flex-1 px-4 py-3 bg-white border border-black/20 text-xs sm:text-sm text-[#18181A] font-serif placeholder:font-serif placeholder:italic placeholder:text-neutral-400 focus:outline-none focus:border-black rounded-xl shadow-inner"
+                        className="flex-1 px-4.5 py-3.5 bg-white border border-black/20 text-xs sm:text-sm text-[#18181A] font-serif placeholder:font-serif placeholder:italic placeholder:text-neutral-400 focus:outline-none focus:border-black focus:ring-2 focus:ring-black/10 rounded-xl shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] transition-all hover:border-black/35"
                       />
                       <button
                         type="submit"
-                        className="px-7 py-3 bg-[#18181A] hover:bg-black text-white text-xs font-serif font-bold tracking-[0.18em] uppercase rounded-xl transition-all shadow-md shrink-0 active:scale-95"
+                        className="px-7 py-3.5 bg-[#18181A] hover:bg-black text-white text-xs font-serif font-bold tracking-[0.18em] uppercase rounded-xl transition-all shadow-md shrink-0 active:scale-95 cursor-pointer"
                       >
                         Mở khóa Link
                       </button>
@@ -2767,9 +2772,9 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5">
                             <CornerDownRight className="w-3.5 h-3.5 text-amber-900" />
-                            <span className="text-[11px] font-semibold tracking-wider uppercase text-amber-950 font-sans flex items-center gap-1">
+                            <span className="text-[11px] font-semibold tracking-wider text-amber-950 font-serif flex items-center gap-1.5">
                               <span>Creator Táo</span>
-                              <span className="inline-block px-1.5 py-0.2 text-[9px] bg-amber-950 text-[#fbfaf8] font-mono tracking-normal uppercase rounded-xs">
+                              <span className="inline-block px-2 py-0.5 text-[9.5px] bg-amber-950 text-[#fbfaf8] font-serif italic tracking-wide rounded-sm select-none">
                                 Tác giả
                               </span>
                             </span>

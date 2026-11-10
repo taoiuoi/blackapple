@@ -500,13 +500,18 @@ export function HomePage({
                 </div>
               </div>
 
-              {/* 01. Separate Question Card */}
-              <div className="p-4 sm:p-4.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1.5 mb-3.5 shadow-inner">
-                <div className="flex items-center gap-1.5 text-[9px] tracking-[0.22em] uppercase text-neutral-400 font-serif font-semibold">
-                  <Sparkles className="w-3 h-3 text-[#d4af37]" />
-                  <span>Câu hỏi mở khóa</span>
+              {/* 01. Separate Question Card with Custom Typographic Question Mark */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2 mb-3.5 shadow-inner relative overflow-hidden">
+                <div className="flex items-center gap-2 text-[10px] tracking-[0.22em] uppercase text-[#d4af37] font-serif font-semibold">
+                  <span
+                    aria-hidden="true"
+                    className="w-4 h-4 rounded-full border border-[#d4af37]/60 text-[#d4af37] font-serif italic text-xs font-bold inline-flex items-center justify-center leading-none select-none bg-[#d4af37]/10"
+                  >
+                    ?
+                  </span>
+                  <span>Câu hỏi mở khóa Canon</span>
                 </div>
-                <p className="font-serif text-xs sm:text-[13.5px] text-neutral-100 leading-relaxed italic select-text">
+                <p className="font-serif text-xs sm:text-[13.5px] text-neutral-100 leading-relaxed italic select-text pl-6">
                   “{parsedQA.question}”
                 </p>
               </div>
@@ -518,33 +523,35 @@ export function HomePage({
                     <KeyRound className="w-3.5 h-3.5 text-[#e6ca9f]" />
                     <span>Gợi ý mật mã</span>
                   </div>
-                  <p className="font-serif text-xs sm:text-[13px] text-[#f4ece1] leading-relaxed select-text font-medium">
+                  <p className="font-serif text-xs sm:text-[13px] text-[#f4ece1] leading-relaxed select-text font-medium pl-5">
                     {parsedQA.hint}
                   </p>
                 </div>
               )}
 
-              {/* 03. Password Input Form */}
-              <form onSubmit={handleUnlockRoleplay} className="space-y-4">
+              {/* 03. Elegant Editorial Password Input Form */}
+              <form onSubmit={handleUnlockRoleplay} className="space-y-4 pt-1">
                 <div>
                   <label className="text-[10px] tracking-[0.2em] uppercase text-neutral-400 font-serif font-semibold block mb-2">
                     Nhập câu trả lời hoặc mật khẩu:
                   </label>
-                  <input
-                    type="text"
-                    autoFocus
-                    value={roleplayPasswordInput}
-                    onChange={(e) => {
-                      setRoleplayPasswordInput(e.target.value);
-                      setRoleplayPasswordError(false);
-                    }}
-                    placeholder="Nhập đáp án tại đây..."
-                    className={`w-full px-4 py-3 rounded-xl bg-black/60 border ${
-                      roleplayPasswordError
-                        ? 'border-rose-500/80 text-rose-200 focus:ring-1 focus:ring-rose-500/50'
-                        : 'border-white/20 text-white focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37]/40'
-                    } text-xs sm:text-sm font-serif placeholder:font-serif placeholder:italic placeholder:text-neutral-500 outline-none transition-all shadow-inner`}
-                  />
+                  <div className="relative group">
+                    <input
+                      type="text"
+                      autoFocus
+                      value={roleplayPasswordInput}
+                      onChange={(e) => {
+                        setRoleplayPasswordInput(e.target.value);
+                        setRoleplayPasswordError(false);
+                      }}
+                      placeholder="Nhập đáp án tại đây..."
+                      className={`w-full px-4.5 py-3.5 rounded-xl bg-black/75 border ${
+                        roleplayPasswordError
+                          ? 'border-rose-500 text-rose-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20'
+                          : 'border-white/20 text-white focus:border-[#d4af37] focus:ring-2 focus:ring-[#d4af37]/25 hover:border-white/35'
+                      } text-xs sm:text-sm font-serif placeholder:font-serif placeholder:italic placeholder:text-neutral-500 outline-none transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]`}
+                    />
+                  </div>
                   {roleplayPasswordError && (
                     <div className="mt-2.5 p-2.5 rounded-lg bg-rose-950/40 border border-rose-500/30 text-rose-300 font-serif text-xs flex items-center gap-2">
                       <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
@@ -558,13 +565,13 @@ export function HomePage({
                   <button
                     type="button"
                     onClick={() => setShowRoleplayModal(false)}
-                    className="px-5 py-2.5 rounded-full border border-white/15 text-xs font-serif text-neutral-400 hover:text-white hover:border-white/30 transition-all"
+                    className="px-5 py-2.5 rounded-full border border-white/15 text-xs font-serif text-neutral-400 hover:text-white hover:border-white/30 transition-all cursor-pointer"
                   >
                     Hủy bỏ
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-full bg-neutral-100 hover:bg-white text-neutral-900 text-xs font-serif font-bold tracking-[0.16em] uppercase shadow-lg transition-all active:scale-95"
+                    className="px-6 py-2.5 rounded-full bg-[#FAF9F6] hover:bg-white text-[#141416] text-xs font-serif font-bold tracking-[0.16em] uppercase shadow-lg transition-all active:scale-95 cursor-pointer"
                   >
                     Xác nhận mở khóa
                   </button>
