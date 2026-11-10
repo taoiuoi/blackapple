@@ -1601,7 +1601,6 @@ export async function replyComment(
   adminReply: string,
   characterId?: string
 ): Promise<void> {
-  const path = `comments/${commentId}`;
   const trimmed = adminReply.trim();
 
   // 1. Optimistic LocalStorage cache update
@@ -1614,14 +1613,14 @@ export async function replyComment(
     );
   }
 
-  // 2. Persist to Supabase
+  // 2. Persist to Supabase (primary resilient multi-tier storage)
   try {
     await replyCommentSupabase(commentId, trimmed, characterId);
   } catch (err) {
     console.warn('[Supabase] Error persisting comment reply:', err);
   }
 
-  // 3. Persist to Firestore
+  // 3. Persist to Firestore (best-effort cloud sync; non-fatal if offline/auth initializing)
   try {
     if (!trimmed) {
       await updateDoc(doc(db, 'comments', commentId), { adminReply: '' });
@@ -1629,12 +1628,11 @@ export async function replyComment(
       await updateDoc(doc(db, 'comments', commentId), { adminReply: trimmed });
     }
   } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, path);
+    console.warn('[Firestore] Note on comment reply sync:', error);
   }
 }
 
 export async function deleteComment(commentId: string, characterId?: string): Promise<void> {
-  const path = `comments/${commentId}`;
   // 1. Delete from Supabase & local caches first
   try {
     await deleteCommentSupabase(commentId, characterId);
@@ -1651,11 +1649,11 @@ export async function deleteComment(commentId: string, characterId?: string): Pr
     );
   }
 
-  // 2. Delete from Firestore
+  // 2. Delete from Firestore (best-effort cloud sync; non-fatal)
   try {
     await deleteDoc(doc(db, 'comments', commentId));
   } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, path);
+    console.warn('[Firestore] Note on comment deletion sync:', error);
   }
 }
 
