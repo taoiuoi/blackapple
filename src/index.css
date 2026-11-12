@@ -85,3 +85,48 @@ button, a {
   touch-action: manipulation;
 }
 
+/* =========================================================================
+   OPTICAL LENS SPECULAR GLASS SHADERS (NO BLUR, PURE TRANSPARENT CRYSTAL LENS)
+   Inspired by reference IMG_1068: White rim light, bevel refraction, pill depth
+   ========================================================================= */
+.lens-crystal-panel {
+  background: radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 60%, rgba(0, 0, 0, 0.45) 100%), rgba(8, 8, 11, 0.64);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.65),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 -2px 4px 0 rgba(0, 0, 0, 0.7),
+    0 24px 60px -10px rgba(0, 0, 0, 0.95),
+    0 0 45px -8px rgba(255, 255, 255, 0.08);
+}
+
+/* Top Specular Arc Refraction (Lóa viền thấu kính) */
+.lens-crystal-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.95) 50%, transparent 100%);
+  pointer-events: none;
+  z-index: 25;
+}
+
+/* Rounded Pill Lens Input (như trong ảnh mẫu IMG_1068) */
+.lens-pill-input {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0 1.5px 3px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1.5px 3px 0 rgba(0, 0, 0, 0.6),
+    0 4px 14px rgba(0, 0, 0, 0.4);
+}
+.lens-pill-input:focus {
+  border-color: rgba(255, 255, 255, 0.75);
+  box-shadow:
+    inset 0 1.5px 3px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(255, 255, 255, 0.25);
+}
+

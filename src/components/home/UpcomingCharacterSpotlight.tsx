@@ -97,18 +97,18 @@ export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProp
       ========================================================================= */}
       <section className="mb-8 relative group">
         {/* Subtle Ambient Back-Glow */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-neutral-800/15 via-zinc-800/20 to-neutral-800/15 rounded-[12px] blur-md opacity-60 group-hover:opacity-90 transition-opacity duration-700 pointer-events-none" />
+        <div className="absolute -inset-1 bg-gradient-to-r from-white/10 via-white/5 to-white/10 rounded-[18px] blur-md opacity-40 group-hover:opacity-75 transition-opacity duration-700 pointer-events-none" />
 
-        <div className="relative rounded-[10px] bg-gradient-to-br from-[#0c0c0f] via-[#08080a] to-[#040405] border border-white/15 hover:border-white/25 transition-all duration-500 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.85)]">
-          {/* Top Delicate Seal Ribbon (Playfair font: Sắp ra mắt · Upcoming Archive) */}
-          <div className="px-4 sm:px-6 py-2.5 bg-black/60 border-b border-white/10 flex items-center justify-between">
+        <div className="relative rounded-[16px] lens-crystal-panel overflow-hidden transition-all duration-500">
+          {/* Top Delicate Optical Lens Seal Ribbon */}
+          <div className="px-4 sm:px-6 py-2.5 bg-white/[0.04] border-b border-white/[0.14] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-              <span className="text-[10px] sm:text-[11px] font-serif tracking-[0.24em] uppercase text-rose-300 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse shrink-0 shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+              <span className="text-[10px] sm:text-[11px] font-serif tracking-[0.24em] uppercase text-rose-200 font-medium">
                 ✦ Sắp ra mắt · Upcoming Archive ✦
               </span>
             </div>
-            <span className="text-[11px] font-serif text-neutral-400 italic">
+            <span className="text-[11px] font-serif text-neutral-300 italic">
               {novelTitle}
             </span>
           </div>
@@ -119,7 +119,7 @@ export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProp
             <div className="sm:col-span-5 relative">
               <div
                 onClick={() => setShowTeaserModal(true)}
-                className="relative aspect-[3/3.8] rounded-[6px] overflow-hidden bg-neutral-900 border border-white/10 cursor-pointer shadow-xl group/img"
+                className="relative aspect-[3/3.8] rounded-xl overflow-hidden bg-neutral-900 border border-white/20 cursor-pointer shadow-2xl group/img"
               >
                 <ImageWithFallback
                   src={homeTeaserImage}
@@ -128,16 +128,16 @@ export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProp
                 />
 
                 {/* Soft Vignette Shadows */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/20 pointer-events-none" />
 
-                {/* Watermark Crest */}
-                <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-black/60 backdrop-blur-md border border-white/15 text-[9.5px] font-serif italic text-neutral-300">
+                {/* Watermark Crest - Optical Glass Tag */}
+                <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-black/60 border border-white/25 text-[9.5px] font-serif italic text-neutral-200 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
                   {upcomingChar.code || 'T-06'}
                 </div>
 
                 {/* Hover Eye Prompt */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity bg-black/40 backdrop-blur-[2px]">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 text-black text-[10px] font-serif font-semibold tracking-wider uppercase shadow-lg transform translate-y-2 group-hover/img:translate-y-0 transition-transform">
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity bg-black/40">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-black text-[10px] font-serif font-semibold tracking-wider uppercase shadow-[0_4px_20px_rgba(255,255,255,0.4)] transform translate-y-2 group-hover/img:translate-y-0 transition-transform">
                     <Eye className="w-3 h-3" />
                     <span>Xem hé lộ</span>
                   </span>
@@ -172,7 +172,7 @@ export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProp
                   <span className="text-neutral-500">—</span>
                   <span className="italic lowercase">tagline</span>
                 </div>
-                <div className="pl-3 border-l border-neutral-700 py-0.5">
+                <div className="pl-3 border-l border-white/25 py-0.5">
                   <p className="font-serif italic text-xs sm:text-[13.5px] text-neutral-200 leading-relaxed font-light select-text">
                     {tagline}
                   </p>
@@ -180,8 +180,8 @@ export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProp
               </div>
 
               {/* Status Note & Interactive Call to Action */}
-              <div className="pt-2 flex items-center justify-between gap-3 flex-wrap border-t border-white/10">
-                <div className="flex items-center gap-1.5 text-[10.5px] font-serif text-neutral-400">
+              <div className="pt-2 flex items-center justify-between gap-3 flex-wrap border-t border-white/[0.12]">
+                <div className="flex items-center gap-1.5 text-[10.5px] font-serif text-neutral-300">
                   <Lock className="w-3 h-3 text-neutral-400" />
                   <span>Hồ sơ đang niêm phong</span>
                 </div>
@@ -189,7 +189,7 @@ export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProp
                 <button
                   type="button"
                   onClick={() => setShowTeaserModal(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/10 hover:bg-white text-neutral-200 hover:text-black border border-white/20 text-[10px] font-serif font-semibold tracking-[0.16em] uppercase transition-all shadow-sm cursor-pointer active:scale-95"
+                  className="inline-flex items-center gap-1.5 px-4.5 py-1.5 rounded-full bg-white/15 hover:bg-white text-neutral-100 hover:text-black border border-white/30 text-[10px] font-serif font-semibold tracking-[0.16em] uppercase transition-all shadow-[0_2px_10px_rgba(0,0,0,0.4)] cursor-pointer active:scale-95"
                 >
                   <span>Mở xem hé lộ</span>
                   <ArrowUpRight className="w-3 h-3" />
@@ -201,21 +201,16 @@ export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProp
       </section>
 
       {/* =========================================================================
-          THE ARTISTIC NOIR DOSSIER POPUP (MUSEUM / EDITORIAL GALLERY PRESENTATION)
-          Redesigned to be genuinely artistic, minimal & ultra-luxurious
+          THE ARTISTIC NOIR DOSSIER POPUP (OPTICAL SPECULAR CRYSTAL LENS)
       ========================================================================= */}
       {showTeaserModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-2xl animate-fadeIn">
-          <div className="relative w-full max-w-2xl rounded-2xl bg-[#09090c] border border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.98)] text-neutral-100 overflow-hidden max-h-[92vh] flex flex-col">
-            {/* Ambient Background Velvet Glow */}
-            <div className="absolute -top-32 -right-32 w-72 h-72 bg-gradient-to-br from-rose-950/25 to-transparent rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-32 -left-32 w-72 h-72 bg-gradient-to-tr from-stone-900/30 to-transparent rounded-full blur-3xl pointer-events-none" />
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 animate-fadeIn">
+          <div className="relative w-full max-w-2xl rounded-[28px] lens-crystal-panel text-neutral-100 overflow-hidden max-h-[92vh] flex flex-col">
             {/* Top Minimal Bar */}
-            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between z-10 bg-black/40 backdrop-blur-md">
+            <div className="px-6 py-4 border-b border-white/[0.14] flex items-center justify-between z-10 bg-white/[0.04]">
               <div className="flex items-center gap-2.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                <span className="text-[10px] sm:text-[11px] font-serif tracking-[0.24em] uppercase text-rose-300 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+                <span className="text-[10px] sm:text-[11px] font-serif tracking-[0.24em] uppercase text-rose-200 font-medium">
                   ✦ Confidential Dossier · Bản Thảo Niêm Phong ✦
                 </span>
               </div>
@@ -223,7 +218,7 @@ export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProp
               {/* Close Button */}
               <button
                 onClick={() => setShowTeaserModal(false)}
-                className="w-8 h-8 rounded-full border border-white/15 hover:border-white/40 flex items-center justify-center text-neutral-400 hover:text-white transition-all cursor-pointer"
+                className="w-8 h-8 rounded-full border border-white/20 hover:border-white/50 bg-white/[0.06] hover:bg-white/20 flex items-center justify-center text-neutral-300 hover:text-white transition-all cursor-pointer"
                 aria-label="Đóng"
               >
                 <X className="w-4 h-4" />
@@ -326,15 +321,15 @@ export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProp
               </div>
             </div>
 
-            {/* Minimal Footer Action Bar */}
-            <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between gap-3 bg-black/40 backdrop-blur-md">
+            {/* Minimal Footer Action Bar (No Blur, Optical Specular Depth) */}
+            <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between gap-3 bg-black/50">
               <button
                 type="button"
                 onClick={handleCheer}
-                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-sans font-semibold tracking-wide transition-all shadow-md cursor-pointer ${
+                className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-serif font-bold tracking-[0.14em] uppercase transition-all shadow-[0_4px_20px_rgba(255,255,255,0.25)] cursor-pointer ${
                   hasCheered
-                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                    : 'bg-white hover:bg-neutral-200 text-black active:scale-95'
+                    ? 'bg-rose-500/20 text-rose-200 border border-rose-500/40 shadow-none'
+                    : 'bg-white hover:bg-neutral-100 text-black active:scale-95'
                 }`}
               >
                 {hasCheered ? (
@@ -353,7 +348,7 @@ export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProp
               <button
                 type="button"
                 onClick={() => setShowTeaserModal(false)}
-                className="px-4 py-2 text-xs font-serif text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-full border border-white/20 hover:border-white/40 bg-white/[0.04] text-xs font-serif text-neutral-300 hover:text-white transition-all cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]"
               >
                 Đóng
               </button>

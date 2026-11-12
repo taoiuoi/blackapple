@@ -114,11 +114,11 @@ export const HotCharacterSpotlight: React.FC<HotCharacterSpotlightProps> = ({
       </div>
 
       {/* =========================================================================
-          BESPOKE NOIR MONOGRAPH SHOWCASE (Balanced Gallery Proportion)
+          BESPOKE NOIR MONOGRAPH SHOWCASE (Optical Specular Lens Styling)
       ========================================================================= */}
       <div
         onClick={() => navigate(getCharacterPath(honoredChar))}
-        className="group relative w-full rounded-[10px] bg-[#08080B] border border-white/[0.14] hover:border-white/[0.28] shadow-[0_24px_65px_rgba(0,0,0,0.95)] overflow-hidden cursor-pointer transition-all duration-700 p-4 sm:p-6"
+        className="group relative w-full rounded-[22px] lens-crystal-panel hover:border-white/40 overflow-hidden cursor-pointer transition-all duration-700 p-4 sm:p-6"
         title={`Xem hồ sơ nhân vật ${honoredChar.name}`}
       >
         {/* 1. ARCHITECTURAL BACKGROUND ORBIT & WATERMARK NUMERAL */}
@@ -139,12 +139,12 @@ export const HotCharacterSpotlight: React.FC<HotCharacterSpotlightProps> = ({
           <span>BLACK APPLE</span>
         </div>
 
-        {/* 3. LAYERED EDITORIAL COLLAGE */}
+        {/* 3. LAYERED EDITORIAL COLLAGE (Matches IMG_0922 Layout + Optical Lens) */}
         <div className="relative z-10 w-full pt-1 pb-10 sm:pb-12">
           <div className="relative w-[80%] sm:w-[76%] aspect-[4/4.5]">
-            <div className="absolute inset-0 translate-x-3 translate-y-3 rounded-[4px] border border-white/[0.16] bg-white/[0.01] pointer-events-none" />
+            <div className="absolute inset-0 translate-x-3 translate-y-3 rounded-[8px] border border-white/[0.18] bg-white/[0.02] pointer-events-none" />
 
-            <div className="relative w-full h-full rounded-[4px] overflow-hidden bg-[#121217] border border-white/25 shadow-[0_18px_45px_rgba(0,0,0,0.9)]">
+            <div className="relative w-full h-full rounded-[8px] overflow-hidden bg-[#101015] border border-white/30 shadow-[0_18px_45px_rgba(0,0,0,0.9)]">
               <ImageWithFallback
                 src={portraitImage}
                 alt={honoredChar.name}
@@ -153,11 +153,11 @@ export const HotCharacterSpotlight: React.FC<HotCharacterSpotlightProps> = ({
                 objectPosition={honoredChar.posterObjectPosition || '50% 20%'}
                 className="w-full h-full object-cover grayscale contrast-[1.14] brightness-95 group-hover:scale-[1.03] transition-transform duration-1000 ease-out"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/25 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/25 pointer-events-none" />
 
-              <div className="absolute top-2.5 left-2.5 w-2 h-2 border-t border-l border-white/50 pointer-events-none" />
-              <div className="absolute top-2.5 right-2.5 w-2 h-2 border-t border-r border-white/50 pointer-events-none" />
-              <div className="absolute bottom-2.5 left-2.5 w-2 h-2 border-b border-l border-white/50 pointer-events-none" />
+              <div className="absolute top-2.5 left-2.5 w-2.5 h-2.5 border-t border-l border-white/60 pointer-events-none" />
+              <div className="absolute top-2.5 right-2.5 w-2.5 h-2.5 border-t border-r border-white/60 pointer-events-none" />
+              <div className="absolute bottom-2.5 left-2.5 w-2.5 h-2.5 border-b border-l border-white/60 pointer-events-none" />
             </div>
           </div>
 
@@ -172,9 +172,9 @@ export const HotCharacterSpotlight: React.FC<HotCharacterSpotlightProps> = ({
             <span className="text-[8px] font-serif text-white/60">✦</span>
           </div>
 
-          {/* OVERLAPPING BOTTOM-RIGHT NAMEPLATE PLAQUE */}
-          <div className="absolute bottom-0 right-0 w-[78%] sm:w-[74%] z-20 bg-[#0D0D12]/95 backdrop-blur-md border border-white/25 rounded-[4px] p-3 sm:p-4 shadow-[0_16px_40px_rgba(0,0,0,0.95)] transition-transform duration-500 group-hover:-translate-y-1">
-            <div className="flex items-center justify-between text-[8.5px] sm:text-[9px] font-sans tracking-[0.2em] uppercase text-neutral-400 pb-2 mb-2 border-b border-white/[0.1]">
+          {/* OVERLAPPING BOTTOM-RIGHT NAMEPLATE PLAQUE (Optical Crystal Lens) */}
+          <div className="absolute bottom-0 right-0 w-[78%] sm:w-[74%] z-20 lens-crystal-panel rounded-[14px] p-3 sm:p-4 shadow-[0_16px_40px_rgba(0,0,0,0.95)] transition-transform duration-500 group-hover:-translate-y-1.5">
+            <div className="flex items-center justify-between text-[8.5px] sm:text-[9px] font-sans tracking-[0.2em] uppercase text-neutral-400 pb-2 mb-2 border-b border-white/[0.12]">
               <span className="truncate pr-2 lowercase">{originalWork}</span>
               <span className="text-white font-serif shrink-0">
                 {honoredChar.originalChineseName || `#${codeNumber}`}
@@ -183,7 +183,7 @@ export const HotCharacterSpotlight: React.FC<HotCharacterSpotlightProps> = ({
 
             <div className="flex items-end justify-between gap-2">
               <div>
-                <div className="text-[7.5px] sm:text-[8px] font-mono tracking-[0.22em] uppercase text-neutral-500 mb-0.5">
+                <div className="text-[7.5px] sm:text-[8px] font-serif tracking-[0.22em] uppercase text-neutral-400 mb-0.5">
                   FEATURED MUSE
                 </div>
                 <h3 className="font-editorial italic text-lg sm:text-2xl text-white tracking-wide leading-none">
@@ -191,7 +191,7 @@ export const HotCharacterSpotlight: React.FC<HotCharacterSpotlightProps> = ({
                 </h3>
               </div>
 
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-white/20 flex items-center justify-center text-white/70 group-hover:text-white group-hover:border-white/50 transition-colors shrink-0">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-white/30 bg-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] flex items-center justify-center text-white/80 group-hover:text-white group-hover:border-white/60 group-hover:bg-white/20 transition-all shrink-0">
                 <ArrowUpRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </div>
             </div>

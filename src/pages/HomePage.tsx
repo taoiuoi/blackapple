@@ -188,20 +188,33 @@ export function HomePage({
 
   return (
     <div className="min-h-screen bg-[#020203] text-[#f4f4f6] font-content selection:bg-white selection:text-black flex flex-col relative overflow-x-hidden">
+      {/* High-Fidelity Noir Background Canvas (Ocean Wave Crashing on Volcanic Rock) */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none">
+        <img
+          src="/assets/aistudio/597ADB97-C24F-4C18-A350-F21C6D6F506F_7a61068d.png"
+          alt="Noir Wave Atmosphere Background"
+          className="w-full h-full object-cover object-center opacity-70 contrast-[1.12] brightness-[0.78]"
+        />
+        {/* Soft atmospheric gradient scrim for pristine contrast and typographic clarity */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#020203]/75 via-black/40 to-[#020203]/90" />
+      </div>
+
       {/* Global Top Navbar */}
-      <Navbar
-        settings={settings}
-        onOpenAdmin={onOpenAdmin}
-        isAdmin={isAdmin}
-        isAudioPlaying={isAudioPlaying}
-        onToggleAudio={onToggleAudio}
-        siteTitle={settings.siteTitle}
-        logoUrl={settings.logoUrl}
-        onReplayIntro={onReplayIntro}
-      />
+      <div className="relative z-10">
+        <Navbar
+          settings={settings}
+          onOpenAdmin={onOpenAdmin}
+          isAdmin={isAdmin}
+          isAudioPlaying={isAudioPlaying}
+          onToggleAudio={onToggleAudio}
+          siteTitle={settings.siteTitle}
+          logoUrl={settings.logoUrl}
+          onReplayIntro={onReplayIntro}
+        />
+      </div>
 
       {/* Balanced Centered Editorial Column with comfortable mobile & desktop breathing space */}
-      <main className="flex-1 w-[88%] max-w-[360px] sm:max-w-[460px] mx-auto pt-5 sm:pt-8 pb-14">
+      <main className="relative z-10 flex-1 w-[88%] max-w-[360px] sm:max-w-[460px] mx-auto pt-5 sm:pt-8 pb-14">
         {/* =========================================================
             MỤC CHARACTER SẮP RA MẮT (UPCOMING DOSSIER SPOTLIGHT)
         ========================================================= */}
@@ -422,50 +435,54 @@ export function HomePage({
       {/* =========================================================
           HONORARY PODIUM: CHARACTER HOT TRONG TUẦN (LAUREL OF THE WEEK)
       ========================================================= */}
-      <HotCharacterSpotlight
-        characters={characters}
-        settings={settings}
-        isAdmin={isAdmin}
-        onSettingsUpdated={onUpdateSettings}
-        onRoleplayClick={(char) => {
-          if (!char.roleplayLink) {
-            navigate(getCharacterPath(char));
-            return;
-          }
-          if (char.isRoleplayLocked) {
-            const idx = characters.findIndex((c) => c.id === char.id);
-            if (idx >= 0) setActiveIndex(idx);
-            setRoleplayPasswordInput('');
-            setRoleplayPasswordError(false);
-            setShowRoleplayModal(true);
-          } else {
-            incrementRoleplayClicks(char.id);
-            window.open(char.roleplayLink, '_blank', 'noopener,noreferrer');
-          }
-        }}
-      />
+      <div className="relative z-10">
+        <HotCharacterSpotlight
+          characters={characters}
+          settings={settings}
+          isAdmin={isAdmin}
+          onSettingsUpdated={onUpdateSettings}
+          onRoleplayClick={(char) => {
+            if (!char.roleplayLink) {
+              navigate(getCharacterPath(char));
+              return;
+            }
+            if (char.isRoleplayLocked) {
+              const idx = characters.findIndex((c) => c.id === char.id);
+              if (idx >= 0) setActiveIndex(idx);
+              setRoleplayPasswordInput('');
+              setRoleplayPasswordError(false);
+              setShowRoleplayModal(true);
+            } else {
+              incrementRoleplayClicks(char.id);
+              window.open(char.roleplayLink, '_blank', 'noopener,noreferrer');
+            }
+          }}
+        />
+      </div>
 
       {/* Discreet Editorial Footer */}
-      <Footer
-        settings={settings}
-        onOpenAdmin={onOpenAdmin}
-        onReplayIntro={onReplayIntro}
-      />
+      <div className="relative z-10">
+        <Footer
+          settings={settings}
+          onOpenAdmin={onOpenAdmin}
+          onReplayIntro={onReplayIntro}
+        />
+      </div>
 
       {/* Password Modal for Protected Roleplay Canon */}
       {showRoleplayModal && (() => {
         const parsedQA = parseQuestionAndHint(currentHero.roleplayUnlockQuestion);
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fadeIn">
-            <div className="relative w-full max-w-lg rounded-3xl bg-[#0c0c0e] border border-white/15 p-6 sm:p-8 shadow-[0_25px_80px_rgba(0,0,0,0.9)] text-neutral-100 text-left overflow-hidden">
-              {/* Soft Ambient Glows */}
-              <div className="absolute -top-24 -right-24 w-60 h-60 bg-gradient-to-br from-[#d4af37]/15 to-transparent rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-gradient-to-tr from-[#881337]/15 to-transparent rounded-full blur-3xl pointer-events-none" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-fadeIn">
+            <div className="relative w-full max-w-lg rounded-[28px] lens-crystal-panel p-6 sm:p-8 text-neutral-100 text-left overflow-hidden">
+              {/* Soft Ambient Refraction Glows */}
+              <div className="absolute -top-24 -right-24 w-60 h-60 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-gradient-to-tr from-[#d4af37]/10 to-transparent rounded-full blur-2xl pointer-events-none" />
 
               {/* Close Button */}
               <button
                 onClick={() => setShowRoleplayModal(false)}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full border border-white/10 hover:border-white/30 flex items-center justify-center text-neutral-400 hover:text-white transition-all z-10"
+                className="absolute top-5 right-5 w-8 h-8 rounded-full border border-white/20 bg-white/[0.05] hover:bg-white/15 flex items-center justify-center text-neutral-300 hover:text-white transition-all z-10 cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
                 aria-label="Đóng"
               >
                 <X className="w-4 h-4" />
@@ -473,15 +490,15 @@ export function HomePage({
 
               {/* Status Header */}
               <div className="flex items-center gap-2 mb-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-pulse" />
-                <span className="text-[10px] tracking-[0.24em] text-[#d4af37] font-serif uppercase font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.9)]" />
+                <span className="text-[10px] tracking-[0.24em] text-neutral-300 font-serif uppercase font-semibold">
                   Hồ sơ bảo mật · Mật mã Canon
                 </span>
               </div>
 
               {/* Character Identity */}
               <div className="flex items-center gap-3.5 mb-5 pb-4 border-b border-white/10">
-                <div className="w-12 h-12 rounded-full overflow-hidden border border-[#d4af37]/40 shrink-0 shadow-lg bg-neutral-900">
+                <div className="w-12 h-12 rounded-full overflow-hidden border border-white/30 shrink-0 shadow-lg bg-neutral-900">
                   <ImageWithFallback
                     src={currentHero.avatarUrl || currentHero.posterUrl || currentHero.coverUrl}
                     alt={currentHero.name}
@@ -500,12 +517,12 @@ export function HomePage({
                 </div>
               </div>
 
-              {/* 01. Separate Question Card with Custom Typographic Question Mark */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2 mb-3.5 shadow-inner relative overflow-hidden">
-                <div className="flex items-center gap-2 text-[10px] tracking-[0.22em] uppercase text-[#d4af37] font-serif font-semibold">
+              {/* 01. Optical Crystal Question Card with Custom Typographic Question Mark */}
+              <div className="p-4 sm:p-5 rounded-[20px] bg-white/[0.04] border border-white/15 space-y-2 mb-3.5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.25)] relative overflow-hidden">
+                <div className="flex items-center gap-2 text-[10px] tracking-[0.22em] uppercase text-neutral-300 font-serif font-semibold">
                   <span
                     aria-hidden="true"
-                    className="w-4 h-4 rounded-full border border-[#d4af37]/60 text-[#d4af37] font-serif italic text-xs font-bold inline-flex items-center justify-center leading-none select-none bg-[#d4af37]/10"
+                    className="w-4 h-4 rounded-full border border-white/40 text-white font-serif italic text-xs font-bold inline-flex items-center justify-center leading-none select-none bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
                   >
                     ?
                   </span>
@@ -516,20 +533,20 @@ export function HomePage({
                 </p>
               </div>
 
-              {/* 02. Separate Hint Card (If available) */}
+              {/* 02. Optical Crystal Hint Card (If available) */}
               {parsedQA.hint && (
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#c5a880]/10 border border-[#c5a880]/30 space-y-1 mb-4 shadow-sm">
-                  <div className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-[#e6ca9f] font-serif font-semibold">
-                    <KeyRound className="w-3.5 h-3.5 text-[#e6ca9f]" />
+                <div className="p-3.5 sm:p-4 rounded-[18px] bg-white/[0.03] border border-white/15 space-y-1 mb-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.18)]">
+                  <div className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-neutral-300 font-serif font-semibold">
+                    <KeyRound className="w-3.5 h-3.5 text-neutral-300" />
                     <span>Gợi ý mật mã</span>
                   </div>
-                  <p className="font-serif text-xs sm:text-[13px] text-[#f4ece1] leading-relaxed select-text font-medium pl-5">
+                  <p className="font-serif text-xs sm:text-[13px] text-neutral-200 leading-relaxed select-text font-medium pl-5">
                     {parsedQA.hint}
                   </p>
                 </div>
               )}
 
-              {/* 03. Elegant Editorial Password Input Form */}
+              {/* 03. Sleek Optical Capsule Password Input (Like IMG_1068) */}
               <form onSubmit={handleUnlockRoleplay} className="space-y-4 pt-1">
                 <div>
                   <label className="text-[10px] tracking-[0.2em] uppercase text-neutral-400 font-serif font-semibold block mb-2">
@@ -545,15 +562,15 @@ export function HomePage({
                         setRoleplayPasswordError(false);
                       }}
                       placeholder="Nhập đáp án tại đây..."
-                      className={`w-full px-4.5 py-3.5 rounded-xl bg-black/75 border ${
+                      className={`w-full px-5 py-3.5 rounded-full lens-pill-input ${
                         roleplayPasswordError
-                          ? 'border-rose-500 text-rose-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20'
-                          : 'border-white/20 text-white focus:border-[#d4af37] focus:ring-2 focus:ring-[#d4af37]/25 hover:border-white/35'
-                      } text-xs sm:text-sm font-serif placeholder:font-serif placeholder:italic placeholder:text-neutral-500 outline-none transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]`}
+                          ? '!border-rose-400 text-rose-100'
+                          : 'text-white'
+                      } text-xs sm:text-sm font-serif placeholder:font-serif placeholder:italic placeholder:text-neutral-400 outline-none transition-all`}
                     />
                   </div>
                   {roleplayPasswordError && (
-                    <div className="mt-2.5 p-2.5 rounded-lg bg-rose-950/40 border border-rose-500/30 text-rose-300 font-serif text-xs flex items-center gap-2">
+                    <div className="mt-2.5 p-2.5 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-200 font-serif text-xs flex items-center gap-2">
                       <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                       <span>Mật khẩu chưa chính xác. Bạn hãy đối chiếu lại gợi ý bên trên nhé.</span>
                     </div>
@@ -565,13 +582,13 @@ export function HomePage({
                   <button
                     type="button"
                     onClick={() => setShowRoleplayModal(false)}
-                    className="px-5 py-2.5 rounded-full border border-white/15 text-xs font-serif text-neutral-400 hover:text-white hover:border-white/30 transition-all cursor-pointer"
+                    className="px-5 py-2.5 rounded-full border border-white/20 bg-white/[0.04] text-xs font-serif text-neutral-300 hover:text-white hover:border-white/40 transition-all cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]"
                   >
                     Hủy bỏ
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-full bg-[#FAF9F6] hover:bg-white text-[#141416] text-xs font-serif font-bold tracking-[0.16em] uppercase shadow-lg transition-all active:scale-95 cursor-pointer"
+                    className="px-7 py-3 rounded-full bg-white hover:bg-neutral-100 text-black text-xs font-serif font-bold tracking-[0.18em] uppercase shadow-[0_4px_24px_rgba(255,255,255,0.4)] transition-all active:scale-95 cursor-pointer"
                   >
                     Xác nhận mở khóa
                   </button>

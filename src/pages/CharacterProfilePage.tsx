@@ -2500,32 +2500,32 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
             </form>
           )}
 
-          {/* GGAI Display Card (Matches Reference Image 2 Stone Panel Aesthetic) */}
-          <div className="bg-[#DFDFDC] text-[#18181A] p-8 sm:p-12 shadow-2xl">
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-black/15">
+          {/* GGAI Display Card (Optical Specular Lens Panel) */}
+          <div className="rounded-[28px] lens-crystal-panel text-white p-6 sm:p-10 shadow-[0_24px_70px_rgba(0,0,0,0.95)] relative overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10">
               <div>
-                <span className="text-[10px] tracking-[0.2em] uppercase text-neutral-500 block">
+                <span className="text-[10px] tracking-[0.2em] uppercase text-neutral-400 block font-serif">
                   GGAI INTERACTION PORTAL
                 </span>
-                <h2 className="font-editorial italic text-2xl sm:text-3xl text-[#18181A] mt-0.5">
+                <h2 className="font-editorial italic text-2xl sm:text-3xl text-white mt-0.5">
                   Link GGAI · {character.name}
                 </h2>
               </div>
 
               {/* Status Badge: PUBLIC or PRIVATE & Roleplay Clicks Counter */}
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3.5 py-1 rounded-full bg-black/40 text-neutral-300 border border-white/15 text-[10px] tracking-[0.16em] uppercase font-sans font-medium flex items-center gap-1.5 shadow-sm" title="Tổng số lượt nhấp nhận link Roleplay">
-                  <span className="text-neutral-300 font-serif">—</span>
+                <span className="px-3.5 py-1 rounded-full bg-white/[0.06] text-neutral-300 border border-white/15 text-[10px] tracking-[0.16em] uppercase font-sans font-medium flex items-center gap-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]" title="Tổng số lượt nhấp nhận link Roleplay">
+                  <span className="text-neutral-400 font-serif">—</span>
                   <span>{(character.roleplayClicks || 0).toLocaleString()} LƯỢT NHẬN LINK</span>
                 </span>
                 {character.isRoleplayLocked ? (
-                  <span className="px-3.5 py-1 rounded-full bg-[#18181A] text-white text-[10px] tracking-[0.18em] uppercase font-semibold flex items-center gap-1.5 border border-white/20">
-                    <Lock className="w-3 h-3 text-amber-400" />
+                  <span className="px-3.5 py-1 rounded-full bg-white/[0.1] text-white text-[10px] tracking-[0.18em] uppercase font-serif font-semibold flex items-center gap-1.5 border border-white/25 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35)]">
+                    <Lock className="w-3 h-3 text-amber-300" />
                     <span>PRIVATE · YÊU CẦU PASS</span>
                   </span>
                 ) : (
-                  <span className="px-3.5 py-1 rounded-full bg-white text-[#18181A] border border-black/20 text-[10px] tracking-[0.18em] uppercase font-semibold flex items-center gap-1.5">
-                    <Unlock className="w-3 h-3 text-emerald-600" />
+                  <span className="px-3.5 py-1 rounded-full bg-white text-black border border-white/40 text-[10px] tracking-[0.18em] uppercase font-serif font-bold flex items-center gap-1.5 shadow-[0_2px_12px_rgba(255,255,255,0.3)]">
+                    <Unlock className="w-3 h-3 text-black" />
                     <span>PUBLIC · TRUY CẬP TỰ DO</span>
                   </span>
                 )}
@@ -2535,8 +2535,8 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
             {/* If Unlocked (or PUBLIC) -> Show Direct Link Button */}
             {!character.isRoleplayLocked || isGgaiUnlocked ? (
               <div className="pt-8 space-y-5 text-center">
-                <p className="text-xs sm:text-sm text-neutral-700 font-serif max-w-md mx-auto leading-relaxed">
-                  Cổng tương tác GGAI của <strong>{character.name}</strong> đã sẵn sàng. Nhấn vào liên kết bên dưới để bắt đầu trò chuyện.
+                <p className="text-xs sm:text-sm text-neutral-300 font-serif max-w-md mx-auto leading-relaxed">
+                  Cổng tương tác GGAI của <strong className="text-white font-medium">{character.name}</strong> đã sẵn sàng. Nhấn vào liên kết bên dưới để bắt đầu trò chuyện.
                 </p>
 
                 {character.roleplayLink ? (
@@ -2548,13 +2548,13 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                       incrementRoleplayClicks(character.id);
                       incrementRoleplayClicksSupabase(character.id);
                     }}
-                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#18181A] hover:bg-neutral-800 text-white text-xs font-semibold tracking-[0.2em] uppercase transition-all shadow-lg active:scale-95"
+                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white hover:bg-neutral-100 text-black text-xs font-serif font-bold tracking-[0.2em] uppercase transition-all shadow-[0_4px_24px_rgba(255,255,255,0.4)] active:scale-95 cursor-pointer"
                   >
                     <span>Truy cập Link GGAI</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 ) : (
-                  <p className="text-xs text-neutral-500 italic">
+                  <p className="text-xs text-neutral-400 italic">
                     Hiện chưa gắn URL Link GGAI cho nhân vật này.
                   </p>
                 )}
@@ -2565,35 +2565,35 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                 /* If PRIVATE & Locked -> Show Separated Question, Hint, and Password Input */
                 <div className="pt-8 max-w-lg mx-auto space-y-4">
                   {/* 01. Separate Question Card with Custom Typographic Question Mark */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-white border border-black/15 shadow-sm space-y-2 text-left relative overflow-hidden">
-                    <div className="flex items-center gap-2 text-[10px] tracking-[0.22em] uppercase text-[#735a38] font-serif font-semibold">
+                  <div className="p-4 sm:p-5 rounded-[20px] bg-white/[0.04] border border-white/15 space-y-2 text-left relative overflow-hidden shadow-[inset_0_1px_2px_rgba(255,255,255,0.25)]">
+                    <div className="flex items-center gap-2 text-[10px] tracking-[0.22em] uppercase text-neutral-300 font-serif font-semibold">
                       <span
                         aria-hidden="true"
-                        className="w-4 h-4 rounded-full border border-[#b8860b]/60 text-[#b8860b] font-serif italic text-xs font-bold inline-flex items-center justify-center leading-none select-none bg-[#b8860b]/10"
+                        className="w-4 h-4 rounded-full border border-white/40 text-white font-serif italic text-xs font-bold inline-flex items-center justify-center leading-none select-none bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
                       >
                         ?
                       </span>
                       <span>Câu hỏi mở khóa Canon</span>
                     </div>
-                    <p className="font-serif text-xs sm:text-[13.5px] text-[#1c1917] leading-relaxed italic select-text pl-6">
+                    <p className="font-serif text-xs sm:text-[13.5px] text-neutral-100 leading-relaxed italic select-text pl-6">
                       “{parsedQA.question}”
                     </p>
                   </div>
 
                   {/* 02. Separate Hint Card (If present) */}
                   {parsedQA.hint && (
-                    <div className="p-4 rounded-2xl bg-[#f5ede1] border border-[#c5a880]/50 shadow-sm space-y-1.5 text-left">
-                      <div className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-[#8c5e28] font-serif font-semibold">
-                        <KeyRound className="w-3.5 h-3.5 text-[#8c5e28]" />
+                    <div className="p-4 rounded-[18px] bg-white/[0.03] border border-white/15 shadow-[inset_0_1px_2px_rgba(255,255,255,0.18)] space-y-1.5 text-left">
+                      <div className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-neutral-300 font-serif font-semibold">
+                        <KeyRound className="w-3.5 h-3.5 text-neutral-300" />
                         <span>Gợi ý mật mã</span>
                       </div>
-                      <p className="font-serif text-xs sm:text-[13px] text-[#3d2b1f] leading-relaxed font-medium select-text pl-5">
+                      <p className="font-serif text-xs sm:text-[13px] text-neutral-200 leading-relaxed font-medium select-text pl-5">
                         {parsedQA.hint}
                       </p>
                     </div>
                   )}
 
-                  {/* 03. Password Input Form */}
+                  {/* 03. Optical Lens Capsule Password Input Form */}
                   <form onSubmit={handleUnlockGgai} className="space-y-3 pt-1">
                     <div className="flex flex-col sm:flex-row gap-2.5">
                       <input
@@ -2602,19 +2602,19 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
                         placeholder="Nhập câu trả lời hoặc mật khẩu..."
-                        className="flex-1 px-4.5 py-3.5 bg-white border border-black/20 text-xs sm:text-sm text-[#18181A] font-serif placeholder:font-serif placeholder:italic placeholder:text-neutral-400 focus:outline-none focus:border-black focus:ring-2 focus:ring-black/10 rounded-xl shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] transition-all hover:border-black/35"
+                        className="flex-1 px-5 py-3.5 rounded-full lens-pill-input text-xs sm:text-sm text-white font-serif placeholder:font-serif placeholder:italic placeholder:text-neutral-400 outline-none transition-all"
                       />
                       <button
                         type="submit"
-                        className="px-7 py-3.5 bg-[#18181A] hover:bg-black text-white text-xs font-serif font-bold tracking-[0.18em] uppercase rounded-xl transition-all shadow-md shrink-0 active:scale-95 cursor-pointer"
+                        className="px-7 py-3.5 rounded-full bg-white hover:bg-neutral-100 text-black text-xs font-serif font-bold tracking-[0.18em] uppercase shadow-[0_4px_24px_rgba(255,255,255,0.4)] transition-all shrink-0 active:scale-95 cursor-pointer"
                       >
                         Mở khóa Link
                       </button>
                     </div>
 
                     {passwordError && (
-                      <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-xs font-serif text-rose-800 font-medium flex items-center gap-2 text-left">
-                        <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                      <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-500/40 text-xs font-serif text-rose-200 font-medium flex items-center gap-2 text-left">
+                        <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                         <span>Mật khẩu chưa chính xác. Bạn hãy đối chiếu lại gợi ý bên trên nhé.</span>
                       </div>
                     )}
