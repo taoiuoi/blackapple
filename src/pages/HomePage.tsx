@@ -17,7 +17,8 @@ import { Character, WebsiteSettings } from '../types';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
-import { preloadImage } from '../utils/imageOptimizer';
+import { preloadImage, resolveDirectImageUrl } from '../utils/imageOptimizer';
+import noirWaveBgUrl from '../assets/images/noir-wave-bg.webp';
 import { HotCharacterSpotlight } from '../components/home/HotCharacterSpotlight';
 import { UpcomingCharacterSpotlight } from '../components/home/UpcomingCharacterSpotlight';
 import { incrementRoleplayClicks } from '../services/firestoreService';
@@ -191,8 +192,15 @@ export function HomePage({
       {/* High-Fidelity Noir Background Canvas (Ocean Wave Crashing on Volcanic Rock) */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none">
         <img
-          src="/assets/aistudio/597ADB97-C24F-4C18-A350-F21C6D6F506F_7a61068d.png"
+          src={noirWaveBgUrl}
           alt="Noir Wave Atmosphere Background"
+          onError={(e) => {
+            const target = e.currentTarget;
+            const fallback = resolveDirectImageUrl('/assets/noir-wave-bg.jpg');
+            if (target.src !== fallback) {
+              target.src = fallback;
+            }
+          }}
           className="w-full h-full object-cover object-center opacity-70 contrast-[1.12] brightness-[0.78]"
         />
         {/* Soft atmospheric gradient scrim for pristine contrast and typographic clarity */}

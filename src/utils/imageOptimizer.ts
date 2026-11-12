@@ -70,7 +70,8 @@ const CHARACTER_TO_AISTUDIO_MAP: Record<string, string> = {
   'assets/characters/dong-ky-card.jpg': 'assets/aistudio/IMG_0718_e8699520.JPG',
   'assets/creator-avatar.jpg': 'assets/aistudio/IMG_0423_f2e4f4d6.JPG',
   'assets/creator-cover.jpg': 'assets/aistudio/IMG_9890_e03c9d51.JPG',
-  'assets/creator-donate-qr.jpg': 'assets/aistudio/IMG_0713_ed13a933.JPG'
+  'assets/creator-donate-qr.jpg': 'assets/aistudio/IMG_0713_ed13a933.JPG',
+  'assets/aistudio/597ADB97-C24F-4C18-A350-F21C6D6F506F_7a61068d.png': 'assets/noir-wave-bg.webp'
 };
 
 const AISTUDIO_TO_CHARACTER_MAP: Record<string, string> = Object.entries(
