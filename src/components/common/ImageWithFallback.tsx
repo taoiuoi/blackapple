@@ -187,9 +187,9 @@ export function ImageWithFallback({
         ref={imgRef}
         src={currentUrl}
         alt={alt}
-        loading={priority || isLocal ? 'eager' : 'lazy'}
-        decoding={isGif || isLocal ? 'auto' : 'async'}
-        {...({ fetchPriority: priority || isLocal ? 'high' : 'auto' } as Record<string, unknown>)}
+        loading={priority ? 'eager' : 'lazy'}
+        decoding={isGif ? 'auto' : 'async'}
+        {...({ fetchPriority: priority ? 'high' : 'auto' } as Record<string, unknown>)}
         onLoad={handleImageLoad}
         onError={handleImageError}
         style={{ objectPosition }}

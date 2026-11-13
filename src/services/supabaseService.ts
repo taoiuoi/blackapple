@@ -288,6 +288,29 @@ export async function fetchAllCommentsSupabase(): Promise<Comment[]> {
 
 // ---------------- CHARACTER STATS (LƯỢT XEM VÀ LƯỢT NHẤP LINK) ----------------
 
+export interface CharacterStatsUpdateDetail {
+  characterId: string;
+  views?: number;
+  roleplayClicks?: number;
+  viewsDelta?: number;
+  roleplayClicksDelta?: number;
+}
+
+export function emitCharacterStatsUpdate(detail: CharacterStatsUpdateDetail): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ba:stats-updated', { detail }));
+  }
+}
+
+function isInternalStatsRow(id: string): boolean {
+  return (
+    id.startsWith('setting_') ||
+    id.startsWith('commreq_') ||
+    id.startsWith('cheer_') ||
+    id.startsWith('commreply_')
+  );
+}
+
 export async function fetchCharacterStatsSupabase(): Promise<Record<string, { views: number; roleplayClicks: number }>> {
   try {
     const { data, error } = await supabase.from('character_stats').select('id, views, roleplay_clicks');
@@ -296,11 +319,7 @@ export async function fetchCharacterStatsSupabase(): Promise<Record<string, { vi
     }
     const result: Record<string, { views: number; roleplayClicks: number }> = {};
     data.forEach((row) => {
-      if (
-        row.id.startsWith('setting_') ||
-        row.id.startsWith('commreq_') ||
-        row.id.startsWith('cheer_')
-      ) {
+      if (isInternalStatsRow(row.id)) {
         return;
       }
       result[row.id] = {
@@ -314,71 +333,197 @@ export async function fetchCharacterStatsSupabase(): Promise<Record<string, { vi
   }
 }
 
-export async function incrementCharacterViewsSupabase(characterId: string): Promise<void> {
+export function subscribeCharacterStatsSupabase(
+  onStatsUpdate: (statsMap: Record<string, { views: number; roleplayClicks: number }>) => void
+): () => void {
+  const channel = supabase
+    .channel('character-stats-realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'character_stats'
+      },
+      (payload) => {
+        const row = (payload.new || null) as {
+          id?: string;
+          views?: number | string;
+          roleplay_clicks?: number | string;
+        } | null;
+        if (!row?.id || isInternalStatsRow(row.id)) return;
+        onStatsUpdate({
+          [row.id]: {
+            views: Number(row.views || 0),
+            roleplayClicks: Number(row.roleplay_clicks || 0)
+          }
+        });
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export async function incrementCharacterViewsSupabase(
+  characterId: string,
+  characterName?: string
+): Promise<{ views: number; roleplayClicks: number } | null> {
+  if (!characterId) return null;
+
+  // Immediately update local UI optimistically before network completes
+  emitCharacterStatsUpdate({ characterId, viewsDelta: 1 });
+
+  const displayName =
+    characterName ||
+    INITIAL_CHARACTERS.find((c) => c.id === characterId)?.name ||
+    characterId;
+
   try {
     // 1. Try atomic PostgreSQL RPC first
     const { error: rpcError } = await supabase.rpc('increment_views', { char_id: characterId });
-    if (!rpcError) return;
 
-    // 2. Graceful fallback if RPC has not been created yet
-    const { data } = await supabase
+    // 2. Verify row exists & read authoritative count (RPC updates 0 rows if row wasn't seeded yet)
+    const { data: existing } = await supabase
       .from('character_stats')
-      .select('views')
+      .select('views, roleplay_clicks')
       .eq('id', characterId)
       .maybeSingle();
 
-    if (data) {
-      await supabase
+    if (!existing) {
+      const { data: inserted } = await supabase
         .from('character_stats')
-        .update({
-          views: (Number(data.views) || 0) + 1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', characterId);
-    } else {
-      await supabase.from('character_stats').insert({
-        id: characterId,
-        name: characterId,
-        views: 1,
-        roleplay_clicks: 0
-      });
+        .upsert(
+          {
+            id: characterId,
+            name: displayName,
+            views: 1,
+            roleplay_clicks: 0,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'id' }
+        )
+        .select('views, roleplay_clicks')
+        .maybeSingle();
+
+      const stats = {
+        views: Number(inserted?.views ?? 1),
+        roleplayClicks: Number(inserted?.roleplay_clicks ?? 0)
+      };
+      emitCharacterStatsUpdate({ characterId, ...stats });
+      return stats;
     }
+
+    if (!rpcError) {
+      const stats = {
+        views: Number(existing.views || 0),
+        roleplayClicks: Number(existing.roleplay_clicks || 0)
+      };
+      emitCharacterStatsUpdate({ characterId, ...stats });
+      return stats;
+    }
+
+    // 3. Fallback update when RPC is unavailable
+    const nextViews = (Number(existing.views) || 0) + 1;
+    await supabase
+      .from('character_stats')
+      .update({
+        views: nextViews,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', characterId);
+
+    const stats = {
+      views: nextViews,
+      roleplayClicks: Number(existing.roleplay_clicks || 0)
+    };
+    emitCharacterStatsUpdate({ characterId, ...stats });
+    return stats;
   } catch (err) {
     console.warn('[Supabase] Could not increment character views:', err);
+    return null;
   }
 }
 
-export async function incrementRoleplayClicksSupabase(characterId: string): Promise<void> {
+export async function incrementRoleplayClicksSupabase(
+  characterId: string,
+  characterName?: string
+): Promise<{ views: number; roleplayClicks: number } | null> {
+  if (!characterId) return null;
+
+  // Immediately update local UI optimistically before network completes
+  emitCharacterStatsUpdate({ characterId, roleplayClicksDelta: 1 });
+
+  const displayName =
+    characterName ||
+    INITIAL_CHARACTERS.find((c) => c.id === characterId)?.name ||
+    characterId;
+
   try {
     // 1. Try atomic PostgreSQL RPC first
     const { error: rpcError } = await supabase.rpc('increment_roleplay_clicks', { char_id: characterId });
-    if (!rpcError) return;
 
-    // 2. Graceful fallback if RPC has not been created yet
-    const { data } = await supabase
+    // 2. Verify row exists & read authoritative count
+    const { data: existing } = await supabase
       .from('character_stats')
-      .select('roleplay_clicks')
+      .select('views, roleplay_clicks')
       .eq('id', characterId)
       .maybeSingle();
 
-    if (data) {
-      await supabase
+    if (!existing) {
+      const { data: inserted } = await supabase
         .from('character_stats')
-        .update({
-          roleplay_clicks: (Number(data.roleplay_clicks) || 0) + 1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', characterId);
-    } else {
-      await supabase.from('character_stats').insert({
-        id: characterId,
-        name: characterId,
-        views: 0,
-        roleplay_clicks: 1
-      });
+        .upsert(
+          {
+            id: characterId,
+            name: displayName,
+            views: 0,
+            roleplay_clicks: 1,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'id' }
+        )
+        .select('views, roleplay_clicks')
+        .maybeSingle();
+
+      const stats = {
+        views: Number(inserted?.views ?? 0),
+        roleplayClicks: Number(inserted?.roleplay_clicks ?? 1)
+      };
+      emitCharacterStatsUpdate({ characterId, ...stats });
+      return stats;
     }
+
+    if (!rpcError) {
+      const stats = {
+        views: Number(existing.views || 0),
+        roleplayClicks: Number(existing.roleplay_clicks || 0)
+      };
+      emitCharacterStatsUpdate({ characterId, ...stats });
+      return stats;
+    }
+
+    // 3. Fallback update when RPC is unavailable
+    const nextClicks = (Number(existing.roleplay_clicks) || 0) + 1;
+    await supabase
+      .from('character_stats')
+      .update({
+        roleplay_clicks: nextClicks,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', characterId);
+
+    const stats = {
+      views: Number(existing.views || 0),
+      roleplayClicks: nextClicks
+    };
+    emitCharacterStatsUpdate({ characterId, ...stats });
+    return stats;
   } catch (err) {
     console.warn('[Supabase] Could not increment roleplay clicks:', err);
+    return null;
   }
 }
 

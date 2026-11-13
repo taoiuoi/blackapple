@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './lib/firebase';
@@ -20,12 +20,14 @@ import {
   subscribeMusicTracks,
   updateCharacterImageUrl,
   saveCreatorProfile,
-  sanitizeImageUrl,
   normalizeCharacter,
   getCachedFirestoreData
 } from './services/firestoreService';
-import { fetchCharacterStatsSupabase } from './services/supabaseService';
-import { preloadCharacterAssets } from './utils/imageOptimizer';
+import {
+  fetchCharacterStatsSupabase,
+  subscribeCharacterStatsSupabase,
+  CharacterStatsUpdateDetail
+} from './services/supabaseService';
 import {
   INITIAL_CHARACTERS,
   INITIAL_GENRES,
@@ -54,6 +56,7 @@ import { DirectImageUrlModal } from './components/common/DirectImageUrlModal';
 export default function App() {
   // Main Data States (Initialize from codebase truth INITIAL_CHARACTERS to guarantee zero link/field drops)
   const [characters, setCharacters] = useState<Character[]>(INITIAL_CHARACTERS);
+  const latestStatsRef = useRef<Record<string, { views: number; roleplayClicks: number }>>({});
   const [genres, setGenres] = useState<Genre[]>(INITIAL_GENRES);
   const [quotes, setQuotes] = useState<Quote[]>(INITIAL_QUOTES);
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile>(() => {
@@ -153,7 +156,7 @@ export default function App() {
       ['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9'].forEach((v) => {
         localStorage.removeItem(`ba_cache_characters_${v}`);
       });
-      ['nguy-tu-viet', 'gian-di-ninh', 'chu-lac-thien', 'luc-tu-hien', 'phan-quy-man', 'dong-ky'].forEach((cid) => {
+      ['nguy-tu-viet', 'gian-di-ninh', 'chu-lac-thien', 'luc-tu-hien', 'phan-quy-man', 'dong-ky', 'nguu-thanh-anh'].forEach((cid) => {
         localStorage.removeItem(`ba_char_${cid}_avatarUrl`);
         localStorage.removeItem(`ba_char_${cid}_coverUrl`);
         localStorage.removeItem(`ba_char_${cid}_posterUrl`);
@@ -164,6 +167,79 @@ export default function App() {
       localStorage.removeItem('ba_creator_coverUrl');
       localStorage.removeItem('ba_creator_introImageUrl');
     } catch (_) {}
+
+    const mergeStatsIntoList = (
+      list: Character[],
+      statsMap: Record<string, { views: number; roleplayClicks: number }>
+    ): Character[] => {
+      if (!statsMap || Object.keys(statsMap).length === 0) return list;
+      return list.map((c) => {
+        const st = statsMap[c.id];
+        if (!st) return c;
+        return {
+          ...c,
+          views: Math.max(c.views || 0, st.views || 0),
+          roleplayClicks: Math.max(c.roleplayClicks || 0, st.roleplayClicks || 0)
+        };
+      });
+    };
+
+    const applyIncomingStats = (
+      statsMap: Record<string, { views: number; roleplayClicks: number }>
+    ) => {
+      if (!statsMap || Object.keys(statsMap).length === 0) return;
+      Object.entries(statsMap).forEach(([cid, st]) => {
+        const cur = latestStatsRef.current[cid] || { views: 0, roleplayClicks: 0 };
+        latestStatsRef.current[cid] = {
+          views: Math.max(cur.views, st.views || 0),
+          roleplayClicks: Math.max(cur.roleplayClicks, st.roleplayClicks || 0)
+        };
+      });
+      setCharacters((prev) => mergeStatsIntoList(prev, latestStatsRef.current));
+    };
+
+    // Immediately hydrate stats from Supabase on mount (independent of Firestore snapshot timing)
+    fetchCharacterStatsSupabase().then(applyIncomingStats).catch(() => {});
+
+    // Real-time Supabase listener for live counter updates across tabs/users
+    const unsubStats = subscribeCharacterStatsSupabase(applyIncomingStats);
+
+    // Instant optimistic + confirmed local counter updates
+    const onStatsUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<CharacterStatsUpdateDetail>).detail;
+      if (!detail?.characterId) return;
+      const cid = detail.characterId;
+
+      setCharacters((prev) =>
+        prev.map((c) => {
+          if (c.id !== cid) return c;
+          const prevRef = latestStatsRef.current[cid] || { views: 0, roleplayClicks: 0 };
+          const baseViews = Math.max(c.views || 0, prevRef.views || 0);
+          const baseClicks = Math.max(c.roleplayClicks || 0, prevRef.roleplayClicks || 0);
+
+          const nextViews =
+            detail.views !== undefined
+              ? Math.max(baseViews, detail.views)
+              : baseViews + (detail.viewsDelta || 0);
+          const nextClicks =
+            detail.roleplayClicks !== undefined
+              ? Math.max(baseClicks, detail.roleplayClicks)
+              : baseClicks + (detail.roleplayClicksDelta || 0);
+
+          latestStatsRef.current[cid] = {
+            views: nextViews,
+            roleplayClicks: nextClicks
+          };
+
+          return {
+            ...c,
+            views: nextViews,
+            roleplayClicks: nextClicks
+          };
+        })
+      );
+    };
+    window.addEventListener('ba:stats-updated', onStatsUpdated);
 
     const unsubChars = subscribeCharacters((chars) => {
       const merged = chars.map((c) => {
@@ -178,25 +254,7 @@ export default function App() {
           return normalizeCharacter(c, c.id);
         }
       });
-      setCharacters(merged);
-      preloadCharacterAssets(merged);
-
-      // Hydrate with Supabase view & roleplay click counters
-      fetchCharacterStatsSupabase().then((statsMap) => {
-        if (statsMap && Object.keys(statsMap).length > 0) {
-          setCharacters((prev) =>
-            prev.map((c) => {
-              const st = statsMap[c.id];
-              if (!st) return c;
-              return {
-                ...c,
-                views: Math.max(c.views || 0, st.views || 0),
-                roleplayClicks: Math.max(c.roleplayClicks || 0, st.roleplayClicks || 0)
-              };
-            })
-          );
-        }
-      }).catch(() => {});
+      setCharacters(mergeStatsIntoList(merged, latestStatsRef.current));
     });
 
     const unsubGenres = subscribeGenres(setGenres);
@@ -219,6 +277,8 @@ export default function App() {
 
     return () => {
       unsubChars();
+      unsubStats();
+      window.removeEventListener('ba:stats-updated', onStatsUpdated);
       unsubGenres();
       unsubQuotes();
       unsubCreator();

@@ -68,11 +68,6 @@
   font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif !important;
 }
 
-/* 60FPS Optimization for Older Mobile Devices (iPhone 8, A11, Low-end Androids) */
-img {
-  content-visibility: auto;
-}
-
 /* Hardware accelerated transform compositing */
 .transform-gpu {
   transform: translateZ(0);

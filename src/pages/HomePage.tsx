@@ -20,7 +20,6 @@ import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { preloadImage, resolveDirectImageUrl } from '../utils/imageOptimizer';
 import noirWaveBgUrl from '../assets/images/noir-wave-bg.webp';
 import { HotCharacterSpotlight } from '../components/home/HotCharacterSpotlight';
-import { UpcomingCharacterSpotlight } from '../components/home/UpcomingCharacterSpotlight';
 import { incrementRoleplayClicks } from '../services/firestoreService';
 import { incrementRoleplayClicksSupabase } from '../services/supabaseService';
 import { getCharacterPath } from '../utils/slugify';
@@ -81,14 +80,24 @@ export function HomePage({
 
 
 
-  // Preload all character portraits immediately so slide transitions are 0ms
+  const nextSlideImg =
+    heroList.length > 1
+      ? heroList[(activeIndex + 1) % heroList.length]?.coverUrl ||
+        heroList[(activeIndex + 1) % heroList.length]?.avatarUrl ||
+        heroList[(activeIndex + 1) % heroList.length]?.posterUrl
+      : undefined;
+  const prevSlideImg =
+    heroList.length > 1
+      ? heroList[(activeIndex - 1 + heroList.length) % heroList.length]?.coverUrl ||
+        heroList[(activeIndex - 1 + heroList.length) % heroList.length]?.avatarUrl ||
+        heroList[(activeIndex - 1 + heroList.length) % heroList.length]?.posterUrl
+      : undefined;
+
+  // Preload only adjacent hero slides on demand to keep initial load and scrolling smooth
   useEffect(() => {
-    characters.forEach((c) => {
-      const img = c.coverUrl || c.posterUrl || c.avatarUrl;
-      if (img) preloadImage(img);
-      if (c.posterUrl) preloadImage(c.posterUrl);
-    });
-  }, [characters]);
+    if (nextSlideImg) preloadImage(nextSlideImg);
+    if (prevSlideImg && prevSlideImg !== nextSlideImg) preloadImage(prevSlideImg);
+  }, [nextSlideImg, prevSlideImg]);
 
   const triggerSlideToIndex = useCallback(
     (nextIndex: number, direction: 'right' | 'left' = 'right') => {
@@ -139,7 +148,7 @@ export function HomePage({
       setShowRoleplayModal(true);
     } else {
       incrementRoleplayClicks(currentHero.id);
-      incrementRoleplayClicksSupabase(currentHero.id);
+      incrementRoleplayClicksSupabase(currentHero.id, currentHero.name);
       window.open(currentHero.roleplayLink, '_blank', 'noopener,noreferrer');
     }
   };
@@ -164,7 +173,7 @@ export function HomePage({
       setRoleplayPasswordError(false);
       if (currentHero.roleplayLink) {
         incrementRoleplayClicks(currentHero.id);
-        incrementRoleplayClicksSupabase(currentHero.id);
+        incrementRoleplayClicksSupabase(currentHero.id, currentHero.name);
         window.open(currentHero.roleplayLink, '_blank', 'noopener,noreferrer');
       }
     } else {
@@ -173,8 +182,9 @@ export function HomePage({
   };
 
   const chineseDisplay = getChineseDisplay(currentHero);
-  const isRedTag = currentHero.id === 'dong-ky' || currentHero.id === 'gian-di-ninh';
-  const redLabel = currentHero.id === 'dong-ky' ? '21+ · H NẶNG' : '18+ · NẶNG ĐÔ';
+  const isRedTag = currentHero.id === 'dong-ky' || currentHero.id === 'gian-di-ninh' || currentHero.id === 'nguu-thanh-anh';
+  const redLabel = currentHero.id === 'dong-ky' || currentHero.id === 'nguu-thanh-anh' ? '21+ · H NẶNG' : '18+ · NẶNG ĐÔ';
+  const isComingSoonTag = currentHero.id === 'nguu-thanh-anh' && !currentHero.roleplayLink;
   const heroQuote = currentHero.profileData?.quote || currentHero.tagline || 'Ván này, anh chưa nhận thua.';
   const formattedQuote =
     heroQuote.startsWith('“') || heroQuote.startsWith('"')
@@ -190,10 +200,11 @@ export function HomePage({
   return (
     <div className="min-h-screen bg-[#020203] text-[#f4f4f6] font-content selection:bg-white selection:text-black flex flex-col relative overflow-x-hidden">
       {/* High-Fidelity Noir Background Canvas (Ocean Wave Crashing on Volcanic Rock) */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none transform-gpu">
         <img
           src={noirWaveBgUrl}
           alt="Noir Wave Atmosphere Background"
+          decoding="async"
           onError={(e) => {
             const target = e.currentTarget;
             const fallback = resolveDirectImageUrl('/assets/noir-wave-bg.jpg');
@@ -201,10 +212,10 @@ export function HomePage({
               target.src = fallback;
             }
           }}
-          className="w-full h-full object-cover object-center opacity-70 contrast-[1.12] brightness-[0.78]"
+          className="w-full h-full object-cover object-center opacity-55"
         />
         {/* Soft atmospheric gradient scrim for pristine contrast and typographic clarity */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#020203]/75 via-black/40 to-[#020203]/90" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#020203]/80 via-black/45 to-[#020203]/92" />
       </div>
 
       {/* Global Top Navbar */}
@@ -223,11 +234,6 @@ export function HomePage({
 
       {/* Balanced Centered Editorial Column with comfortable mobile & desktop breathing space */}
       <main className="relative z-10 flex-1 w-[88%] max-w-[360px] sm:max-w-[460px] mx-auto pt-5 sm:pt-8 pb-14">
-        {/* =========================================================
-            MỤC CHARACTER SẮP RA MẮT (UPCOMING DOSSIER SPOTLIGHT)
-        ========================================================= */}
-        <UpcomingCharacterSpotlight characters={characters} isAdmin={isAdmin} />
-
         {/* Top Micro Controls & Auto-Slide Indicator (When > 1 Character) */}
         {total > 1 && (
           <div className="mb-3 flex items-center justify-between text-[9.5px] sm:text-[10px] tracking-[0.16em] uppercase text-neutral-400">
@@ -317,6 +323,15 @@ export function HomePage({
                     <span>{redLabel}</span>
                   </span>
                 )}
+                {isComingSoonTag && (
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#141418] text-rose-200 border border-rose-500/40 text-[9px] font-sans font-bold tracking-wide shrink-0"
+                    title="Link Roleplay AI sắp ra mắt — Hồ sơ & Văn án đã mở"
+                  >
+                    <span className="text-rose-400 text-[8px] leading-none">✦</span>
+                    <span>SẮP RA MẮT</span>
+                  </span>
+                )}
               </div>
 
               {/* Right: Instant [roleplay] AI 1-Touch Button */}
@@ -324,7 +339,13 @@ export function HomePage({
                 type="button"
                 onClick={handleRoleplayClick}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#141416] hover:bg-neutral-800 text-white text-[9.5px] sm:text-[10px] tracking-[0.1em] font-sans font-medium transition-all shadow-sm cursor-pointer shrink-0"
-                title={currentHero.roleplayLink ? 'Nhấn để mở Roleplay AI' : 'Xem hồ sơ Roleplay'}
+                title={
+                  currentHero.roleplayLink
+                    ? 'Nhấn để mở Roleplay AI'
+                    : isComingSoonTag
+                    ? 'Link Roleplay AI sắp ra mắt · Nhấn để xem hồ sơ & văn án'
+                    : 'Xem hồ sơ Roleplay'
+                }
               >
                 {currentHero.roleplayLink && (
                   <span
@@ -336,7 +357,7 @@ export function HomePage({
                   />
                 )}
                 {currentHero.isRoleplayLocked && <Lock className="w-2.5 h-2.5 text-amber-400" />}
-                <span>[roleplay] AI</span>
+                <span>{isComingSoonTag ? '[roleplay] Sắp ra mắt' : '[roleplay] AI'}</span>
                 <ArrowUpRight className="w-2.5 h-2.5 opacity-70" />
               </button>
             </div>
@@ -462,6 +483,7 @@ export function HomePage({
               setShowRoleplayModal(true);
             } else {
               incrementRoleplayClicks(char.id);
+              incrementRoleplayClicksSupabase(char.id, char.name);
               window.open(char.roleplayLink, '_blank', 'noopener,noreferrer');
             }
           }}

@@ -52,9 +52,9 @@ export const UpcomingCharacterSpotlight: React.FC<UpcomingCharacterSpotlightProp
 
   // Use the mirror portrait for home teaser and seated noir portrait for modal
   const homeTeaserImage =
-    upcomingChar.avatarUrl || upcomingChar.coverUrl || '/assets/aistudio/IMG_0861_1e0d66ac.jpeg';
+    upcomingChar.avatarUrl || upcomingChar.coverUrl || '/assets/optimized/nguu-thanh-anh-home.webp';
   const modalArtwork =
-    upcomingChar.posterUrl || upcomingChar.synopsisImageUrl || '/assets/aistudio/IMG_0866_692df16d.jpeg';
+    upcomingChar.posterUrl || upcomingChar.synopsisImageUrl || '/assets/optimized/nguu-thanh-anh-card.webp';
 
   const novelTitle = upcomingChar.originalNovelTitle
     ? upcomingChar.originalNovelTitle.toLowerCase()

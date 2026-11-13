@@ -62,7 +62,8 @@ export const CANONICAL_CHAR_IDS = new Set([
   'chu-lac-thien',
   'luc-tu-hien',
   'phan-quy-man',
-  'dong-ky'
+  'dong-ky',
+  'nguu-thanh-anh'
 ]);
 
 const LEGACY_SAMPLE_CHAR_IDS = new Set([
@@ -282,6 +283,10 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
 
   // When a canonical character template exists, it is the master source of truth for assets, synopses, and roleplay links
   if (initialTemplate) {
+    const rawUpdatedMs = raw?.updatedAt ? new Date(raw.updatedAt).getTime() : 0;
+    const tplUpdatedMs = initialTemplate.updatedAt ? new Date(initialTemplate.updatedAt).getTime() : 0;
+    const preferTemplateGenres = !rawUpdatedMs || tplUpdatedMs > rawUpdatedMs;
+
     return {
       ...initialTemplate,
       id: initialTemplate.id,
@@ -302,21 +307,25 @@ export function normalizeCharacter(raw: Record<string, any>, id: string): Charac
       profileData: initialTemplate.profileData || defaultProfileData,
       npcs: (initialTemplate.npcs && initialTemplate.npcs.length > 0) ? initialTemplate.npcs : cleanNpcs,
       gallery: sanitizeGalleryList(raw?.gallery && raw.gallery.length > 0 ? raw.gallery : initialTemplate.gallery),
-      genreIds: cleanGenreIds.length > 0 ? cleanGenreIds : (initialTemplate.genreIds || []),
+      genreIds: preferTemplateGenres
+        ? (initialTemplate.genreIds || [])
+        : (cleanGenreIds.length > 0 ? cleanGenreIds : (initialTemplate.genreIds || [])),
       roleplayLink: initialTemplate.roleplayLink || pickNonEmpty(raw?.roleplayLink, ''),
       isRoleplayLocked: Boolean(initialTemplate.isRoleplayLocked),
       roleplayUnlockQuestion: initialTemplate.roleplayUnlockQuestion || '',
       roleplayUnlockAnswer: initialTemplate.roleplayUnlockAnswer || '',
       isPublished: true,
-      isUpcoming: raw?.isUpcoming !== undefined ? Boolean(raw.isUpcoming) : Boolean(initialTemplate.isUpcoming),
-      upcomingReleaseNote: pickNonEmpty(raw?.upcomingReleaseNote, initialTemplate.upcomingReleaseNote || ''),
+      isUpcoming: Boolean(initialTemplate.isUpcoming),
+      upcomingReleaseNote: initialTemplate.upcomingReleaseNote || '',
       views: typeof raw?.views === 'number' && !isLegacySampleDoc ? Math.max(raw.views, initialTemplate.views || 0) : (initialTemplate.views || 0),
       likes: typeof raw?.likes === 'number' && !isLegacySampleDoc ? Math.max(raw.likes, initialTemplate.likes || 0) : (initialTemplate.likes || 0),
       roleplayClicks: typeof raw?.roleplayClicks === 'number' && !isLegacySampleDoc ? Math.max(raw.roleplayClicks, initialTemplate.roleplayClicks || 0) : (initialTemplate.roleplayClicks || 0),
       featured: true,
       order: initialTemplate.order ?? 99,
       createdAt: initialTemplate.createdAt || new Date().toISOString(),
-      updatedAt: raw?.updatedAt || initialTemplate.updatedAt || new Date().toISOString()
+      updatedAt: tplUpdatedMs > rawUpdatedMs
+        ? initialTemplate.updatedAt!
+        : (raw?.updatedAt || initialTemplate.updatedAt || new Date().toISOString())
     };
   }
 

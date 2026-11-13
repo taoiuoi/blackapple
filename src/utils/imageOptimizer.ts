@@ -52,36 +52,64 @@ export function isAnimatedGif(url?: string): boolean {
   return false;
 }
 
-// Canonical mapping between /assets/characters/ aliases and AI Studio tracked /assets/aistudio/ files
+// Canonical mapping from legacy /assets/characters/ and /assets/aistudio/ paths to lightweight /assets/optimized/*.webp assets
 const CHARACTER_TO_AISTUDIO_MAP: Record<string, string> = {
-  'assets/characters/nguy-tu-viet-home.jpg': 'assets/aistudio/IMG_9490_85860973.PNG',
-  'assets/characters/nguy-tu-viet-home.png': 'assets/aistudio/IMG_9490_85860973.PNG',
-  'assets/characters/nguy-tu-viet-card.jpg': 'assets/aistudio/IMG_9489_fa08fe9d.JPG',
-  'assets/characters/gian-di-ninh-home.jpg': 'assets/aistudio/IMG_9678_10c56f28.PNG',
-  'assets/characters/gian-di-ninh-home.png': 'assets/aistudio/IMG_9678_10c56f28.PNG',
-  'assets/characters/gian-di-ninh-card.jpg': 'assets/aistudio/IMG_9664_f2105986.JPG',
-  'assets/characters/chu-lac-thien-home.jpg': 'assets/aistudio/IMG_0091_c963c2ad.JPG',
-  'assets/characters/chu-lac-thien-card.jpg': 'assets/aistudio/copy_5262B8A7-5064-48A8-BC10-3A246C344352_98fcb1e0.jpg',
-  'assets/characters/luc-tu-hien-home.jpg': 'assets/aistudio/IMG_0273_37791aae.JPG',
-  'assets/characters/luc-tu-hien-card.jpg': 'assets/aistudio/IMG_4291_21601d3b.JPG',
-  'assets/characters/phan-quy-man-home.jpg': 'assets/aistudio/IMG_0393_dff41631.JPG',
-  'assets/characters/phan-quy-man-card.jpg': 'assets/aistudio/IMG_0390_14d41415.JPG',
-  'assets/characters/dong-ky-home.jpg': 'assets/aistudio/IMG_0719_04f7275f.JPG',
-  'assets/characters/dong-ky-card.jpg': 'assets/aistudio/IMG_0718_e8699520.JPG',
-  'assets/creator-avatar.jpg': 'assets/aistudio/IMG_0423_f2e4f4d6.JPG',
-  'assets/creator-cover.jpg': 'assets/aistudio/IMG_9890_e03c9d51.JPG',
-  'assets/creator-donate-qr.jpg': 'assets/aistudio/IMG_0713_ed13a933.JPG',
+  'assets/characters/nguy-tu-viet-home.jpg': 'assets/optimized/nguy-tu-viet-home.webp',
+  'assets/characters/nguy-tu-viet-home.png': 'assets/optimized/nguy-tu-viet-home.webp',
+  'assets/characters/nguy-tu-viet-card.jpg': 'assets/optimized/nguy-tu-viet-card.webp',
+  'assets/characters/gian-di-ninh-home.jpg': 'assets/optimized/gian-di-ninh-home.webp',
+  'assets/characters/gian-di-ninh-home.png': 'assets/optimized/gian-di-ninh-home.webp',
+  'assets/characters/gian-di-ninh-card.jpg': 'assets/optimized/gian-di-ninh-card.webp',
+  'assets/characters/chu-lac-thien-home.jpg': 'assets/optimized/chu-lac-thien-home.webp',
+  'assets/characters/chu-lac-thien-card.jpg': 'assets/optimized/chu-lac-thien-card.webp',
+  'assets/characters/luc-tu-hien-home.jpg': 'assets/optimized/luc-tu-hien-home.webp',
+  'assets/characters/luc-tu-hien-card.jpg': 'assets/optimized/luc-tu-hien-card.webp',
+  'assets/characters/phan-quy-man-home.jpg': 'assets/optimized/phan-quy-man-home.webp',
+  'assets/characters/phan-quy-man-card.jpg': 'assets/optimized/phan-quy-man-card.webp',
+  'assets/characters/dong-ky-home.jpg': 'assets/optimized/dong-ky-home.webp',
+  'assets/characters/dong-ky-card.jpg': 'assets/optimized/dong-ky-card.webp',
+  'assets/creator-avatar.jpg': 'assets/optimized/creator-avatar.webp',
+  'assets/creator-cover.jpg': 'assets/optimized/creator-cover.webp',
+  'assets/creator-donate-qr.jpg': 'assets/optimized/creator-donate-qr.webp',
+  'assets/aistudio/IMG_9490_85860973.PNG': 'assets/optimized/nguy-tu-viet-home.webp',
+  'assets/aistudio/IMG_9489_fa08fe9d.JPG': 'assets/optimized/nguy-tu-viet-card.webp',
+  'assets/aistudio/IMG_9678_10c56f28.PNG': 'assets/optimized/gian-di-ninh-home.webp',
+  'assets/aistudio/IMG_9664_f2105986.JPG': 'assets/optimized/gian-di-ninh-card.webp',
+  'assets/aistudio/IMG_0091_c963c2ad.JPG': 'assets/optimized/chu-lac-thien-home.webp',
+  'assets/aistudio/copy_5262B8A7-5064-48A8-BC10-3A246C344352_98fcb1e0.jpg': 'assets/optimized/chu-lac-thien-card.webp',
+  'assets/aistudio/IMG_0273_37791aae.JPG': 'assets/optimized/luc-tu-hien-home.webp',
+  'assets/aistudio/IMG_4291_21601d3b.JPG': 'assets/optimized/luc-tu-hien-card.webp',
+  'assets/aistudio/IMG_0393_dff41631.JPG': 'assets/optimized/phan-quy-man-home.webp',
+  'assets/aistudio/IMG_0390_14d41415.JPG': 'assets/optimized/phan-quy-man-card.webp',
+  'assets/aistudio/IMG_0719_04f7275f.JPG': 'assets/optimized/dong-ky-home.webp',
+  'assets/aistudio/IMG_0718_e8699520.JPG': 'assets/optimized/dong-ky-card.webp',
+  'assets/aistudio/IMG_0861_1e0d66ac.jpeg': 'assets/optimized/nguu-thanh-anh-home.webp',
+  'assets/aistudio/IMG_0866_692df16d.jpeg': 'assets/optimized/nguu-thanh-anh-card.webp',
+  'assets/aistudio/IMG_0423_f2e4f4d6.JPG': 'assets/optimized/creator-avatar.webp',
+  'assets/aistudio/IMG_9890_e03c9d51.JPG': 'assets/optimized/creator-cover.webp',
+  'assets/aistudio/IMG_0713_ed13a933.JPG': 'assets/optimized/creator-donate-qr.webp',
   'assets/aistudio/597ADB97-C24F-4C18-A350-F21C6D6F506F_7a61068d.png': 'assets/noir-wave-bg.webp'
 };
 
-const AISTUDIO_TO_CHARACTER_MAP: Record<string, string> = Object.entries(
-  CHARACTER_TO_AISTUDIO_MAP
-).reduce((acc, [charPath, aiPath]) => {
-  if (!acc[aiPath]) {
-    acc[aiPath] = charPath;
-  }
-  return acc;
-}, {} as Record<string, string>);
+const AISTUDIO_TO_CHARACTER_MAP: Record<string, string> = {
+  'assets/optimized/nguy-tu-viet-home.webp': 'assets/aistudio/IMG_9490_85860973.PNG',
+  'assets/optimized/nguy-tu-viet-card.webp': 'assets/aistudio/IMG_9489_fa08fe9d.JPG',
+  'assets/optimized/gian-di-ninh-home.webp': 'assets/aistudio/IMG_9678_10c56f28.PNG',
+  'assets/optimized/gian-di-ninh-card.webp': 'assets/aistudio/IMG_9664_f2105986.JPG',
+  'assets/optimized/chu-lac-thien-home.webp': 'assets/aistudio/IMG_0091_c963c2ad.JPG',
+  'assets/optimized/chu-lac-thien-card.webp': 'assets/aistudio/copy_5262B8A7-5064-48A8-BC10-3A246C344352_98fcb1e0.jpg',
+  'assets/optimized/luc-tu-hien-home.webp': 'assets/aistudio/IMG_0273_37791aae.JPG',
+  'assets/optimized/luc-tu-hien-card.webp': 'assets/aistudio/IMG_4291_21601d3b.JPG',
+  'assets/optimized/phan-quy-man-home.webp': 'assets/aistudio/IMG_0393_dff41631.JPG',
+  'assets/optimized/phan-quy-man-card.webp': 'assets/aistudio/IMG_0390_14d41415.JPG',
+  'assets/optimized/dong-ky-home.webp': 'assets/aistudio/IMG_0719_04f7275f.JPG',
+  'assets/optimized/dong-ky-card.webp': 'assets/aistudio/IMG_0718_e8699520.JPG',
+  'assets/optimized/nguu-thanh-anh-home.webp': 'assets/aistudio/IMG_0861_1e0d66ac.jpeg',
+  'assets/optimized/nguu-thanh-anh-card.webp': 'assets/aistudio/IMG_0866_692df16d.jpeg',
+  'assets/optimized/creator-avatar.webp': 'assets/aistudio/IMG_0423_f2e4f4d6.JPG',
+  'assets/optimized/creator-cover.webp': 'assets/aistudio/IMG_9890_e03c9d51.JPG',
+  'assets/optimized/creator-donate-qr.webp': 'assets/aistudio/IMG_0713_ed13a933.JPG'
+};
 
 function getNormalizedBaseUrl(): string {
   const rawBase =
@@ -314,8 +342,8 @@ export function preloadImage(url?: string, options?: ImageOptimizationOptions): 
 }
 
 /**
- * Preloads all character visual assets immediately in parallel so every slide,
- * card, and profile opens with 0ms delay.
+ * Preloads primary character visual assets gently in a concurrency-limited queue
+ * so active viewport images never compete for bandwidth.
  */
 export function preloadCharacterAssets(
   characters: Array<{
@@ -331,14 +359,34 @@ export function preloadCharacterAssets(
   for (const char of characters) {
     if (char.coverUrl) uniqueUrls.add(char.coverUrl);
     if (char.posterUrl) uniqueUrls.add(char.posterUrl);
-    if (char.avatarUrl) uniqueUrls.add(char.avatarUrl);
-    if (char.synopsisImageUrl) uniqueUrls.add(char.synopsisImageUrl);
   }
-  uniqueUrls.add('/assets/creator-avatar.jpg');
-  uniqueUrls.add('/assets/creator-cover.jpg');
-  uniqueUrls.add('/assets/creator-donate-qr.jpg');
 
-  uniqueUrls.forEach((u) => {
-    preloadImage(u);
-  });
+  const queue = Array.from(uniqueUrls).filter((u) => !CACHED_IMAGE_SET.has(resolveDirectImageUrl(u)));
+  if (queue.length === 0) return;
+
+  const concurrency = 2;
+  let index = 0;
+
+  const pump = () => {
+    if (index >= queue.length) return;
+    const url = queue[index++];
+    preloadImage(url).finally(() => {
+      setTimeout(pump, 60);
+    });
+  };
+
+  const startQueue = () => {
+    for (let i = 0; i < Math.min(concurrency, queue.length); i++) {
+      pump();
+    }
+  };
+
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback(
+      startQueue,
+      { timeout: 1500 }
+    );
+  } else {
+    setTimeout(startQueue, 200);
+  }
 }

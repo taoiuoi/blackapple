@@ -72,7 +72,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 left-0 right-0 z-40 bg-[#050506]/95 backdrop-blur-xl border-b border-white/[0.07] transition-all">
+    <header className="sticky top-0 left-0 right-0 z-40 bg-[#050506]/92 backdrop-blur-md border-b border-white/[0.07] transition-colors">
       {/* ROW 1: TOP ADMIN BAR STRIP (Matches Reference Image 2: IMG_0452) */}
       {isAdmin && adminBarVisible ? (
         <div className="border-b border-white/[0.08] bg-[#070709]">

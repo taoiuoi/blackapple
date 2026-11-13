@@ -326,13 +326,20 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
     });
     setIsGgaiUnlocked(!character.isRoleplayLocked);
     setPasswordError(false);
-    // Increment character view count once per browser session
-    if (character.id) {
-      const sessionKey = `ba_viewed_${character.id}`;
-      if (typeof window !== 'undefined' && sessionStorage.getItem(sessionKey) !== 'true') {
-        sessionStorage.setItem(sessionKey, 'true');
+    // Increment character view count on each genuine profile visit (2.5s cooldown prevents StrictMode/double-tap duplicates)
+    if (character.id && typeof window !== 'undefined') {
+      const tsKey = `ba_viewed_ts_${character.id}`;
+      const now = Date.now();
+      let lastViewedAt = 0;
+      try {
+        lastViewedAt = Number(sessionStorage.getItem(tsKey) || '0');
+      } catch (_) {}
+      if (!lastViewedAt || now - lastViewedAt > 2500) {
+        try {
+          sessionStorage.setItem(tsKey, String(now));
+        } catch (_) {}
         incrementCharacterViews(character.id);
-        incrementCharacterViewsSupabase(character.id);
+        incrementCharacterViewsSupabase(character.id, character.name);
       }
     }
 
@@ -789,7 +796,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
       setIsGgaiUnlocked(true);
       setPasswordError(false);
       incrementRoleplayClicks(character?.id || '');
-      incrementRoleplayClicksSupabase(character?.id || '');
+      incrementRoleplayClicksSupabase(character?.id || '', character?.name);
     } else {
       setPasswordError(true);
     }
@@ -935,6 +942,20 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
 
           {/* Top Centered Roman / Code Header ("XIV. CLAIS / lugar, seguro" vibe) */}
           <div className="text-center mb-10 sm:mb-14 space-y-2.5">
+            {(character.id === 'nguu-thanh-anh' || character.id === 'dong-ky' || character.id === 'gian-di-ninh') && (
+              <div className="flex items-center justify-center gap-2 flex-wrap mb-1">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#991B1B] text-white border border-rose-400/40 shadow-sm font-sans font-bold text-[10px] tracking-wide">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-200 animate-pulse" />
+                  <span>{character.id === 'gian-di-ninh' ? '18+ · NẶNG ĐÔ' : '21+ · H NẶNG'}</span>
+                </span>
+                {character.id === 'nguu-thanh-anh' && !character.roleplayLink && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#141418] text-rose-300 border border-rose-500/40 shadow-sm font-sans font-bold text-[10px] tracking-wide">
+                    <span className="text-rose-400 text-[10px] leading-none">✦</span>
+                    <span>SẮP RA MẮT</span>
+                  </span>
+                )}
+              </div>
+            )}
             <h1 className="text-sm sm:text-base font-bold tracking-[0.08em] uppercase text-[#161618]">
               {character.code}. {character.name.toUpperCase()}
             </h1>
@@ -2352,7 +2373,13 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                   )}
 
                   <div className="text-xs sm:text-[14px] text-neutral-700 leading-[2.05] whitespace-pre-line font-serif max-w-[600px] mx-auto">
-                    {character.synopsis}
+                    {character.synopsis?.trim() ? (
+                      character.synopsis
+                    ) : (
+                      <p className="text-center italic text-neutral-400">
+                        Văn án chính thức của {character.name} đang được cập nhật.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -2535,28 +2562,35 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
             {/* If Unlocked (or PUBLIC) -> Show Direct Link Button */}
             {!character.isRoleplayLocked || isGgaiUnlocked ? (
               <div className="pt-8 space-y-5 text-center">
-                <p className="text-xs sm:text-sm text-neutral-300 font-serif max-w-md mx-auto leading-relaxed">
-                  Cổng tương tác GGAI của <strong className="text-white font-medium">{character.name}</strong> đã sẵn sàng. Nhấn vào liên kết bên dưới để bắt đầu trò chuyện.
-                </p>
-
                 {character.roleplayLink ? (
-                  <a
-                    href={character.roleplayLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => {
-                      incrementRoleplayClicks(character.id);
-                      incrementRoleplayClicksSupabase(character.id);
-                    }}
-                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white hover:bg-neutral-100 text-black text-xs font-serif font-bold tracking-[0.2em] uppercase transition-all shadow-[0_4px_24px_rgba(255,255,255,0.4)] active:scale-95 cursor-pointer"
-                  >
-                    <span>Truy cập Link GGAI</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                  <>
+                    <p className="text-xs sm:text-sm text-neutral-300 font-serif max-w-md mx-auto leading-relaxed">
+                      Cổng tương tác GGAI của <strong className="text-white font-medium">{character.name}</strong> đã sẵn sàng. Nhấn vào liên kết bên dưới để bắt đầu trò chuyện.
+                    </p>
+                    <a
+                      href={character.roleplayLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => {
+                        incrementRoleplayClicks(character.id);
+                        incrementRoleplayClicksSupabase(character.id, character.name);
+                      }}
+                      className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white hover:bg-neutral-100 text-black text-xs font-serif font-bold tracking-[0.2em] uppercase transition-all shadow-[0_4px_24px_rgba(255,255,255,0.4)] active:scale-95 cursor-pointer"
+                    >
+                      <span>Truy cập Link GGAI</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </>
                 ) : (
-                  <p className="text-xs text-neutral-400 italic">
-                    Hiện chưa gắn URL Link GGAI cho nhân vật này.
-                  </p>
+                  <div className="space-y-3">
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/35 text-[10px] font-sans font-bold tracking-wider uppercase">
+                      <span>✦</span>
+                      <span>SẮP RA MẮT</span>
+                    </span>
+                    <p className="text-xs sm:text-sm text-neutral-300 font-serif max-w-md mx-auto leading-relaxed italic">
+                      Link GGAI Roleplay của <strong className="text-white font-medium not-italic">{character.name}</strong> hiện chưa phát hành và đang trong quá trình hoàn thiện. Độc giả vui lòng theo dõi để đón chờ ngày mở link chính thức nhé!
+                    </p>
+                  </div>
                 )}
               </div>
             ) : (() => {

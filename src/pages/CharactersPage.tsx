@@ -144,10 +144,11 @@ export function CharactersPage({
   return (
     <div className="min-h-screen bg-[#020203] text-[#f4f4f6] font-content flex flex-col selection:bg-white selection:text-black relative overflow-x-hidden">
       {/* High-Fidelity Noir Background Canvas (Same as HomePage) */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none transform-gpu">
         <img
           src={noirWaveBgUrl}
           alt="Noir Wave Atmosphere Background"
+          decoding="async"
           onError={(e) => {
             const target = e.currentTarget;
             const fallback = resolveDirectImageUrl('/assets/noir-wave-bg.jpg');
@@ -155,10 +156,10 @@ export function CharactersPage({
               target.src = fallback;
             }
           }}
-          className="w-full h-full object-cover object-center opacity-70 contrast-[1.12] brightness-[0.78]"
+          className="w-full h-full object-cover object-center opacity-55"
         />
         {/* Soft atmospheric gradient scrim for pristine contrast and typographic clarity */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#020203]/75 via-black/40 to-[#020203]/90" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#020203]/80 via-black/45 to-[#020203]/92" />
       </div>
 
       {/* Global Top Navbar */}
@@ -617,33 +618,23 @@ export function CharactersPage({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 pt-4">
-            {sorted.map((char) => {
+            {sorted.map((char, idx) => {
               const charGenres = genres.filter((g) => char.genreIds?.includes(g.id));
-              // Red Tag: Strictly only Dong Ky and Gian Di Ninh as requested
-              const isRedTag = char.id === 'dong-ky' || char.id === 'gian-di-ninh';
-              const redLabel = char.id === 'dong-ky' ? '21+ · H NẶNG' : '18+ · NẶNG ĐÔ';
+              // Red Tag: Dong Ky, Nguu Thanh Anh (21+ H NẶNG) and Gian Di Ninh (18+ NẶNG ĐÔ)
+              const isRedTag = char.id === 'dong-ky' || char.id === 'gian-di-ninh' || char.id === 'nguu-thanh-anh';
+              const redLabel =
+                char.id === 'dong-ky' || char.id === 'nguu-thanh-anh' ? '21+ · H NẶNG' : '18+ · NẶNG ĐÔ';
               // New Tag: Strictly only Phan Quy Man and Dong Ky as requested
               const isNew = char.id === 'phan-quy-man' || char.id === 'dong-ky';
-              // Upcoming Tag: For character marked as upcoming
+              // Upcoming Tag: For character marked as upcoming or character whose Roleplay AI link is coming soon
               const isUpcoming = Boolean(char.isUpcoming);
+              const isRoleplayComingSoon = char.id === 'nguu-thanh-anh' && !char.roleplayLink;
 
               return (
                 <div key={char.id} className="relative group flex flex-col pt-3">
                   {/* Floating Badges OUTSIDE the card frame so they are never clipped by the arch curve */}
-                  {(isRedTag || isNew || isUpcoming) && (
+                  {(isRedTag || isNew || isUpcoming || isRoleplayComingSoon) && (
                     <div className="absolute -top-1.5 left-5 z-20 flex items-center gap-1.5 flex-wrap pointer-events-none">
-                      {isUpcoming && (
-                        <div
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0c0c0f] text-rose-300 border border-rose-500/40 shadow-[0_4px_14px_rgba(0,0,0,0.65)] select-none pointer-events-auto"
-                          title="Nhân vật sắp ra mắt trong Archive"
-                        >
-                          <span className="text-rose-400 text-[10px] leading-none">✦</span>
-                          <span className="font-sans font-bold text-[11px] tracking-wide text-rose-300">
-                            SẮP RA MẮT
-                          </span>
-                        </div>
-                      )}
-
                       {isRedTag && !isUpcoming && (
                         <div
                           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#991B1B] text-white border border-rose-400/40 shadow-[0_4px_14px_rgba(153,27,27,0.45)] select-none pointer-events-auto"
@@ -652,6 +643,22 @@ export function CharactersPage({
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-200 animate-pulse" />
                           <span className="font-sans font-bold text-[11px] tracking-wide text-white">
                             {redLabel}
+                          </span>
+                        </div>
+                      )}
+
+                      {(isUpcoming || isRoleplayComingSoon) && (
+                        <div
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0c0c0f] text-rose-300 border border-rose-500/40 shadow-[0_4px_14px_rgba(0,0,0,0.65)] select-none pointer-events-auto"
+                          title={
+                            isUpcoming
+                              ? 'Nhân vật sắp ra mắt trong Archive'
+                              : 'Link Roleplay AI sắp ra mắt — Hồ sơ & Văn án đã mở'
+                          }
+                        >
+                          <span className="text-rose-400 text-[10px] leading-none">✦</span>
+                          <span className="font-sans font-bold text-[11px] tracking-wide text-rose-300">
+                            SẮP RA MẮT
                           </span>
                         </div>
                       )}
@@ -807,10 +814,10 @@ export function CharactersPage({
                         <ImageWithFallback
                           src={char.posterUrl || char.avatarUrl || char.coverUrl}
                           alt={char.name}
-                          priority={true}
+                          priority={idx < 3}
                           targetWidth={800}
                           objectPosition={char.posterObjectPosition || '50% 18%'}
-                          className="w-full h-full object-cover grayscale contrast-[1.12] brightness-[0.96] group-hover:grayscale-0 group-hover:scale-[1.04] transition-all duration-1000 ease-out"
+                          className="w-full h-full object-cover grayscale contrast-[1.12] brightness-[0.96] group-hover:grayscale-0 group-hover:scale-[1.04] transition-transform duration-700 ease-out"
                         />
 
                         {/* Subtle Chiaroscuro Vignette (Clear on face, rich depth at bottom) */}
@@ -883,7 +890,7 @@ export function CharactersPage({
                 {/* Seated Noir Portrait */}
                 <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-black border border-white/15 shadow-2xl group/img1">
                   <ImageWithFallback
-                    src={teaserModalChar.posterUrl || teaserModalChar.avatarUrl || '/assets/aistudio/IMG_0866_692df16d.jpeg'}
+                    src={teaserModalChar.posterUrl || teaserModalChar.avatarUrl || '/assets/optimized/nguu-thanh-anh-card.webp'}
                     alt={teaserModalChar.name}
                     className="w-full h-full object-cover contrast-[1.05] brightness-95 group-hover/img1:scale-105 transition-transform duration-700"
                   />
@@ -896,7 +903,7 @@ export function CharactersPage({
                 {/* Mirror Side Profile Portrait */}
                 <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-black border border-white/15 shadow-2xl group/img2">
                   <ImageWithFallback
-                    src={teaserModalChar.coverUrl || teaserModalChar.avatarUrl || '/assets/aistudio/IMG_0861_1e0d66ac.jpeg'}
+                    src={teaserModalChar.coverUrl || teaserModalChar.avatarUrl || '/assets/optimized/nguu-thanh-anh-home.webp'}
                     alt={teaserModalChar.name}
                     className="w-full h-full object-cover contrast-[1.05] brightness-95 group-hover/img2:scale-105 transition-transform duration-700"
                   />
