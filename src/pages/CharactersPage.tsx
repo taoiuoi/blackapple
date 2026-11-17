@@ -624,8 +624,8 @@ export function CharactersPage({
               const isRedTag = char.id === 'dong-ky' || char.id === 'gian-di-ninh' || char.id === 'nguu-thanh-anh';
               const redLabel =
                 char.id === 'dong-ky' || char.id === 'nguu-thanh-anh' ? '21+ · H NẶNG' : '18+ · NẶNG ĐÔ';
-              // New Tag: Strictly only Phan Quy Man and Dong Ky as requested
-              const isNew = char.id === 'phan-quy-man' || char.id === 'dong-ky';
+              // New Tag: Strictly only Nguu Thanh Anh as requested
+              const isNew = char.id === 'nguu-thanh-anh';
               // Upcoming Tag: For character marked as upcoming or character whose Roleplay AI link is coming soon
               const isUpcoming = Boolean(char.isUpcoming);
               const isRoleplayComingSoon = char.id === 'nguu-thanh-anh' && !char.roleplayLink;

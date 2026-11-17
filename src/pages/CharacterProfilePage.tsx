@@ -27,7 +27,7 @@ import {
   WebsiteSettings
 } from '../types';
 import { INITIAL_CHARACTERS } from '../data/initialData';
-import { parseQuestionAndHint } from '../utils/questionParser';
+import { parseQuestionAndHint, isRoleplayAnswerMatch } from '../utils/questionParser';
 import {
   subscribeComments,
   submitComment,
@@ -779,18 +779,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   // Unlock Private GGAI Link
   const handleUnlockGgai = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanStr = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[.,!?:;'"“”]/g, '');
-    const stripDiacritics = (s: string) =>
-      s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd');
-
-    const expected = cleanStr(character?.roleplayUnlockAnswer || '');
-    const entered = cleanStr(passwordInput);
-
-    const isMatch =
-      !expected ||
-      entered === expected ||
-      stripDiacritics(entered) === stripDiacritics(expected) ||
-      entered === 'blackapple';
+    const isMatch = isRoleplayAnswerMatch(passwordInput, character?.roleplayUnlockAnswer);
 
     if (isMatch) {
       setIsGgaiUnlocked(true);

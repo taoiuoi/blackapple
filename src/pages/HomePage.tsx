@@ -23,7 +23,7 @@ import { HotCharacterSpotlight } from '../components/home/HotCharacterSpotlight'
 import { incrementRoleplayClicks } from '../services/firestoreService';
 import { incrementRoleplayClicksSupabase } from '../services/supabaseService';
 import { getCharacterPath } from '../utils/slugify';
-import { parseQuestionAndHint } from '../utils/questionParser';
+import { parseQuestionAndHint, isRoleplayAnswerMatch } from '../utils/questionParser';
 
 // Helper to extract or display Chinese Name for the archive header
 function getChineseDisplay(char?: Character): string {
@@ -155,18 +155,10 @@ export function HomePage({
 
   const handleUnlockRoleplay = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanStr = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[.,!?:;'"“”]/g, '');
-    const stripDiacritics = (s: string) =>
-      s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd');
-
-    const expected = cleanStr(currentHero.roleplayUnlockAnswer || '');
-    const entered = cleanStr(roleplayPasswordInput);
-
-    const isMatch =
-      !expected ||
-      entered === expected ||
-      stripDiacritics(entered) === stripDiacritics(expected) ||
-      entered === 'blackapple';
+    const isMatch = isRoleplayAnswerMatch(
+      roleplayPasswordInput,
+      currentHero.roleplayUnlockAnswer
+    );
 
     if (isMatch) {
       setShowRoleplayModal(false);
