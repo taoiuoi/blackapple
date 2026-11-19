@@ -61,18 +61,20 @@
     },
     "Confession": {
       "title": "Confession",
-      "description": "Góp ý và tâm sự từ độc giả",
+      "description": "Câu hỏi và tâm sự ẩn danh của độc giả gửi tới Creator",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
+        "id": { "type": "string", "maxLength": 128 },
         "sender": { "type": "string", "maxLength": 100 },
         "content": { "type": "string", "maxLength": 2000 },
         "characterTarget": { "type": "string", "maxLength": 100 },
         "approved": { "type": "boolean" },
         "reply": { "type": "string", "maxLength": 2000 },
-        "createdAt": { "type": "string" }
+        "repliedAt": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
       },
-      "required": ["sender", "content"]
+      "required": ["id", "sender", "content", "approved", "createdAt"]
     },
     "Comment": {
       "title": "Comment",

@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import {
   Comment,
   Character,
+  Confession,
   Genre,
   UpcomingSubscriber,
   CommissionRequest,
@@ -307,7 +308,8 @@ function isInternalStatsRow(id: string): boolean {
     id.startsWith('setting_') ||
     id.startsWith('commreq_') ||
     id.startsWith('cheer_') ||
-    id.startsWith('commreply_')
+    id.startsWith('commreply_') ||
+    id.startsWith('confession_')
   );
 }
 
@@ -852,5 +854,183 @@ export async function deleteCommissionRequestSupabase(id: string): Promise<void>
     console.warn('[Supabase] Could not delete commission request:', err);
   }
 }
+
+// ---------------- CONFESSIONS (HÒM THƯ ẨN DANH & PHẢN HỒI CREATOR) ----------------
+
+export interface SupabaseConfessionsSnapshot {
+  items: Confession[];
+  deletedIds: string[];
+}
+
+export async function fetchConfessionsSupabase(): Promise<SupabaseConfessionsSnapshot> {
+  try {
+    const { data, error } = await supabase
+      .from('character_stats')
+      .select('id, name, updated_at')
+      .like('id', 'confession_%');
+
+    if (error || !data) {
+      return { items: [], deletedIds: [] };
+    }
+
+    const items: Confession[] = [];
+    const deletedIds: string[] = [];
+
+    for (const row of data) {
+      if (!row.name) continue;
+      try {
+        const parsed = JSON.parse(row.name);
+        if (!parsed || typeof parsed !== 'object') continue;
+        const cleanId = parsed.id || row.id.replace(/^confession_/, '');
+        if (parsed.deleted === true) {
+          if (cleanId) deletedIds.push(cleanId);
+          continue;
+        }
+        if (cleanId && typeof parsed.content === 'string' && parsed.content.trim().length > 0) {
+          items.push({
+            id: cleanId,
+            sender: typeof parsed.sender === 'string' && parsed.sender.trim() ? parsed.sender.trim() : 'Ẩn danh',
+            content: parsed.content,
+            characterTarget: typeof parsed.characterTarget === 'string' ? parsed.characterTarget : '',
+            approved: true,
+            reply: typeof parsed.reply === 'string' ? parsed.reply : '',
+            repliedAt: typeof parsed.repliedAt === 'string' ? parsed.repliedAt : '',
+            createdAt: typeof parsed.createdAt === 'string' && parsed.createdAt ? parsed.createdAt : (row.updated_at || new Date().toISOString()),
+            updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : (row.updated_at || parsed.createdAt)
+          });
+        }
+      } catch (_) {}
+    }
+
+    items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return { items, deletedIds };
+  } catch (err) {
+    console.warn('[Supabase] Could not fetch confessions:', err);
+    return { items: [], deletedIds: [] };
+  }
+}
+
+export function subscribeConfessionsSupabase(
+  callback: (snapshot: SupabaseConfessionsSnapshot) => void
+): () => void {
+  fetchConfessionsSupabase().then(callback).catch(() => {});
+
+  const channel = supabase
+    .channel('confessions-realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'character_stats'
+      },
+      (payload) => {
+        const newRow = payload.new as { id?: string } | null;
+        const oldRow = payload.old as { id?: string } | null;
+        const changedId = newRow?.id || oldRow?.id || '';
+        if (changedId.startsWith('confession_')) {
+          fetchConfessionsSupabase().then(callback).catch(() => {});
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export async function submitConfessionSupabase(item: Confession): Promise<void> {
+  try {
+    const cleanId = item.id.replace(/^confession_/, '');
+    const rowId = `confession_${cleanId}`;
+    const now = new Date().toISOString();
+    await supabase.from('character_stats').upsert({
+      id: rowId,
+      name: JSON.stringify({
+        ...item,
+        id: cleanId,
+        approved: true,
+        updatedAt: item.updatedAt || now
+      }),
+      views: 0,
+      roleplay_clicks: 0,
+      updated_at: now
+    });
+  } catch (err) {
+    console.warn('[Supabase] Could not submit confession:', err);
+  }
+}
+
+export async function replyConfessionSupabase(
+  id: string,
+  reply: string,
+  existingItem?: Confession
+): Promise<void> {
+  try {
+    const cleanId = id.replace(/^confession_/, '');
+    const rowId = `confession_${cleanId}`;
+    const now = new Date().toISOString();
+    const trimmedReply = reply.trim().slice(0, 2000);
+
+    let base: Confession | null = existingItem ? { ...existingItem, id: cleanId } : null;
+    try {
+      const { data } = await supabase
+        .from('character_stats')
+        .select('name')
+        .eq('id', rowId)
+        .maybeSingle();
+      if (data?.name) {
+        const parsed = JSON.parse(data.name);
+        if (parsed && !parsed.deleted && parsed.content) {
+          base = { ...base, ...parsed, id: cleanId } as Confession;
+        }
+      }
+    } catch (_) {}
+
+    if (!base) return;
+
+    const updated: Confession = {
+      ...base,
+      id: cleanId,
+      approved: true,
+      reply: trimmedReply,
+      repliedAt: trimmedReply ? now : '',
+      updatedAt: now
+    };
+
+    await supabase.from('character_stats').upsert({
+      id: rowId,
+      name: JSON.stringify(updated),
+      views: 0,
+      roleplay_clicks: 0,
+      updated_at: now
+    });
+  } catch (err) {
+    console.warn('[Supabase] Could not save confession reply:', err);
+  }
+}
+
+export async function deleteConfessionSupabase(id: string): Promise<void> {
+  try {
+    const cleanId = id.replace(/^confession_/, '');
+    const rowId = `confession_${cleanId}`;
+    const now = new Date().toISOString();
+    await supabase.from('character_stats').upsert({
+      id: rowId,
+      name: JSON.stringify({
+        id: cleanId,
+        deleted: true,
+        updatedAt: now
+      }),
+      views: 0,
+      roleplay_clicks: 0,
+      updated_at: now
+    });
+  } catch (err) {
+    console.warn('[Supabase] Could not delete confession:', err);
+  }
+}
+
 
 

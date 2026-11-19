@@ -23,8 +23,9 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.token.email == 'anhitoo8@gmail.com' ||
-        (request.auth.token.email != null && request.auth.token.email.lower() == 'anhitoo8@gmail.com') ||
+        (request.auth.token.email_verified == true &&
+         request.auth.token.email != null &&
+         request.auth.token.email.lower() == 'anhitoo8@gmail.com') ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
@@ -54,6 +55,30 @@ service cloud.firestore {
              data.roughBrief is string && data.roughBrief.size() > 0 && data.roughBrief.size() <= 5000 &&
              data.desiredTimeline is string && data.desiredTimeline.size() > 0 && data.desiredTimeline.size() <= 500 &&
              data.status == 'pending';
+    }
+
+    function isValidConfessionCreate(data, confessionId) {
+      return data.keys().hasAll(['id', 'sender', 'content', 'approved', 'createdAt']) &&
+             data.keys().hasOnly(['id', 'sender', 'content', 'characterTarget', 'approved', 'reply', 'repliedAt', 'createdAt', 'updatedAt']) &&
+             data.id == confessionId &&
+             data.sender is string && data.sender.size() > 0 && data.sender.size() <= 100 &&
+             data.content is string && data.content.size() > 0 && data.content.size() <= 2000 &&
+             (!('characterTarget' in data) || (data.characterTarget is string && data.characterTarget.size() <= 100)) &&
+             data.approved == true &&
+             (!('reply' in data) || data.reply == '') &&
+             (!('repliedAt' in data) || data.repliedAt == '') &&
+             data.createdAt is string && data.createdAt.size() > 0 && data.createdAt.size() <= 64 &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidConfessionUpdate(data) {
+      return (!('sender' in data) || (data.sender is string && data.sender.size() > 0 && data.sender.size() <= 100)) &&
+             (!('content' in data) || (data.content is string && data.content.size() > 0 && data.content.size() <= 2000)) &&
+             (!('characterTarget' in data) || (data.characterTarget is string && data.characterTarget.size() <= 100)) &&
+             (!('approved' in data) || data.approved is bool) &&
+             (!('reply' in data) || (data.reply is string && data.reply.size() <= 2000)) &&
+             (!('repliedAt' in data) || (data.repliedAt is string && data.repliedAt.size() <= 64)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
     }
 
     // Character Collection
@@ -121,13 +146,15 @@ service cloud.firestore {
       }
     }
 
-    // Confessions (Readers can submit unapproved messages)
+    // Confessions (Anonymous Q&A & messages auto-published; Admin can reply or delete)
     match /confessions/{confessionId} {
       allow read: if true;
-      allow create: if incoming().sender is string && incoming().sender.size() <= 100 &&
-                       incoming().content is string && incoming().content.size() <= 2000 &&
-                       incoming().approved == false;
-      allow update, delete: if isValidId(confessionId) && isAdmin();
+      allow create: if isValidId(confessionId) && isValidConfessionCreate(incoming(), confessionId);
+      allow update: if isValidId(confessionId) &&
+                       isAdmin() &&
+                       isValidConfessionUpdate(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['reply', 'repliedAt', 'approved', 'updatedAt']);
+      allow delete: if isValidId(confessionId) && isAdmin();
     }
 
     // Comments (Readers can leave comments for characters)

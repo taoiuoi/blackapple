@@ -50,7 +50,12 @@ import {
   fetchCommissionRequestsSupabase,
   submitCommissionRequestSupabase,
   updateCommissionStatusSupabase,
-  deleteCommissionRequestSupabase
+  deleteCommissionRequestSupabase,
+  fetchConfessionsSupabase,
+  subscribeConfessionsSupabase,
+  submitConfessionSupabase,
+  replyConfessionSupabase,
+  deleteConfessionSupabase
 } from './supabaseService';
 
 // Track if initial seed/migration was checked
@@ -1480,64 +1485,355 @@ export async function deleteMusicTrack(trackId: string): Promise<void> {
   }
 }
 
-// ---------------- CONFESSIONS ----------------
+// ---------------- CONFESSIONS (MULTI-TIER: LOCALSTORAGE + SUPABASE + FIRESTORE) ----------------
+const CONFESSIONS_CACHE_KEY = 'ba_cache_confessions_v2';
+const CONFESSIONS_DELETED_IDS_KEY = 'ba_deleted_confession_ids_v2';
+const CONFESSIONS_UPDATED_EVENT = 'ba:confessions-updated';
+
+function getDeletedConfessionIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(CONFESSIONS_DELETED_IDS_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch (_) {}
+  return new Set();
+}
+
+function markConfessionDeletedLocal(id: string): void {
+  try {
+    const deleted = getDeletedConfessionIds();
+    deleted.add(id);
+    localStorage.setItem(CONFESSIONS_DELETED_IDS_KEY, JSON.stringify(Array.from(deleted).slice(-500)));
+
+    const cached = getCachedFirestoreData<Confession[]>(CONFESSIONS_CACHE_KEY) || [];
+    setCachedFirestoreData(
+      CONFESSIONS_CACHE_KEY,
+      cached.filter((item) => item.id !== id)
+    );
+  } catch (_) {}
+}
+
+function emitConfessionsUpdated(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(CONFESSIONS_UPDATED_EVENT));
+  }
+}
+
+function mergeConfessions(
+  lists: Confession[][],
+  remoteDeletedIds: string[] = []
+): Confession[] {
+  const deleted = new Set<string>([...Array.from(getDeletedConfessionIds()), ...remoteDeletedIds]);
+  const map = new Map<string, Confession>();
+
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const rawItem of list) {
+      if (!rawItem || !rawItem.id || !rawItem.content || deleted.has(rawItem.id)) continue;
+
+      const normalized: Confession = {
+        id: rawItem.id,
+        sender: (rawItem.sender || '').trim() || 'Ẩn danh',
+        content: rawItem.content,
+        characterTarget: (rawItem.characterTarget || '').trim(),
+        approved: true,
+        reply: typeof rawItem.reply === 'string' ? rawItem.reply : '',
+        repliedAt: typeof rawItem.repliedAt === 'string' ? rawItem.repliedAt : '',
+        createdAt: rawItem.createdAt || new Date().toISOString(),
+        updatedAt: rawItem.updatedAt || rawItem.repliedAt || rawItem.createdAt || new Date().toISOString()
+      };
+
+      const existing = map.get(normalized.id);
+      if (!existing) {
+        map.set(normalized.id, normalized);
+      } else {
+        const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+        const incomingTime = normalized.updatedAt ? new Date(normalized.updatedAt).getTime() : 0;
+        if (incomingTime > existingTime) {
+          map.set(normalized.id, {
+            ...existing,
+            ...normalized,
+            reply: normalized.reply !== undefined ? normalized.reply : existing.reply
+          });
+        } else if (incomingTime === existingTime) {
+          // Prefer whichever version carries the Creator reply
+          const mergedReply = normalized.reply || existing.reply || '';
+          const mergedRepliedAt = normalized.repliedAt || existing.repliedAt || '';
+          map.set(normalized.id, {
+            ...existing,
+            ...normalized,
+            reply: mergedReply,
+            repliedAt: mergedRepliedAt
+          });
+        } else if (!existing.reply && normalized.reply) {
+          // Preserve a reply if the older record lacked updatedAt metadata
+          map.set(normalized.id, {
+            ...existing,
+            reply: normalized.reply,
+            repliedAt: normalized.repliedAt || existing.repliedAt || ''
+          });
+        }
+      }
+    }
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
+const mirroredLegacyConfessionIds = new Set<string>();
+
 export function subscribeConfessions(callback: (confessions: Confession[]) => void) {
+  let firestoreList: Confession[] = [];
+  let supabaseList: Confession[] = [];
+  let remoteDeletedIds: string[] = [];
+  let supabaseLoaded = false;
+
+  const emitMerged = () => {
+    const localCached = getCachedFirestoreData<Confession[]>(CONFESSIONS_CACHE_KEY) || [];
+    const merged = mergeConfessions([localCached, firestoreList, supabaseList], remoteDeletedIds);
+    setCachedFirestoreData(CONFESSIONS_CACHE_KEY, merged);
+    callback(merged);
+  };
+
+  const mirrorLegacyFirestoreToSupabase = () => {
+    if (!supabaseLoaded || firestoreList.length === 0) return;
+    const sbIds = new Set(supabaseList.map((c) => c.id));
+    const deletedSet = new Set([...Array.from(getDeletedConfessionIds()), ...remoteDeletedIds]);
+
+    firestoreList.forEach((item) => {
+      if (!item.id || sbIds.has(item.id) || deletedSet.has(item.id) || mirroredLegacyConfessionIds.has(item.id)) {
+        return;
+      }
+      mirroredLegacyConfessionIds.add(item.id);
+      submitConfessionSupabase({ ...item, approved: true }).catch(() => {});
+    });
+  };
+
+  // 1. Instant 0ms delivery from local cache
+  const initialCached = mergeConfessions([getCachedFirestoreData<Confession[]>(CONFESSIONS_CACHE_KEY) || []]);
+  callback(initialCached);
+
+  // 2. Listen to local optimistic updates across components (Home <-> /confessions)
+  const onLocalUpdated = () => {
+    emitMerged();
+  };
+  if (typeof window !== 'undefined') {
+    window.addEventListener(CONFESSIONS_UPDATED_EVENT, onLocalUpdated);
+  }
+
+  // 3. Subscribe to Supabase Realtime + initial fetch
+  const unsubSupabase = subscribeConfessionsSupabase((snapshot) => {
+    supabaseList = snapshot.items;
+    remoteDeletedIds = snapshot.deletedIds;
+    supabaseLoaded = true;
+    emitMerged();
+    mirrorLegacyFirestoreToSupabase();
+  });
+
+  // Also ensure an immediate fetch in case realtime handshake takes a moment
+  fetchConfessionsSupabase()
+    .then((snapshot) => {
+      supabaseList = snapshot.items;
+      remoteDeletedIds = snapshot.deletedIds;
+      supabaseLoaded = true;
+      emitMerged();
+      mirrorLegacyFirestoreToSupabase();
+    })
+    .catch(() => {});
+
+  // 4. Subscribe to Firebase Firestore live collection (preserves all historical confessions)
+  let unsubFirestore = () => {};
   try {
     const q = query(collection(db, 'confessions'));
-    return onSnapshot(
+    unsubFirestore = onSnapshot(
       q,
       (snap) => {
-        const list = snap.docs.map((d) => ({ ...d.data(), id: d.id } as Confession));
-        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        callback(list);
+        firestoreList = snap.docs.map((d) => ({ ...d.data(), id: d.id } as Confession));
+        emitMerged();
+        mirrorLegacyFirestoreToSupabase();
       },
       (error) => {
-        handleFirestoreError(error, OperationType.LIST, 'confessions');
-        callback([]);
+        try {
+          handleFirestoreError(error, OperationType.LIST, 'confessions');
+        } catch (handledErr) {
+          console.warn('[Firestore] Confessions listener warning:', handledErr);
+        }
+        emitMerged();
       }
     );
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, 'confessions');
-    callback([]);
-    return () => {};
+    console.warn('[Firestore] Could not attach confessions listener:', error);
   }
+
+  return () => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener(CONFESSIONS_UPDATED_EVENT, onLocalUpdated);
+    }
+    unsubSupabase();
+    unsubFirestore();
+  };
 }
 
-export async function submitConfession(sender: string, content: string, characterTarget?: string): Promise<void> {
-  const id = `confession-${Date.now()}`;
-  const path = `confessions/${id}`;
-  try {
-    const item: Confession = {
-      id,
-      sender: sender.trim() || 'Độc giả ẩn danh',
-      content: content.trim(),
-      characterTarget: characterTarget || '',
-      approved: false,
-      reply: '',
-      createdAt: new Date().toISOString()
-    };
-    await setDoc(doc(db, 'confessions', id), item);
-  } catch (error) {
-    handleFirestoreError(error, OperationType.CREATE, path);
+export async function submitConfession(
+  sender: string,
+  content: string,
+  characterTarget?: string
+): Promise<Confession> {
+  const cleanContent = content.trim().slice(0, 2000);
+  if (!cleanContent) {
+    throw new Error('Nội dung confession không được để trống.');
   }
+
+  const cleanSender = (sender.trim() || 'Ẩn danh').slice(0, 100);
+  const cleanTarget = (characterTarget || '').trim().slice(0, 100);
+  const id = `confession-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const now = new Date().toISOString();
+
+  const item: Confession = {
+    id,
+    sender: cleanSender,
+    content: cleanContent,
+    characterTarget: cleanTarget,
+    approved: true,
+    reply: '',
+    repliedAt: '',
+    createdAt: now,
+    updatedAt: now
+  };
+
+  // 1. Optimistic local cache + instant UI notification
+  const existing = getCachedFirestoreData<Confession[]>(CONFESSIONS_CACHE_KEY) || [];
+  setCachedFirestoreData(CONFESSIONS_CACHE_KEY, [item, ...existing.filter((c) => c.id !== id)]);
+  emitConfessionsUpdated();
+
+  // 2. Persist in parallel to Supabase & Firebase Firestore
+  const path = `confessions/${id}`;
+  await Promise.allSettled([
+    submitConfessionSupabase(item),
+    (async () => {
+      try {
+        await setDoc(doc(db, 'confessions', id), item);
+      } catch (error) {
+        try {
+          handleFirestoreError(error, OperationType.CREATE, path);
+        } catch (handledErr) {
+          console.warn('[Firestore] Note on confession create sync:', handledErr);
+        }
+      }
+    })()
+  ]);
+
+  return item;
+}
+
+export async function replyConfession(
+  id: string,
+  reply: string,
+  existingItem?: Confession
+): Promise<void> {
+  const trimmedReply = reply.trim().slice(0, 2000);
+  const now = new Date().toISOString();
+  const repliedAt = trimmedReply ? now : '';
+
+  // 1. Optimistic local cache update
+  const cached = getCachedFirestoreData<Confession[]>(CONFESSIONS_CACHE_KEY) || [];
+  const targetItem = existingItem || cached.find((c) => c.id === id);
+  const updatedCached = cached.map((c) =>
+    c.id === id
+      ? {
+          ...c,
+          approved: true,
+          reply: trimmedReply,
+          repliedAt,
+          updatedAt: now
+        }
+      : c
+  );
+  setCachedFirestoreData(CONFESSIONS_CACHE_KEY, updatedCached);
+  emitConfessionsUpdated();
+
+  // 2. Persist in parallel to Supabase & Firebase Firestore
+  const path = `confessions/${id}`;
+  await Promise.allSettled([
+    replyConfessionSupabase(id, trimmedReply, targetItem),
+    (async () => {
+      try {
+        await updateDoc(doc(db, 'confessions', id), {
+          reply: trimmedReply,
+          repliedAt,
+          approved: true,
+          updatedAt: now
+        });
+      } catch (error) {
+        try {
+          handleFirestoreError(error, OperationType.UPDATE, path);
+        } catch (handledErr) {
+          console.warn('[Firestore] Note on confession reply sync:', handledErr);
+        }
+      }
+    })()
+  ]);
 }
 
 export async function updateConfession(id: string, updates: Partial<Confession>): Promise<void> {
+  const now = new Date().toISOString();
+  const safeUpdates: Partial<Confession> = {
+    ...updates,
+    updatedAt: now
+  };
+
+  const cached = getCachedFirestoreData<Confession[]>(CONFESSIONS_CACHE_KEY) || [];
+  const target = cached.find((c) => c.id === id);
+  setCachedFirestoreData(
+    CONFESSIONS_CACHE_KEY,
+    cached.map((c) => (c.id === id ? { ...c, ...safeUpdates } : c))
+  );
+  emitConfessionsUpdated();
+
   const path = `confessions/${id}`;
-  try {
-    await updateDoc(doc(db, 'confessions', id), updates);
-  } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, path);
-  }
+  await Promise.allSettled([
+    updates.reply !== undefined
+      ? replyConfessionSupabase(id, updates.reply, target)
+      : Promise.resolve(),
+    (async () => {
+      try {
+        await updateDoc(doc(db, 'confessions', id), safeUpdates);
+      } catch (error) {
+        try {
+          handleFirestoreError(error, OperationType.UPDATE, path);
+        } catch (handledErr) {
+          console.warn('[Firestore] Note on confession update sync:', handledErr);
+        }
+      }
+    })()
+  ]);
 }
 
 export async function deleteConfession(id: string): Promise<void> {
+  // 1. Mark deleted locally + remove from cache immediately
+  markConfessionDeletedLocal(id);
+  emitConfessionsUpdated();
+
+  // 2. Delete / tombstone in both Supabase & Firebase Firestore
   const path = `confessions/${id}`;
-  try {
-    await deleteDoc(doc(db, 'confessions', id));
-  } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, path);
-  }
+  await Promise.allSettled([
+    deleteConfessionSupabase(id),
+    (async () => {
+      try {
+        await deleteDoc(doc(db, 'confessions', id));
+      } catch (error) {
+        try {
+          handleFirestoreError(error, OperationType.DELETE, path);
+        } catch (handledErr) {
+          console.warn('[Firestore] Note on confession delete sync:', handledErr);
+        }
+      }
+    })()
+  ]);
 }
 
 // ---------------- COMMENTS ----------------

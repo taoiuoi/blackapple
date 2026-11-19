@@ -407,6 +407,7 @@ export default function App() {
           element={
             <HomePage
               characters={characters}
+              creatorProfile={creatorProfile}
               settings={settings}
               isAdmin={isAdmin}
               onOpenAdmin={handleOpenAdmin}
@@ -516,11 +517,14 @@ export default function App() {
           path="/confessions"
           element={
             <ConfessionsPage
+              characters={characters}
+              creatorProfile={creatorProfile}
               settings={settings}
               isAdmin={isAdmin}
               onOpenAdmin={handleOpenAdmin}
               isAudioPlaying={isAudioPlaying}
               onToggleAudio={() => setIsAudioPlaying(!isAudioPlaying)}
+              onReplayIntro={handleReplayIntro}
             />
           }
         />

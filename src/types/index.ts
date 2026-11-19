@@ -113,7 +113,9 @@ export interface Confession {
   characterTarget?: string;
   approved: boolean;
   reply?: string;
+  repliedAt?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Comment {

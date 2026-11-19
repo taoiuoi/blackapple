@@ -13,13 +13,14 @@ import {
   Sparkles,
   ShieldAlert
 } from 'lucide-react';
-import { Character, WebsiteSettings } from '../types';
+import { Character, CreatorProfile, WebsiteSettings } from '../types';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { preloadImage, resolveDirectImageUrl } from '../utils/imageOptimizer';
 import noirWaveBgUrl from '../assets/images/noir-wave-bg.webp';
 import { HotCharacterSpotlight } from '../components/home/HotCharacterSpotlight';
+import { HomeConfessionSection } from '../components/home/HomeConfessionSection';
 import { incrementRoleplayClicks } from '../services/firestoreService';
 import { incrementRoleplayClicksSupabase } from '../services/supabaseService';
 import { getCharacterPath } from '../utils/slugify';
@@ -38,6 +39,7 @@ function getChineseDisplay(char?: Character): string {
 
 interface HomePageProps {
   characters: Character[];
+  creatorProfile?: CreatorProfile;
   settings: WebsiteSettings;
   isAdmin: boolean;
   onOpenAdmin: () => void;
@@ -53,6 +55,7 @@ interface HomePageProps {
 
 export function HomePage({
   characters,
+  creatorProfile,
   settings,
   isAdmin,
   onOpenAdmin,
@@ -479,6 +482,17 @@ export function HomePage({
               window.open(char.roleplayLink, '_blank', 'noopener,noreferrer');
             }
           }}
+        />
+      </div>
+
+      {/* =========================================================
+          ANONYMOUS CONFESSION & CREATOR Q&A ARCHIVE (DIRECT ON HOME)
+      ========================================================= */}
+      <div className="relative z-10">
+        <HomeConfessionSection
+          characters={characters}
+          creatorProfile={creatorProfile}
+          isAdmin={isAdmin}
         />
       </div>
 
