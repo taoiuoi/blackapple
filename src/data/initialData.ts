@@ -211,6 +211,72 @@ export const INITIAL_GENRES: Genre[] = [
     "order": 35,
     "name": "Tâm lý vặn vẹo",
     "id": "tam-ly-van-veo"
+  },
+  {
+    "description": "",
+    "order": 36,
+    "name": "R18/21+",
+    "id": "r18-21-plus"
+  },
+  {
+    "description": "",
+    "order": 37,
+    "name": "NSFW",
+    "id": "nsfw"
+  },
+  {
+    "description": "",
+    "order": 38,
+    "name": "NTR",
+    "id": "ntr"
+  },
+  {
+    "description": "",
+    "order": 39,
+    "name": "Vệ sĩ x Tiểu thư",
+    "id": "ve-si-x-tieu-thu"
+  },
+  {
+    "description": "",
+    "order": 40,
+    "name": "Nam trà xanh",
+    "id": "nam-tra-xanh"
+  },
+  {
+    "description": "",
+    "order": 41,
+    "name": "Tâm cơ",
+    "id": "tam-co"
+  },
+  {
+    "description": "",
+    "order": 42,
+    "name": "Redflag",
+    "id": "redflag"
+  },
+  {
+    "description": "",
+    "order": 43,
+    "name": "Trapboy",
+    "id": "trapboy"
+  },
+  {
+    "description": "",
+    "order": 44,
+    "name": "Thân phận ẩn",
+    "id": "than-phan-an"
+  },
+  {
+    "description": "",
+    "order": 45,
+    "name": "Mập mờ",
+    "id": "map-mo"
+  },
+  {
+    "description": "",
+    "order": 46,
+    "name": "Vụng trộm",
+    "id": "vung-trom"
   }
 ];
 

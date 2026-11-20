@@ -156,7 +156,7 @@ export default function App() {
       ['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9'].forEach((v) => {
         localStorage.removeItem(`ba_cache_characters_${v}`);
       });
-      ['nguy-tu-viet', 'gian-di-ninh', 'chu-lac-thien', 'luc-tu-hien', 'phan-quy-man', 'dong-ky', 'nguu-thanh-anh'].forEach((cid) => {
+      ['nguy-tu-viet', 'gian-di-ninh', 'chu-lac-thien', 'luc-tu-hien', 'phan-quy-man', 'dong-ky', 'nguu-thanh-anh', 'kurokawa-asahi'].forEach((cid) => {
         localStorage.removeItem(`ba_char_${cid}_avatarUrl`);
         localStorage.removeItem(`ba_char_${cid}_coverUrl`);
         localStorage.removeItem(`ba_char_${cid}_posterUrl`);
@@ -407,6 +407,7 @@ export default function App() {
           element={
             <HomePage
               characters={characters}
+              genres={genres}
               creatorProfile={creatorProfile}
               settings={settings}
               isAdmin={isAdmin}

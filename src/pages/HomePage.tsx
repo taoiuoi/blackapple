@@ -13,13 +13,14 @@ import {
   Sparkles,
   ShieldAlert
 } from 'lucide-react';
-import { Character, CreatorProfile, WebsiteSettings } from '../types';
+import { Character, CreatorProfile, Genre, WebsiteSettings } from '../types';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { preloadImage, resolveDirectImageUrl } from '../utils/imageOptimizer';
 import noirWaveBgUrl from '../assets/images/noir-wave-bg.webp';
 import { HotCharacterSpotlight } from '../components/home/HotCharacterSpotlight';
+import { UpcomingCharacterSpotlight } from '../components/home/UpcomingCharacterSpotlight';
 import { HomeConfessionSection } from '../components/home/HomeConfessionSection';
 import { incrementRoleplayClicks } from '../services/firestoreService';
 import { incrementRoleplayClicksSupabase } from '../services/supabaseService';
@@ -39,6 +40,7 @@ function getChineseDisplay(char?: Character): string {
 
 interface HomePageProps {
   characters: Character[];
+  genres?: Genre[];
   creatorProfile?: CreatorProfile;
   settings: WebsiteSettings;
   isAdmin: boolean;
@@ -55,6 +57,7 @@ interface HomePageProps {
 
 export function HomePage({
   characters,
+  genres,
   creatorProfile,
   settings,
   isAdmin,
@@ -177,14 +180,26 @@ export function HomePage({
   };
 
   const chineseDisplay = getChineseDisplay(currentHero);
-  const isRedTag = currentHero.id === 'dong-ky' || currentHero.id === 'gian-di-ninh' || currentHero.id === 'nguu-thanh-anh';
-  const redLabel = currentHero.id === 'dong-ky' || currentHero.id === 'nguu-thanh-anh' ? '21+ · H NẶNG' : '18+ · NẶNG ĐÔ';
-  const isComingSoonTag = currentHero.id === 'nguu-thanh-anh' && !currentHero.roleplayLink;
-  const heroQuote = currentHero.profileData?.quote || currentHero.tagline || 'Ván này, anh chưa nhận thua.';
-  const formattedQuote =
-    heroQuote.startsWith('“') || heroQuote.startsWith('"')
+  const isRedTag =
+    currentHero.id === 'dong-ky' ||
+    currentHero.id === 'gian-di-ninh' ||
+    currentHero.id === 'nguu-thanh-anh' ||
+    currentHero.id === 'kurokawa-asahi';
+  const redLabel =
+    currentHero.id === 'kurokawa-asahi'
+      ? 'R18/21+ · NSFW'
+      : currentHero.id === 'dong-ky' || currentHero.id === 'nguu-thanh-anh'
+      ? '21+ · H NẶNG'
+      : '18+ · NẶNG ĐÔ';
+  const isComingSoonTag =
+    (currentHero.id === 'nguu-thanh-anh' || currentHero.id === 'kurokawa-asahi') &&
+    !currentHero.roleplayLink;
+  const heroQuote = (currentHero.profileData?.quote || currentHero.tagline || '').trim();
+  const formattedQuote = heroQuote
+    ? heroQuote.startsWith('“') || heroQuote.startsWith('"')
       ? heroQuote
-      : `“${heroQuote}”`;
+      : `“${heroQuote}”`
+    : '';
   const novelTitle = currentHero.originalNovelTitle
     ? currentHero.originalNovelTitle.toLowerCase()
     : 'black apple archive';
@@ -229,6 +244,13 @@ export function HomePage({
 
       {/* Balanced Centered Editorial Column with comfortable mobile & desktop breathing space */}
       <main className="relative z-10 flex-1 w-[88%] max-w-[360px] sm:max-w-[460px] mx-auto pt-5 sm:pt-8 pb-14">
+        {/* Upcoming Character Spotlight (Renders automatically when any character is marked isUpcoming) */}
+        <UpcomingCharacterSpotlight
+          characters={characters}
+          genres={genres}
+          isAdmin={isAdmin}
+        />
+
         {/* Top Micro Controls & Auto-Slide Indicator (When > 1 Character) */}
         {total > 1 && (
           <div className="mb-3 flex items-center justify-between text-[9.5px] sm:text-[10px] tracking-[0.16em] uppercase text-neutral-400">
@@ -413,19 +435,21 @@ export function HomePage({
                 </span>
               </div>
 
-              {/* Hairline Divider */}
-              <div className="w-full h-[1px] bg-black/10" />
-
-              {/* Signature Quote in Classic Editorial Italic */}
-              <div
-                onClick={() => navigate(getCharacterPath(currentHero))}
-                className="cursor-pointer group/quote"
-                title="Nhấn để xem chi tiết hồ sơ nhân vật"
-              >
-                <p className="font-editorial italic text-[13px] sm:text-[14px] text-[#2A2A2D] font-normal leading-relaxed tracking-wide group-hover/quote:text-[#7F1D1D] transition-colors">
-                  {formattedQuote}
-                </p>
-              </div>
+              {/* Hairline Divider & Signature Quote (only when set) */}
+              {formattedQuote && (
+                <>
+                  <div className="w-full h-[1px] bg-black/10" />
+                  <div
+                    onClick={() => navigate(getCharacterPath(currentHero))}
+                    className="cursor-pointer group/quote"
+                    title="Nhấn để xem chi tiết hồ sơ nhân vật"
+                  >
+                    <p className="font-editorial italic text-[13px] sm:text-[14px] text-[#2A2A2D] font-normal leading-relaxed tracking-wide group-hover/quote:text-[#7F1D1D] transition-colors">
+                      {formattedQuote}
+                    </p>
+                  </div>
+                </>
+              )}
 
               {/* Footer Row: Metrics & Navigate to Profile */}
               <div className="pt-2.5 border-t border-black/[0.08] flex items-center justify-between text-[9.5px] sm:text-[10px]">

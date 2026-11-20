@@ -6,6 +6,7 @@ import { lucTuHien } from './lucTuHien';
 import { phanQuyMan } from './phanQuyMan';
 import { dongKy } from './dongKy';
 import { nguuThanhAnh } from './nguuThanhAnh';
+import { kurokawaAsahi } from './kurokawaAsahi';
 
 export {
   nguyTuViet,
@@ -14,7 +15,8 @@ export {
   lucTuHien,
   phanQuyMan,
   dongKy,
-  nguuThanhAnh
+  nguuThanhAnh,
+  kurokawaAsahi
 };
 
 export const ALL_CHARACTERS: Character[] = [
@@ -24,5 +26,6 @@ export const ALL_CHARACTERS: Character[] = [
   lucTuHien,
   phanQuyMan,
   dongKy,
-  nguuThanhAnh
+  nguuThanhAnh,
+  kurokawaAsahi
 ];

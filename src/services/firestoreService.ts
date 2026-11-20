@@ -68,7 +68,8 @@ export const CANONICAL_CHAR_IDS = new Set([
   'luc-tu-hien',
   'phan-quy-man',
   'dong-ky',
-  'nguu-thanh-anh'
+  'nguu-thanh-anh',
+  'kurokawa-asahi'
 ]);
 
 const LEGACY_SAMPLE_CHAR_IDS = new Set([
@@ -765,9 +766,7 @@ export async function incrementRoleplayClicks(characterId: string): Promise<void
 }
 
 // ---------------- UPCOMING CHARACTER CHEERS (NGÓNG CHỜ NHÂN VẬT) ----------------
-const BASE_UPCOMING_CHEERS = 246;
-
-export function hasUserCheeredUpcoming(characterId: string = 'nguu-thanh-anh'): boolean {
+export function hasUserCheeredUpcoming(characterId: string): boolean {
   try {
     return localStorage.getItem(`ba_cheered_${characterId}`) === 'true';
   } catch (_) {
@@ -775,9 +774,9 @@ export function hasUserCheeredUpcoming(characterId: string = 'nguu-thanh-anh'): 
   }
 }
 
-export async function getUpcomingCheerCount(characterId: string = 'nguu-thanh-anh'): Promise<number> {
+export async function getUpcomingCheerCount(characterId: string): Promise<number> {
   const localKey = `ba_cheer_count_${characterId}`;
-  let count = BASE_UPCOMING_CHEERS;
+  let count = 0;
   try {
     const cached = localStorage.getItem(localKey);
     if (cached) {
@@ -809,10 +808,10 @@ export async function getUpcomingCheerCount(characterId: string = 'nguu-thanh-an
   return count;
 }
 
-export async function incrementUpcomingCheer(characterId: string = 'nguu-thanh-anh'): Promise<number> {
+export async function incrementUpcomingCheer(characterId: string): Promise<number> {
   const localKey = `ba_cheer_count_${characterId}`;
   const localCheeredKey = `ba_cheered_${characterId}`;
-  let current = BASE_UPCOMING_CHEERS;
+  let current = 0;
 
   try {
     const cached = localStorage.getItem(localKey);
@@ -858,15 +857,27 @@ export async function incrementUpcomingCheer(characterId: string = 'nguu-thanh-a
 }
 
 // ---------------- GENRES ----------------
+function mergeWithInitialGenres(remoteList: Genre[]): Genre[] {
+  const map = new Map<string, Genre>();
+  INITIAL_GENRES.forEach((g) => map.set(g.id, g));
+  remoteList.forEach((g) => {
+    if (!LEGACY_SAMPLE_GENRE_IDS.has(g.id)) {
+      map.set(g.id, g);
+    }
+  });
+  const list = Array.from(map.values());
+  list.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
+  return list;
+}
+
 export async function getGenres(): Promise<Genre[]> {
   try {
     const snap = await getDocs(collection(db, 'genres'));
-    if (snap.empty) return [];
-    const list = snap.docs
+    if (snap.empty) return INITIAL_GENRES;
+    const remote = snap.docs
       .filter((d) => !LEGACY_SAMPLE_GENRE_IDS.has(d.id))
       .map((d) => ({ ...d.data(), id: d.id } as Genre));
-    list.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
-    return list;
+    return mergeWithInitialGenres(remote);
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, 'genres');
     return INITIAL_GENRES;
@@ -879,13 +890,12 @@ export function subscribeGenres(callback: (genres: Genre[]) => void) {
       collection(db, 'genres'),
       (snap) => {
         if (snap.empty) {
-          callback([]);
+          callback(INITIAL_GENRES);
         } else {
-          const list = snap.docs
+          const remote = snap.docs
             .filter((d) => !LEGACY_SAMPLE_GENRE_IDS.has(d.id))
             .map((d) => ({ ...d.data(), id: d.id } as Genre));
-          list.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
-          callback(list);
+          callback(mergeWithInitialGenres(remote));
         }
       },
       (error) => {

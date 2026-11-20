@@ -49,6 +49,7 @@ import {
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
+import { FormattedSynopsis } from '../components/character/FormattedSynopsis';
 import { QuickScrollScrubber } from '../components/common/QuickScrollScrubber';
 import { matchesCharacter, getCharacterSlug } from '../utils/slugify';
 
@@ -404,7 +405,9 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
   // If character is marked as Upcoming, render dedicated Teaser Screen without blank/incomplete dossier
   if (character.isUpcoming) {
     const teaserImg =
-      character.posterUrl || character.coverUrl || character.avatarUrl || '/assets/characters/upcoming-teaser.jpg';
+      character.posterUrl || character.synopsisImageUrl || character.coverUrl || character.avatarUrl;
+    const upcomingGenres = genres.filter((g) => character.genreIds?.includes(g.id));
+
     return (
       <div className="min-h-screen bg-[#070709] text-neutral-100 flex flex-col selection:bg-white selection:text-black">
         <Navbar
@@ -423,11 +426,14 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
             </span>
           </div>
 
-          <div className="w-full aspect-[3/3.8] max-w-[300px] rounded-xl overflow-hidden bg-neutral-900 border border-white/20 shadow-[0_25px_60px_rgba(0,0,0,0.9)] mb-5 relative">
+          <div className="w-full aspect-[3/3.8] max-w-[320px] rounded-xl overflow-hidden bg-neutral-900 border border-white/20 shadow-[0_25px_60px_rgba(0,0,0,0.9)] mb-5 relative">
             <ImageWithFallback
               src={teaserImg}
               alt={character.name}
-              className="w-full h-full object-cover grayscale contrast-[1.12]"
+              priority={true}
+              targetWidth={900}
+              objectPosition={character.posterObjectPosition || '50% 20%'}
+              className="w-full h-full object-cover contrast-[1.06] brightness-95"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none" />
             <div className="absolute bottom-3 left-4 text-left">
@@ -435,16 +441,34 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                 {character.name}
               </span>
               {character.originalChineseName && (
-                <span className="text-xs font-serif text-neutral-300 italic">
+                <span className="text-xs font-serif text-neutral-300 tracking-widest">
                   {character.originalChineseName}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 max-w-[380px] mb-4">
+          {upcomingGenres.length > 0 && (
+            <div className="max-w-[380px] mb-4 space-y-1">
+              <span className="text-[9.5px] font-serif uppercase tracking-[0.22em] text-neutral-400 block">
+                Thể loại
+              </span>
+              <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs font-serif text-neutral-200 leading-relaxed">
+                {upcomingGenres.map((g, idx) => (
+                  <React.Fragment key={g.id}>
+                    <span>{g.name}</span>
+                    {idx < upcomingGenres.length - 1 && (
+                      <span className="text-neutral-600 select-none">·</span>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 max-w-[380px] w-full mb-4">
             <p className="font-serif italic text-xs sm:text-sm text-neutral-200 leading-relaxed font-light">
-              {character.tagline || '“Người muốn cứu chuộc tôi chưa từng xuất hiện, cho đến khi em bước qua lằn ranh này.”'}
+              {character.tagline || character.upcomingReleaseNote || 'Hồ sơ đang niêm phong · Sắp ra mắt trong BLACK APPLE Archive.'}
             </p>
           </div>
 
@@ -931,18 +955,28 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
 
           {/* Top Centered Roman / Code Header ("XIV. CLAIS / lugar, seguro" vibe) */}
           <div className="text-center mb-10 sm:mb-14 space-y-2.5">
-            {(character.id === 'nguu-thanh-anh' || character.id === 'dong-ky' || character.id === 'gian-di-ninh') && (
+            {(character.id === 'nguu-thanh-anh' ||
+              character.id === 'dong-ky' ||
+              character.id === 'gian-di-ninh' ||
+              character.id === 'kurokawa-asahi') && (
               <div className="flex items-center justify-center gap-2 flex-wrap mb-1">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#991B1B] text-white border border-rose-400/40 shadow-sm font-sans font-bold text-[10px] tracking-wide">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-200 animate-pulse" />
-                  <span>{character.id === 'gian-di-ninh' ? '18+ · NẶNG ĐÔ' : '21+ · H NẶNG'}</span>
-                </span>
-                {character.id === 'nguu-thanh-anh' && !character.roleplayLink && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#141418] text-rose-300 border border-rose-500/40 shadow-sm font-sans font-bold text-[10px] tracking-wide">
-                    <span className="text-rose-400 text-[10px] leading-none">✦</span>
-                    <span>SẮP RA MẮT</span>
+                  <span>
+                    {character.id === 'kurokawa-asahi'
+                      ? 'R18/21+ · NSFW'
+                      : character.id === 'gian-di-ninh'
+                      ? '18+ · NẶNG ĐÔ'
+                      : '21+ · H NẶNG'}
                   </span>
-                )}
+                </span>
+                {(character.id === 'nguu-thanh-anh' || character.id === 'kurokawa-asahi') &&
+                  !character.roleplayLink && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#141418] text-rose-300 border border-rose-500/40 shadow-sm font-sans font-bold text-[10px] tracking-wide">
+                      <span className="text-rose-400 text-[10px] leading-none">✦</span>
+                      <span>SẮP RA MẮT</span>
+                    </span>
+                  )}
               </div>
             )}
             <h1 className="text-sm sm:text-base font-bold tracking-[0.08em] uppercase text-[#161618]">
@@ -1787,41 +1821,59 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                   </h3>
                 </div>
 
-                {/* 3 Thẻ Sở thích, Không thích, Dị ứng theo phong cách trang sách cổ điển */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {character.profileData.hobbies && (
-                    <div className="p-5 rounded-lg bg-[#F5F4EE] border border-black/[0.06] space-y-1.5">
-                      <span className="font-editorial italic text-xs text-neutral-800 block">
-                        Thích
-                      </span>
-                      <p className="font-serif text-xs sm:text-[13px] text-neutral-700 leading-relaxed">
-                        {character.profileData.hobbies}
-                      </p>
-                    </div>
-                  )}
+                {/* Thẻ Sở thích, Không thích, Dị ứng thích ứng linh hoạt theo số mục có nội dung */}
+                {(() => {
+                  const prefCount = [
+                    character.profileData.hobbies,
+                    character.profileData.dislikes,
+                    character.profileData.allergies
+                  ].filter(Boolean).length;
+                  if (prefCount === 0) return null;
+                  const gridColsClass =
+                    prefCount === 1
+                      ? 'grid-cols-1'
+                      : prefCount === 2
+                      ? 'grid-cols-1 sm:grid-cols-2'
+                      : 'grid-cols-1 sm:grid-cols-3';
+                  return (
+                    <div className={`grid ${gridColsClass} gap-4`}>
+                      {character.profileData.hobbies && (
+                        <div className="p-5 rounded-lg bg-[#F5F4EE] border border-black/[0.06] space-y-1.5">
+                          {prefCount > 1 && (
+                            <span className="font-editorial italic text-xs text-neutral-800 block">
+                              Thích
+                            </span>
+                          )}
+                          <p className="font-serif text-xs sm:text-[14px] text-neutral-700 leading-[2.1] whitespace-pre-line">
+                            {character.profileData.hobbies}
+                          </p>
+                        </div>
+                      )}
 
-                  {character.profileData.dislikes && (
-                    <div className="p-5 rounded-lg bg-[#F5F4EE] border border-black/[0.06] space-y-1.5">
-                      <span className="font-editorial italic text-xs text-neutral-800 block">
-                        Không thích
-                      </span>
-                      <p className="font-serif text-xs sm:text-[13px] text-neutral-700 leading-relaxed">
-                        {character.profileData.dislikes}
-                      </p>
-                    </div>
-                  )}
+                      {character.profileData.dislikes && (
+                        <div className="p-5 rounded-lg bg-[#F5F4EE] border border-black/[0.06] space-y-1.5">
+                          <span className="font-editorial italic text-xs text-neutral-800 block">
+                            Không thích
+                          </span>
+                          <p className="font-serif text-xs sm:text-[13px] text-neutral-700 leading-relaxed">
+                            {character.profileData.dislikes}
+                          </p>
+                        </div>
+                      )}
 
-                  {character.profileData.allergies && (
-                    <div className="p-5 rounded-lg bg-[#F5F4EE] border border-black/[0.06] space-y-1.5">
-                      <span className="font-editorial italic text-xs text-neutral-800 block">
-                        Dị ứng
-                      </span>
-                      <p className="font-serif text-xs sm:text-[13px] text-neutral-700 leading-relaxed">
-                        {character.profileData.allergies}
-                      </p>
+                      {character.profileData.allergies && (
+                        <div className="p-5 rounded-lg bg-[#F5F4EE] border border-black/[0.06] space-y-1.5">
+                          <span className="font-editorial italic text-xs text-neutral-800 block">
+                            Dị ứng
+                          </span>
+                          <p className="font-serif text-xs sm:text-[13px] text-neutral-700 leading-relaxed">
+                            {character.profileData.allergies}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
 
                 {/* Thói quen đặc trưng */}
                 {character.profileData.habits && character.profileData.habits.length > 0 && (
@@ -2219,7 +2271,7 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                   {character.originalNovelTitle?.toLowerCase() || 'black apple archive'}
                 </span>
                 <h2 className="font-editorial italic text-2xl sm:text-4xl text-[#161618]">
-                  “{character.tagline}”
+                  {character.tagline?.trim() ? `“${character.tagline}”` : character.name}
                 </h2>
                 <div
                   className={`w-12 h-[1px] mx-auto mt-5 ${
@@ -2361,15 +2413,15 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                     </div>
                   )}
 
-                  <div className="text-xs sm:text-[14px] text-neutral-700 leading-[2.05] whitespace-pre-line font-serif max-w-[600px] mx-auto">
-                    {character.synopsis?.trim() ? (
-                      character.synopsis
-                    ) : (
+                  {character.synopsis?.trim() ? (
+                    <FormattedSynopsis text={character.synopsis} />
+                  ) : (
+                    <div className="text-xs sm:text-[14px] text-neutral-700 leading-[2.05] font-serif max-w-[600px] mx-auto">
                       <p className="text-center italic text-neutral-400">
                         Văn án chính thức của {character.name} đang được cập nhật.
                       </p>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -2534,7 +2586,12 @@ export const CharacterProfilePage: React.FC<CharacterProfilePageProps> = ({
                   <span className="text-neutral-400 font-serif">—</span>
                   <span>{(character.roleplayClicks || 0).toLocaleString()} LƯỢT NHẬN LINK</span>
                 </span>
-                {character.isRoleplayLocked ? (
+                {!character.roleplayLink ? (
+                  <span className="px-3.5 py-1 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/35 text-[10px] tracking-[0.18em] uppercase font-sans font-bold flex items-center gap-1.5">
+                    <span>✦</span>
+                    <span>SẮP RA MẮT</span>
+                  </span>
+                ) : character.isRoleplayLocked ? (
                   <span className="px-3.5 py-1 rounded-full bg-white/[0.1] text-white text-[10px] tracking-[0.18em] uppercase font-serif font-semibold flex items-center gap-1.5 border border-white/25 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35)]">
                     <Lock className="w-3 h-3 text-amber-300" />
                     <span>PRIVATE · YÊU CẦU PASS</span>

@@ -631,20 +631,27 @@ export async function fetchUpcomingSubscribersSupabase(): Promise<UpcomingSubscr
 }
 
 // ---------------- UPCOMING CHEERS SYNC (SUPABASE) ----------------
-export async function syncUpcomingCheerSupabase(characterId: string = 'nguu-thanh-anh'): Promise<void> {
+export async function syncUpcomingCheerSupabase(
+  characterId: string,
+  characterName?: string
+): Promise<void> {
+  const displayName =
+    characterName ||
+    INITIAL_CHARACTERS.find((c) => c.id === characterId)?.name ||
+    characterId;
   try {
     // 1. Log cheer event to upcoming_subscribers with note
     await supabase.from('upcoming_subscribers').insert({
       id: `cheer-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       character_id: characterId,
-      character_name: 'Ngưu Thánh Anh',
+      character_name: displayName,
       email: 'reader@cheer.local',
       reader_name: 'Độc giả ngóng chờ',
       note: '✦ Tín hiệu ngóng chờ nhân vật khởi chiếu',
       created_at: new Date().toISOString()
     });
 
-    // 2. Increment stats record
+    // 2. Ensure stats record exists
     const { data } = await supabase
       .from('character_stats')
       .select('id, views, roleplay_clicks')
@@ -654,8 +661,8 @@ export async function syncUpcomingCheerSupabase(characterId: string = 'nguu-than
     if (!data) {
       await supabase.from('character_stats').insert({
         id: characterId,
-        name: 'Ngưu Thánh Anh',
-        views: 1,
+        name: displayName,
+        views: 0,
         roleplay_clicks: 0
       });
     }
